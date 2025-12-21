@@ -1,1 +1,4 @@
 viz
+internal/static/bundle.js
+internal/static/bundle.js.map
+/node_modules/

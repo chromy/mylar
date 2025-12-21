@@ -90,13 +90,30 @@ func (dev *DevServer) startServeWithLock() {
 
 func (dev *DevServer) rebuildWithLock() {
 	start := time.Now()
-	cmd := exec.Command("go", "build", "cmd/viz/viz.go")
-	output, err := cmd.CombinedOutput()
+
+	var err error
+
 	if err == nil {
-		dev.latestError = nil
-	} else {
-		dev.latestError = output
+		cmd := exec.Command("pnpm", "exec", "esbuild", "js/bundle.ts", "--bundle", "--minify", "--outdir=internal/static", "--log-level=warning", "--sourcemap")
+		output, err := cmd.CombinedOutput()
+		log.Printf("%s\n", output)
+		if err == nil {
+			dev.latestError = nil
+		} else {
+			dev.latestError = output
+		}
 	}
+
+	if err == nil {
+		cmd := exec.Command("go", "build", "cmd/viz/viz.go")
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			dev.latestError = nil
+		} else {
+			dev.latestError = output
+		}
+	}
+
 	elapsed := time.Now().Sub(start)
 
 	log.Printf("rebuilt in %6dms\n", elapsed.Milliseconds())
@@ -131,7 +148,7 @@ func (dev *DevServer) checkForChanges() bool {
 		lastMod, exists := dev.lastModTime[path]
 
 		ext := filepath.Ext(path)
-		if ext != ".go" && ext != ".html" && ext != ".css" && ext != ".js" {
+		if ext != ".go" && ext != ".html" && ext != ".css" && ext != ".ts" {
 			return nil
 		}
 
