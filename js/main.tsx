@@ -150,26 +150,25 @@ async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
   return await response.json();
 }
 
-const FileMetadataSchema = z.object({
-  path: z.string(),
-  name: z.string(),
-  size: z.number(),
-  isDir: z.boolean(),
-  children: z.optional(z.array(z.string())),
-});
+//const FileMetadataReponseSchema = z.object({
+//  path: z.string(),
+//  name: z.string(),
+//  size: z.number(),
+//  isDir: z.boolean(),
+//  children: z.optional(z.array(z.string())),
+//});
 
-const IndexStatusSchema = z.object({
+const IndexStatusResponseSchema = z.object({
   message: z.string(),
   fileCount: z.number(),
 });
 
-type FileMetadata = z.infer<typeof FileMetadataSchema>;
 
 function App() {
 
   const { data, isLoading, isError, error } = useJsonQuery({
     path: "/api/index/status",
-    schema: IndexStatusSchema,
+    schema: IndexStatusResponseSchema,
   });
 
   if (isLoading) {
