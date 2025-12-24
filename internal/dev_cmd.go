@@ -105,6 +105,17 @@ func (dev *DevServer) rebuildWithLock() {
 	}
 
 	if err == nil {
+		cmd := exec.Command("pnpm", "exec", "tailwindcss", "--input", "css/main.css", "--output", "internal/static/bundle.css")
+		output, err := cmd.CombinedOutput()
+		log.Printf("%s\n", output)
+		if err == nil {
+			dev.latestError = nil
+		} else {
+			dev.latestError = output
+		}
+	}
+
+	if err == nil {
 		cmd := exec.Command("go", "build", "cmd/viz/viz.go")
 		output, err := cmd.CombinedOutput()
 		if err == nil {
@@ -132,6 +143,9 @@ func (dev *DevServer) waitForServer() {
 }
 
 func (dev *DevServer) checkForChanges() bool {
+	dev.mu.Lock()
+	defer dev.mu.Unlock()
+
 	start := time.Now()
 	changed := false
 

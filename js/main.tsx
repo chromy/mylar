@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { Link, Route, Switch } from "wouter";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { z } from 'zod';
@@ -158,28 +159,105 @@ async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
 //  children: z.optional(z.array(z.string())),
 //});
 
+
+const RepoInfoSchema = z.object({
+  name: z.string(),
+});
+
+const RepoListResponseSchema = z.object({
+  repos: z.array(RepoInfoSchema),
+});
+
+
 const IndexStatusResponseSchema = z.object({
   message: z.string(),
   fileCount: z.number(),
 });
 
-
-function App() {
-
+const Home = () => {
   const { data, isLoading, isError, error } = useJsonQuery({
-    path: "/api/index/status",
-    schema: IndexStatusResponseSchema,
+    path: "/api/repo",
+    schema: RepoListResponseSchema,
   });
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-  if (isError) {
-    return <div>Error {error?.toString()}</div>;
-  }
+  return (
+    <div className="grid place-content-center">
+      <div className="max-w-xl mx-auto w-100 my-4 p-3 border rounded-xs border-black shadow-sm">
+        {isLoading && (<DecryptLoader/>)}
 
-  return <h1>{JSON.stringify(data)}</h1>;
-}
+        { data && data.repos.map(r => (<Link href="/repo/{r.name}">{r.name}</Link>) )}
+      </div>
+    </div>
+  );
+};
+
+const Repo = () => {
+  return (<div>Hello, world!</div>);
+};
+
+
+
+const App = () => (
+  <>
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/repo/:repo" component={Repo} />
+      <Route>404: No such page!</Route>
+    </Switch>
+  </>
+);
+
+const DecryptLoader = () => {
+  const [text, setText] = useState("LOADING");
+  const originalText = "LOADING";
+  const chars = "{}?0XYZ#@![]";
+
+  useEffect(() => {
+    let iteration = 0;
+    const interval = setInterval(() => {
+      setText(prev =>
+        prev
+          .split("")
+          .map((letter, index) => {
+            if (index < Math.floor(iteration)) {
+              return originalText[index];
+            }
+            return chars[Math.floor(Math.random() * chars.length)];
+          })
+          .join("")
+      );
+
+      if (iteration >= originalText.length + 3) {
+        iteration = 0; // Loop the effect
+      }
+      iteration += 1/3;
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="text-center m-2 font-mono text-green-500 text-xl font-bold">{text}</div>
+  );
+};
+
+
+//function App() {
+//
+//  const { data, isLoading, isError, error } = useJsonQuery({
+//    path: "/api/index/status",
+//    schema: IndexStatusResponseSchema,
+//  });
+//
+//  if (isLoading) {
+//    return <div>Loading...</div>;
+//  }
+//  if (isError) {
+//    return <div>Error {error?.toString()}</div>;
+//  }
+//
+//  return <h1>{JSON.stringify(data)}</h1>;
+//}
 
 export function main() {
   const dom = document.querySelector("main")!;

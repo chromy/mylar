@@ -1,4 +1,5 @@
 viz
 internal/static/bundle.js
+internal/static/bundle.css
 internal/static/bundle.js.map
 /node_modules/
