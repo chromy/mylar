@@ -192,10 +192,21 @@ const Home = () => {
 };
 
 const Repo = () => {
-  return (<div>Hello, world!</div>);
+  return (
+    <div className="grid">
+      <div className="absolute bottom-0 left-0 top-0 right-0">
+        <Viewer/>
+      </div>
+    </div>
+  );
 };
 
+const Viewer = () => {
 
+  return (
+    <canvas></canvas>
+  );
+};
 
 const App = () => (
   <>
