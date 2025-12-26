@@ -49,9 +49,16 @@ func init() {
 	}
 
 	routes.Register(routes.Route{
-		Id: "home",
+		Id: "home.index",
 		Method: http.MethodGet,
 		Path: "/",
+		Handler: Home,
+	})
+
+	routes.Register(routes.Route{
+		Id: "home.others",
+		Method: http.MethodGet,
+		Path: "/app/*path",
 		Handler: Home,
 	})
 }
