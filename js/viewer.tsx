@@ -1,4 +1,4 @@
-import { mat3, vec2 } from 'gl-matrix';
+import { vec2, vec3 } from 'gl-matrix';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Camera } from "./camera.js";
 
@@ -12,14 +12,12 @@ export const Viewer = () => {
       return camera;
     }
     const newCamera = new Camera();
-    cameraRef.current = camera;
+    cameraRef.current = newCamera;
     return newCamera;
   };
 
-  const [transform, setTransform] = useState(() => {
-    const matrix = mat3.create();
-    return matrix;
-  });
+  const [, setRenderTrigger] = useState(0);
+  const triggerRender = () => setRenderTrigger(prev => prev + 1);
 
   const drawCheckerboard = useCallback(() => {
     const canvas = canvasRef.current;
@@ -33,39 +31,43 @@ export const Viewer = () => {
     }
 
     const dpr = window.devicePixelRatio || 1;
-    const displayWidth = canvas.offsetWidth;
-    const displayHeight = canvas.offsetHeight;
+    const cssWidth = canvas.offsetWidth;
+    const cssHeight = canvas.offsetHeight;
 
-    canvas.width = displayWidth * dpr;
-    canvas.height = displayHeight * dpr;
-    canvas.style.width = displayWidth + 'px';
-    canvas.style.height = displayHeight + 'px';
+    const width = cssWidth * dpr;
+    const height = cssHeight * dpr;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = width;
+    canvas.height = height;
+    //canvas.style.width = cssWidth + 'px';
+    //canvas.style.height = cssHeight + 'px';
 
-    const squareSize = 50;
+    const camera = getCamera();
+    camera.setScreenSize(vec2.fromValues(width, height));
 
-    // Calculate inverse transform to determine visible area
-    const invTransform = mat3.create();
-    mat3.invert(invTransform, transform);
+    ctx.clearRect(0, 0, width, height);
 
-    // Transform the visible corners to world space
+    const squareSize = 4;
+
+    // Transform the visible corners to world space using Camera
     const corners = [
       vec2.fromValues(0, 0),
-      vec2.fromValues(displayWidth, 0),
-      vec2.fromValues(displayWidth, displayHeight),
-      vec2.fromValues(0, displayHeight)
+      vec2.fromValues(width, 0),
+      vec2.fromValues(width, height),
+      vec2.fromValues(0, height)
     ];
 
-    corners.forEach(corner => {
-      vec2.transformMat3(corner, corner, invTransform);
+    const worldCorners = corners.map(corner => {
+      const world = vec2.create();
+      camera.toWorld(world, corner);
+      return world;
     });
 
     // Find bounding box in world space
-    const minX = Math.min(...corners.map(c => c[0]));
-    const maxX = Math.max(...corners.map(c => c[0]));
-    const minY = Math.min(...corners.map(c => c[1]));
-    const maxY = Math.max(...corners.map(c => c[1]));
+    const minX = Math.min(...worldCorners.map(c => c[0]));
+    const maxX = Math.max(...worldCorners.map(c => c[0]));
+    const minY = Math.min(...worldCorners.map(c => c[1]));
+    const maxY = Math.max(...worldCorners.map(c => c[1]));
 
     const startCol = Math.floor(minX / squareSize);
     const endCol = Math.ceil(maxX / squareSize);
@@ -76,15 +78,36 @@ export const Viewer = () => {
       for (let col = startCol; col < endCol; col++) {
         const isEven = (row + col) % 2 === 0;
         ctx.fillStyle = isEven ? 'pink' : 'white';
+
+        // Convert world space square to screen space for drawing
+        const worldPos = vec2.fromValues(col * squareSize, row * squareSize);
+        const screenPos = vec2.create();
+        camera.toScreen(screenPos, worldPos);
+
+        const worldPosEnd = vec2.fromValues((col + 1) * squareSize, (row + 1) * squareSize);
+        const screenPosEnd = vec2.create();
+        camera.toScreen(screenPosEnd, worldPosEnd);
+
         ctx.fillRect(
-          col * squareSize,
-          row * squareSize,
-          squareSize,
-          squareSize
+          screenPos[0],
+          screenPos[1],
+          screenPosEnd[0] - screenPos[0],
+          screenPosEnd[1] - screenPos[1]
         );
       }
     }
-  }, [transform]);
+
+    // Draw black circle at world coordinates (0,0)
+    const worldCenter = vec2.fromValues(0, 0);
+    const screenCenter = vec2.create();
+    camera.toScreen(screenCenter, worldCenter);
+
+    const radius = 10; // Circle radius in pixels
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(screenCenter[0], screenCenter[1], radius, 0, 2 * Math.PI);
+    ctx.fill();
+  }, []);
 
   useEffect(() => {
     drawCheckerboard();
@@ -96,56 +119,31 @@ export const Viewer = () => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
 
+      const camera = getCamera();
+
       if (e.ctrlKey || e.metaKey) {
-        // Zoom
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-
-        setTransform(prev => {
-          // Create transformation: translate to mouse, scale, translate back
-          const newTransform = mat3.create();
-          mat3.copy(newTransform, prev);
-
-          // Translate to mouse position
-          mat3.translate(newTransform, newTransform, [mouseX, mouseY]);
-
-          // Scale
-          mat3.scale(newTransform, newTransform, [zoomFactor, zoomFactor]);
-
-          // Translate back
-          mat3.translate(newTransform, newTransform, [-mouseX, -mouseY]);
-
-          return newTransform;
-        });
+        const zoomDelta = e.deltaY;
+        camera.dolly(vec3.fromValues(0, 0, zoomDelta));
       } else {
-        setTransform(prev => {
-          const newTransform = mat3.create();
-          mat3.copy(newTransform, prev);
-          mat3.translate(newTransform, newTransform, [-e.deltaX, -e.deltaY]);
-          return newTransform;
-        });
+        camera.dolly(vec3.fromValues(e.deltaX, e.deltaY, 0));
       }
+
+      triggerRender();
     };
 
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.addEventListener('wheel', handleWheel);
+      canvas.addEventListener("wheel", handleWheel);
     }
-
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
       if (canvas) {
-        canvas.removeEventListener('wheel', handleWheel);
+        canvas.removeEventListener("wheel", handleWheel);
       }
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
-  }, [drawCheckerboard]);
+  }, [drawCheckerboard, triggerRender]);
 
   return (
     <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }}></canvas>

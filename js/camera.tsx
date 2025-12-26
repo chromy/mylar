@@ -53,10 +53,11 @@ export class Camera {
     if (delta[0] === 0 && delta[1] === 0 && delta[2] === 0) {
       return;
     }
+    const zCompensation = this.eye[2] * 0.1;
     const xyFactor = 0.01;
-    const zFactor = 2;
-    this.eye[0] -= delta[0] * xyFactor;
-    this.eye[1] -= delta[1] * xyFactor * -1;
+    const zFactor = 0.1;
+    this.eye[0] -= delta[0] * xyFactor * zCompensation;
+    this.eye[1] -= delta[1] * xyFactor * -1 * zCompensation;
     // TODO: zoom on mouse
     this.eye[2] -= delta[2] * zFactor * -1;
     this.update();
