@@ -1,10 +1,10 @@
 import { createRoot } from 'react-dom/client';
 import { Link, Route, Switch } from "wouter";
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Viewer } from "./viewer";
+import { Viewer } from "./viewer.js";
 import { z } from 'zod';
 import { mat3, vec2 } from 'gl-matrix';
-import { DecryptLoader } from './DecryptLoader';
+import { DecryptLoader } from './DecryptLoader.js';
 
 interface UseQueryResult<TData, TError> {
   data: TData | null;

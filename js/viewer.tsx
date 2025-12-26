@@ -1,6 +1,6 @@
 import { mat3, vec2 } from 'gl-matrix';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Camera } from "./camera";
+import { Camera } from "./camera.js";
 
 export const Viewer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -98,6 +98,8 @@ export const Viewer = () => {
 
       if (e.ctrlKey || e.metaKey) {
         // Zoom
+        const canvas = canvasRef.current;
+        if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
