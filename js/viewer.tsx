@@ -1,19 +1,18 @@
-import { vec2, vec3 } from 'gl-matrix';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { vec2, vec3 } from "gl-matrix";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 
 export interface IndexPanelProps {
   repo: string;
 }
 
-export const IndexPanel = ({repo}: IndexPanelProps) => {
-};
+export const IndexPanel = ({ repo }: IndexPanelProps) => {};
 
 export interface ViewerProps {
   repo: string;
 }
 
-export const Viewer = ({repo}: ViewerProps) => {
+export const Viewer = ({ repo }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<Camera>(null);
 
@@ -36,7 +35,7 @@ export const Viewer = ({repo}: ViewerProps) => {
       return;
     }
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) {
       return;
     }
@@ -65,7 +64,7 @@ export const Viewer = ({repo}: ViewerProps) => {
       vec2.fromValues(0, 0),
       vec2.fromValues(width, 0),
       vec2.fromValues(width, height),
-      vec2.fromValues(0, height)
+      vec2.fromValues(0, height),
     ];
 
     const worldCorners = corners.map(corner => {
@@ -88,14 +87,17 @@ export const Viewer = ({repo}: ViewerProps) => {
     for (let row = startRow; row < endRow; row++) {
       for (let col = startCol; col < endCol; col++) {
         const isEven = (row + col) % 2 === 0;
-        ctx.fillStyle = isEven ? 'pink' : 'white';
+        ctx.fillStyle = isEven ? "pink" : "white";
 
         // Convert world space square to screen space for drawing
         const worldPos = vec2.fromValues(col * squareSize, row * squareSize);
         const screenPos = vec2.create();
         camera.toScreen(screenPos, worldPos);
 
-        const worldPosEnd = vec2.fromValues((col + 1) * squareSize, (row + 1) * squareSize);
+        const worldPosEnd = vec2.fromValues(
+          (col + 1) * squareSize,
+          (row + 1) * squareSize,
+        );
         const screenPosEnd = vec2.create();
         camera.toScreen(screenPosEnd, worldPosEnd);
 
@@ -103,7 +105,7 @@ export const Viewer = ({repo}: ViewerProps) => {
           screenPos[0],
           screenPos[1],
           screenPosEnd[0] - screenPos[0],
-          screenPosEnd[1] - screenPos[1]
+          screenPosEnd[1] - screenPos[1],
         );
       }
     }
@@ -114,7 +116,7 @@ export const Viewer = ({repo}: ViewerProps) => {
     camera.toScreen(screenCenter, worldCenter);
 
     const radius = 10; // Circle radius in pixels
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = "black";
     ctx.beginPath();
     ctx.arc(screenCenter[0], screenCenter[1], radius, 0, 2 * Math.PI);
     ctx.fill();
@@ -157,8 +159,6 @@ export const Viewer = ({repo}: ViewerProps) => {
   }, [drawCheckerboard, triggerRender]);
 
   return (
-    <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }}></canvas>
+    <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }}></canvas>
   );
 };
-
-

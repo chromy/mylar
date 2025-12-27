@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export const DecryptLoader = () => {
   const [text, setText] = useState("LOADING");
@@ -17,19 +17,21 @@ export const DecryptLoader = () => {
             }
             return chars[Math.floor(Math.random() * chars.length)];
           })
-          .join("")
+          .join(""),
       );
 
       if (iteration >= originalText.length + 3) {
         iteration = 0; // Loop the effect
       }
-      iteration += 1/3;
+      iteration += 1 / 3;
     }, 50);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="text-center m-2 font-mono text-green-500 text-xl font-bold">{text}</div>
+    <div className="text-center m-2 font-mono text-green-500 text-xl font-bold">
+      {text}
+    </div>
   );
 };

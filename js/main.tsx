@@ -1,18 +1,14 @@
-import { createRoot } from 'react-dom/client';
+import { createRoot } from "react-dom/client";
 import { Link, Route, Switch, useParams } from "wouter";
 import { Viewer } from "./viewer.js";
-import { z } from 'zod';
-import { DecryptLoader } from './DecryptLoader.js';
-import { useJsonQuery } from './query.js';
-
+import { z } from "zod";
+import { DecryptLoader } from "./DecryptLoader.js";
+import { useJsonQuery } from "./query.js";
 
 async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
-  const response = await fetch(
-    "/api/fs/get",
-    { signal },
-  );
+  const response = await fetch("/api/fs/get", { signal });
   if (!response.ok) {
-    throw new Error('Failed to fetch');
+    throw new Error("Failed to fetch");
   }
   return await response.json();
 }
@@ -25,7 +21,6 @@ async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
 //  children: z.optional(z.array(z.string())),
 //});
 
-
 const RepoInfoSchema = z.object({
   name: z.string(),
 });
@@ -33,7 +28,6 @@ const RepoInfoSchema = z.object({
 const RepoListResponseSchema = z.object({
   repos: z.array(RepoInfoSchema),
 });
-
 
 const IndexStatusResponseSchema = z.object({
   message: z.string(),
@@ -49,9 +43,12 @@ const Home = () => {
   return (
     <div className="grid place-content-center">
       <div className="max-w-xl mx-auto w-100 my-4 p-3 border rounded-xs border-black shadow-sm">
-        {isLoading && (<DecryptLoader/>)}
+        {isLoading && <DecryptLoader />}
 
-        { data && data.repos.map(r => (<Link href={`/app/repo/{r.name}`}>{r.name}</Link>) )}
+        {data &&
+          data.repos.map(r => (
+            <Link href={`/app/repo/{r.name}`}>{r.name}</Link>
+          ))}
       </div>
     </div>
   );
@@ -59,12 +56,12 @@ const Home = () => {
 
 const Repo = () => {
   const params = useParams();
-  const repo = params.repo || '';
-  
+  const repo = params.repo || "";
+
   return (
     <div className="grid">
       <div className="absolute bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo}/>
+        <Viewer repo={repo} />
       </div>
     </div>
   );
@@ -83,6 +80,5 @@ const App = () => (
 export function main() {
   const dom = document.querySelector("main")!;
   const root = createRoot(dom);
-  root.render(<App/>);
+  root.render(<App />);
 }
-

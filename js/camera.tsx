@@ -1,4 +1,4 @@
-import { vec2, vec3, vec4, mat4 } from 'gl-matrix';
+import { vec2, vec3, vec4, mat4 } from "gl-matrix";
 
 export enum Direction {
   UP = "up",
