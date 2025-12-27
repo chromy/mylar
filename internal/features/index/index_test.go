@@ -106,23 +106,23 @@ func TestComputeIndexBlob(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fileName := tt.name + ".txt"
-			
+
 			testFile, err := fs.Create(fileName)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}
-			
+
 			_, err = testFile.Write([]byte(tt.content))
 			if err != nil {
 				t.Fatalf("Failed to write test content: %v", err)
 			}
 			testFile.Close()
-			
+
 			_, err = worktree.Add(fileName)
 			if err != nil {
 				t.Fatalf("Failed to add file: %v", err)
 			}
-			
+
 			commitHash, err := worktree.Commit("Test commit", &git.CommitOptions{
 				Author: &object.Signature{
 					Name:  "Test User",
@@ -133,40 +133,40 @@ func TestComputeIndexBlob(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create commit: %v", err)
 			}
-			
+
 			commit, err := repo.CommitObject(commitHash)
 			if err != nil {
 				t.Fatalf("Failed to get commit object: %v", err)
 			}
-			
+
 			tree, err := commit.Tree()
 			if err != nil {
 				t.Fatalf("Failed to get tree: %v", err)
 			}
-			
+
 			entry, err := tree.FindEntry(fileName)
 			if err != nil {
 				t.Fatalf("Failed to find file entry: %v", err)
 			}
-			
+
 			index, err := ComputeIndex(context.Background(), repo, entry.Hash)
 			if err != nil {
 				t.Fatalf("ComputeIndex failed: %v", err)
 			}
-			
+
 			if len(index.Entries) != 1 {
 				t.Fatalf("Expected 1 entry, got %d", len(index.Entries))
 			}
-			
+
 			entry1 := index.Entries[0]
 			if entry1.Path != "." {
 				t.Errorf("Expected path '.', got '%s'", entry1.Path)
 			}
-			
+
 			if entry1.LineOffset != 0 {
 				t.Errorf("Expected LineOffset 0, got %d", entry1.LineOffset)
 			}
-			
+
 			if entry1.LineCount != tt.expectedLines {
 				t.Errorf("Expected LineCount %d, got %d", tt.expectedLines, entry1.LineCount)
 			}
@@ -188,7 +188,7 @@ func TestComputeIndexTree(t *testing.T) {
 
 	// Create directory structure:
 	// /a.txt (2 lines)
-	// /b.txt (3 lines)  
+	// /b.txt (3 lines)
 	// /dir/
 	//   /c.txt (1 line)
 	//   /d.txt (4 lines)
@@ -197,7 +197,7 @@ func TestComputeIndexTree(t *testing.T) {
 		"a.txt":     "line1\nline2\n",        // 2 lines
 		"b.txt":     "line1\nline2\nline3\n", // 3 lines
 		"dir/c.txt": "single line",           // 1 line
-		"dir/d.txt": "1\n2\n3\n4\n",         // 4 lines
+		"dir/d.txt": "1\n2\n3\n4\n",          // 4 lines
 	}
 
 	// Create files
@@ -209,18 +209,18 @@ func TestComputeIndexTree(t *testing.T) {
 				t.Fatalf("Failed to create dir %s: %v", dir, err)
 			}
 		}
-		
+
 		testFile, err := fs.Create(path)
 		if err != nil {
 			t.Fatalf("Failed to create file %s: %v", path, err)
 		}
-		
+
 		_, err = testFile.Write([]byte(content))
 		if err != nil {
 			t.Fatalf("Failed to write content to %s: %v", path, err)
 		}
 		testFile.Close()
-		
+
 		_, err = worktree.Add(path)
 		if err != nil {
 			t.Fatalf("Failed to add file %s: %v", path, err)
@@ -256,7 +256,7 @@ func TestComputeIndexTree(t *testing.T) {
 
 	// Expected entries in lexicographic order:
 	// a.txt: LineOffset=0, LineCount=2
-	// b.txt: LineOffset=2, LineCount=3  
+	// b.txt: LineOffset=2, LineCount=3
 	// dir/c.txt: LineOffset=5, LineCount=1
 	// dir/d.txt: LineOffset=6, LineCount=4
 
@@ -317,13 +317,13 @@ func TestComputeIndexSubtree(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create file %s: %v", path, err)
 		}
-		
+
 		_, err = testFile.Write([]byte(content))
 		if err != nil {
 			t.Fatalf("Failed to write content to %s: %v", path, err)
 		}
 		testFile.Close()
-		
+
 		_, err = worktree.Add(path)
 		if err != nil {
 			t.Fatalf("Failed to add file %s: %v", path, err)

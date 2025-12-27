@@ -2,14 +2,13 @@ package viz
 
 import (
 	"context"
-	"github.com/chromy/viz/internal/routes"
 	"github.com/chromy/viz/internal/features/repo"
+	"github.com/chromy/viz/internal/routes"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 	"strconv"
-	"github.com/julienschmidt/httprouter"
 )
-
 
 func DoServe(ctx context.Context, port uint) {
 	router := httprouter.New()
@@ -19,7 +18,7 @@ func DoServe(ctx context.Context, port uint) {
 	routeIds := routes.List()
 	for _, id := range routeIds {
 		if route, found := routes.Get(id); found {
-			router.Handle(route.Method, route.Path, route.Handler);
+			router.Handle(route.Method, route.Path, route.Handler)
 		}
 	}
 

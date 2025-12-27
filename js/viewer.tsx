@@ -6,7 +6,7 @@ export interface IndexPanelProps {
   repo: string;
 }
 
-export const IndexPanel = ({repo}: string) => {
+export const IndexPanel = ({repo}: IndexPanelProps) => {
 };
 
 export interface ViewerProps {

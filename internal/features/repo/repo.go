@@ -1,19 +1,19 @@
-package repo;
+package repo
 
 import (
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"sync"
-	"github.com/julienschmidt/httprouter"
-	"net/http"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/chromy/viz/internal/routes"
-	"encoding/json"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/julienschmidt/httprouter"
+	"net/http"
 	"path/filepath"
 	"strings"
-	"context"
+	"sync"
 )
 
 type State struct {
@@ -21,7 +21,7 @@ type State struct {
 }
 
 var (
-	mu  sync.RWMutex
+	mu    sync.RWMutex
 	state State
 )
 
@@ -34,11 +34,11 @@ type RepoListResponse struct {
 }
 
 type FileSystemEntry struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Type     string `json:"type"` // "file" or "directory"
-	Size     *int64 `json:"size,omitempty"` // Only for files
-	Hash     string `json:"hash,omitempty"` // Only for files
+	Name     string            `json:"name"`
+	Path     string            `json:"path"`
+	Type     string            `json:"type"`               // "file" or "directory"
+	Size     *int64            `json:"size,omitempty"`     // Only for files
+	Hash     string            `json:"hash,omitempty"`     // Only for files
 	Children []FileSystemEntry `json:"children,omitempty"` // Only for directories
 }
 
@@ -111,7 +111,6 @@ func ResolveCommitish(repo *git.Repository, commitish string) (plumbing.Hash, er
 
 	return plumbing.ZeroHash, fmt.Errorf("unable to resolve commitish '%s'", commitish)
 }
-
 
 func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mu.RLock()
@@ -309,23 +308,23 @@ func init() {
 	state.Repos = make(map[string]*git.Repository)
 
 	routes.Register(routes.Route{
-		Id: "repo.list",
-		Method: http.MethodGet,
-		Path: "/api/repo",
+		Id:      "repo.list",
+		Method:  http.MethodGet,
+		Path:    "/api/repo",
 		Handler: ListHandler,
 	})
 
 	routes.Register(routes.Route{
-		Id: "repo.raw",
-		Method: http.MethodGet,
-		Path: "/api/repo/:repo/raw/*path",
+		Id:      "repo.raw",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/raw/*path",
 		Handler: RawHandler,
 	})
 
 	routes.Register(routes.Route{
-		Id: "repo.info",
-		Method: http.MethodGet,
-		Path: "/api/repo/:repo/info/*path",
+		Id:      "repo.info",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/info/*path",
 		Handler: InfoHandler,
 	})
 

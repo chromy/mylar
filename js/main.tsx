@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { Link, Route, Switch } from "wouter";
+import { Link, Route, Switch, useParams } from "wouter";
 import { Viewer } from "./viewer.js";
 import { z } from 'zod';
 import { DecryptLoader } from './DecryptLoader.js';
@@ -58,10 +58,13 @@ const Home = () => {
 };
 
 const Repo = () => {
+  const params = useParams();
+  const repo = params.repo || '';
+  
   return (
     <div className="grid">
       <div className="absolute bottom-0 left-0 top-0 right-0">
-        <Viewer/>
+        <Viewer repo={repo}/>
       </div>
     </div>
   );

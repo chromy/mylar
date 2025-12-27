@@ -1,13 +1,13 @@
 package viz
 
 import (
-	"html/template"
-	"sync"
-	"io/fs"
 	"github.com/chromy/viz/internal/routes"
-	"path/filepath"
 	"github.com/julienschmidt/httprouter"
+	"html/template"
+	"io/fs"
 	"net/http"
+	"path/filepath"
+	"sync"
 )
 
 type State struct {
@@ -49,17 +49,16 @@ func init() {
 	}
 
 	routes.Register(routes.Route{
-		Id: "home.index",
-		Method: http.MethodGet,
-		Path: "/",
+		Id:      "home.index",
+		Method:  http.MethodGet,
+		Path:    "/",
 		Handler: Home,
 	})
 
 	routes.Register(routes.Route{
-		Id: "home.others",
-		Method: http.MethodGet,
-		Path: "/app/*path",
+		Id:      "home.others",
+		Method:  http.MethodGet,
+		Path:    "/app/*path",
 		Handler: Home,
 	})
 }
-

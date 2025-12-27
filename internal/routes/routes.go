@@ -2,16 +2,16 @@ package routes
 
 import (
 	"fmt"
-	"sync"
-	"net/http"
 	"github.com/julienschmidt/httprouter"
+	"net/http"
+	"sync"
 )
 
 type Route struct {
-	Id         string
-	Path       string
-	Method     string
-	Handler    func(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
+	Id      string
+	Path    string
+	Method  string
+	Handler func(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 }
 
 type State struct {
@@ -77,4 +77,3 @@ func init() {
 	state = State{}
 	state.Routes = make(map[string]Route)
 }
-

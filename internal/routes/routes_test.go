@@ -2,9 +2,9 @@ package routes
 
 import (
 	"fmt"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"testing"
-	"github.com/julienschmidt/httprouter"
 )
 
 func TestIsValidMethod(t *testing.T) {
@@ -36,14 +36,14 @@ func TestIsValidMethod(t *testing.T) {
 
 func TestRegisterValidMethod(t *testing.T) {
 	route := Route{
-		Id:     "test-get",
-		Path:   "/test",
-		Method: http.MethodGet,
+		Id:      "test-get",
+		Path:    "/test",
+		Method:  http.MethodGet,
 		Handler: func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {},
 	}
 
 	Register(route)
-	
+
 	retrievedRoute, found := Get("test-get")
 	if !found {
 		t.Error("Expected route to be registered")
@@ -73,9 +73,9 @@ func TestRegisterInvalidMethodPanics(t *testing.T) {
 			}()
 
 			route := Route{
-				Id:     "test-invalid-" + tt.method,
-				Path:   "/test",
-				Method: tt.method,
+				Id:      "test-invalid-" + tt.method,
+				Path:    "/test",
+				Method:  tt.method,
 				Handler: func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {},
 			}
 
@@ -95,9 +95,9 @@ func TestRegisterAllValidMethods(t *testing.T) {
 	for i, method := range validMethods {
 		t.Run("Register "+method, func(t *testing.T) {
 			route := Route{
-				Id:     fmt.Sprintf("test-%s-%d", method, i),
-				Path:   "/test",
-				Method: method,
+				Id:      fmt.Sprintf("test-%s-%d", method, i),
+				Path:    "/test",
+				Method:  method,
 				Handler: func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {},
 			}
 

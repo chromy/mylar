@@ -4,28 +4,27 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"io"
-	"net/http"
-	"sort"
-	"strings"
+	"github.com/chromy/viz/internal/features/repo"
+	"github.com/chromy/viz/internal/routes"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
-	"github.com/chromy/viz/internal/routes"
-	"github.com/chromy/viz/internal/features/repo"
+	"io"
+	"net/http"
+	"sort"
+	"strings"
 )
 
 type IndexEntry struct {
-	Path string
+	Path       string
 	LineOffset int64
-	LineCount int64
+	LineCount  int64
 }
 
 type Index struct {
 	Entries []IndexEntry
 }
-
 
 func ComputeIndex(ctx context.Context, repository *git.Repository, hash plumbing.Hash) (*Index, error) {
 	// TODO: Try and load from cache
@@ -72,7 +71,7 @@ func computeIndexForTree(ctx context.Context, repository *git.Repository, tree *
 
 	entries := make([]object.TreeEntry, 0, len(tree.Entries))
 	entries = append(entries, tree.Entries...)
-	
+
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name < entries[j].Name
 	})
@@ -89,11 +88,11 @@ func computeIndexForTree(ctx context.Context, repository *git.Repository, tree *
 				LineOffset: currentOffset,
 				LineCount:  childEntry.LineCount,
 			}
-			
+
 			if childEntry.Path != "." {
 				newEntry.Path = entry.Name + "/" + childEntry.Path
 			}
-			
+
 			allEntries = append(allEntries, newEntry)
 			currentOffset += childEntry.LineCount
 		}
@@ -105,15 +104,15 @@ func computeIndexForTree(ctx context.Context, repository *git.Repository, tree *
 func countLines(reader io.Reader) (int64, error) {
 	scanner := bufio.NewScanner(reader)
 	var lineCount int64
-	
+
 	for scanner.Scan() {
 		lineCount++
 	}
-	
+
 	if err := scanner.Err(); err != nil {
 		return 0, err
 	}
-	
+
 	if lineCount == 0 {
 		content, err := io.ReadAll(reader)
 		if err != nil {
@@ -123,7 +122,7 @@ func countLines(reader io.Reader) (int64, error) {
 			lineCount = 1
 		}
 	}
-	
+
 	return lineCount, nil
 }
 
@@ -173,9 +172,9 @@ func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 func init() {
 	routes.Register(routes.Route{
-		Id: "index.get",
-		Method: http.MethodGet,
-		Path: "/api/repo/:repo/:commitish/index/*path",
+		Id:      "index.get",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/:commitish/index/*path",
 		Handler: IndexHandler,
 	})
 }
@@ -363,4 +362,3 @@ func init() {
 //	})
 //
 //}
-

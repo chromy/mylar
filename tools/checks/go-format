@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import argparse
+import subprocess
+
+TOOLS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = os.path.dirname(TOOLS_DIR)
+
+
+def is_target(path):
+  return path.endswith(b".go")
+
+
+def main():
+  description = "Run gofmt over Go files"
+  parser = argparse.ArgumentParser(description=description)
+  parser.add_argument("--check", action="store_true")
+  args = parser.parse_args()
+
+  output = subprocess.check_output([
+    "git",
+    "ls-tree",
+    "-r",
+    "HEAD",
+    "--full-name",
+    "-z",
+    ROOT_DIR
+  ])
+
+  lines = output.split(b"\0")
+  paths = [line.split(b"\t", 1)[1] for line in lines if line]
+  paths = [path for path in paths if is_target(path)]
+
+  if not paths:
+    return 0
+
+  cmd = ["gofmt"]
+  if args.check:
+    cmd.extend(["-l"])
+    cmd.extend([path.decode('utf-8') for path in paths])
+    p = subprocess.run(cmd, cwd=ROOT_DIR)
+    return p.returncode
+  else:
+    cmd.extend(["-w"])
+    cmd.extend([path.decode('utf-8') for path in paths])
+    p = subprocess.run(cmd, cwd=ROOT_DIR)
+    return p.returncode
+
+
+if __name__ == "__main__":
+  sys.exit(main())

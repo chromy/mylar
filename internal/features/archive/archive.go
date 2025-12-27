@@ -1,4 +1,5 @@
 package archive
+
 //
 //import (
 //	"github.com/chromy/viz/internal/routes"
@@ -45,21 +46,21 @@ package archive
 //					http.Error(w, "path parameter is required", http.StatusBadRequest)
 //					return
 //				}
-//				
+//
 //				fsRoot := GetFS()
 //				info, err := fs.Stat(fsRoot, path)
 //				if err != nil {
 //					http.Error(w, "file not found", http.StatusNotFound)
 //					return
 //				}
-//				
+//
 //				metadata := FileMetadata{
 //					Path:    path,
 //					Name:    info.Name(),
 //					Size:    info.Size(),
 //					IsDir:   info.IsDir(),
 //				}
-//				
+//
 //				if info.IsDir() {
 //					entries, err := fs.ReadDir(fsRoot, path)
 //					if err == nil {
@@ -70,7 +71,7 @@ package archive
 //						metadata.Children = children
 //					}
 //				}
-//				
+//
 //				w.Header().Set("Content-Type", "application/json")
 //				if err := json.NewEncoder(w).Encode(metadata); err != nil {
 //					http.Error(w, "failed to encode response", http.StatusInternalServerError)

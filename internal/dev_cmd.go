@@ -162,7 +162,7 @@ func (dev *DevServer) checkForChanges() bool {
 		lastMod, exists := dev.lastModTime[path]
 
 		ext := filepath.Ext(path)
-		if ext != ".go" && ext != ".html" && ext != ".css" && ext != ".ts" &&  ext != ".tsx" {
+		if ext != ".go" && ext != ".html" && ext != ".css" && ext != ".ts" && ext != ".tsx" {
 			return nil
 		}
 
