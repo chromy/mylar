@@ -313,8 +313,8 @@ func init() {
 		Handler: LineLengthHandler,
 	})
 
-	schemas.RegisterStruct("index.IndexEntry", IndexEntry{})
-	schemas.RegisterStruct("index.Index", Index{})
-	schemas.RegisterStruct("index.GranularLineLength", GranularLineLength{})
-	schemas.RegisterStruct("index.LineLength", LineLength{})
+	schemas.Register("index.IndexEntry", IndexEntry{})
+	schemas.Register("index.Index", Index{})
+	schemas.Register("index.GranularLineLength", GranularLineLength{})
+	schemas.Register("index.LineLength", LineLength{})
 }

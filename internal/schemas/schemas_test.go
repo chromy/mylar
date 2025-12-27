@@ -1,7 +1,6 @@
 package schemas
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -16,7 +15,7 @@ func TestRegisterStruct(t *testing.T) {
 		Age:  25,
 	}
 
-	RegisterStruct("test-struct", testStruct)
+	Register("test-struct", testStruct)
 
 	schema, found := Get("test-struct")
 	if !found {
@@ -24,12 +23,6 @@ func TestRegisterStruct(t *testing.T) {
 	}
 	if schema.Id != "test-struct" {
 		t.Errorf("Expected schema ID 'test-struct', got %s", schema.Id)
-	}
-	if schema.Type != reflect.TypeOf(testStruct) {
-		t.Errorf("Expected schema type %v, got %v", reflect.TypeOf(testStruct), schema.Type)
-	}
-	if schema.Schema == "" {
-		t.Error("Expected schema to contain Zod schema string")
 	}
 }
 
@@ -41,8 +34,8 @@ func TestRegisterDuplicateIdPanics(t *testing.T) {
 	}()
 
 	testStruct := TestStruct{Name: "test", Age: 25}
-	RegisterStruct("duplicate-test", testStruct)
-	RegisterStruct("duplicate-test", testStruct)
+	Register("duplicate-test", testStruct)
+	Register("duplicate-test", testStruct)
 }
 
 func TestGetNonExistentSchema(t *testing.T) {
@@ -53,8 +46,8 @@ func TestGetNonExistentSchema(t *testing.T) {
 }
 
 func TestListSchemas(t *testing.T) {
-	RegisterStruct("list-test-1", TestStruct{})
-	RegisterStruct("list-test-2", TestStruct{})
+	Register("list-test-1", TestStruct{})
+	Register("list-test-2", TestStruct{})
 
 	list := List()
 	if len(list) < 2 {
@@ -76,19 +69,3 @@ func TestListSchemas(t *testing.T) {
 	}
 }
 
-func TestGetAllSchemas(t *testing.T) {
-	RegisterStruct("get-all-test", TestStruct{})
-
-	allSchemas := GetAllSchemas()
-	if len(allSchemas) == 0 {
-		t.Error("Expected at least one schema")
-	}
-
-	schema, found := allSchemas["get-all-test"]
-	if !found {
-		t.Error("Expected 'get-all-test' schema to be in GetAllSchemas result")
-	}
-	if schema == "" {
-		t.Error("Expected schema to contain Zod schema string")
-	}
-}

@@ -9,7 +9,6 @@ import (
 	"github.com/chromy/viz/internal/schemas"
 	"io/fs"
 	"os"
-	"sort"
 )
 
 //go:embed static/*
@@ -102,18 +101,5 @@ func DoAssets(ctx context.Context) {
 }
 
 func DoSchemas(ctx context.Context) {
-	allSchemas := schemas.GetAllSchemas()
-	fmt.Printf("import { z } from \"zod\";\n\n")
-
-	// Sort schema IDs for deterministic output
-	var ids []string
-	for id := range allSchemas {
-		ids = append(ids, id)
-	}
-	sort.Strings(ids)
-
-	for _, id := range ids {
-		schema := allSchemas[id]
-		fmt.Printf("// %s\n%s\n\n", id, schema)
-	}
+	fmt.Printf("%s", schemas.ToZodSchema())
 }

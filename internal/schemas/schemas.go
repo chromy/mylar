@@ -3,14 +3,13 @@ package schemas
 import (
 	"fmt"
 	"github.com/hypersequent/zen"
-	"reflect"
 	"sync"
+	"sort"
 )
 
 type Schema struct {
 	Id     string
-	Type   reflect.Type
-	Schema string
+	Value  interface{}
 }
 
 type State struct {
@@ -22,26 +21,22 @@ var (
 	state State
 )
 
-func Register(schema Schema) {
+func Register(id string, structValue interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+
+	schema := Schema{
+		Id:     id,
+		Value:   structValue,
+	}
 
 	if _, found := state.Schemas[schema.Id]; found {
 		panic(fmt.Sprintf("schema already registered %s", schema.Id))
 	}
+
 	state.Schemas[schema.Id] = schema
 }
 
-func RegisterStruct(id string, structValue interface{}) {
-	structType := reflect.TypeOf(structValue)
-	zodSchema := zen.StructToZodSchema(structValue)
-
-	Register(Schema{
-		Id:     id,
-		Type:   structType,
-		Schema: zodSchema,
-	})
-}
 
 func Get(id string) (Schema, bool) {
 	mu.RLock()
@@ -62,15 +57,28 @@ func List() []string {
 	return list
 }
 
-func GetAllSchemas() map[string]string {
+func ToZodSchema() string {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	result := make(map[string]string)
-	for id, schema := range state.Schemas {
-		result[id] = schema.Schema
+
+	var ids []string
+	for id := range state.Schemas {
+		ids = append(ids, id)
 	}
-	return result
+	sort.Strings(ids)
+
+	c := zen.NewConverterWithOpts()
+
+	for _, id := range ids {
+		c.AddType(state.Schemas[id].Value)
+	}
+
+	var text string
+	text += fmt.Sprintf("import { z } from \"zod\";\n\n")
+	text += c.Export()
+
+	return text
 }
 
 func init() {

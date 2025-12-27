@@ -322,8 +322,8 @@ func init() {
 		Handler: InfoHandler,
 	})
 
-	schemas.RegisterStruct("repo.RepoInfo", RepoInfo{})
-	schemas.RegisterStruct("repo.RepoListResponse", RepoListResponse{})
-	schemas.RegisterStruct("repo.FileSystemEntry", FileSystemEntry{})
-	schemas.RegisterStruct("repo.InfoResponse", InfoResponse{})
+	schemas.Register("repo.RepoInfo", RepoInfo{})
+	schemas.Register("repo.RepoListResponse", RepoListResponse{})
+	schemas.Register("repo.FileSystemEntry", FileSystemEntry{})
+	schemas.Register("repo.InfoResponse", InfoResponse{})
 }
