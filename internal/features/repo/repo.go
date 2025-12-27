@@ -91,7 +91,6 @@ func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.
 	return plumbing.ZeroHash, fmt.Errorf("unable to resolve committish '%s'", committish)
 }
 
-
 func ResolveCommittishToTreeish(repo *git.Repository, committish string) (plumbing.Hash, error) {
 	hash, err := ResolveCommittishToHash(repo, committish)
 	if err != nil {

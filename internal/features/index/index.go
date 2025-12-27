@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/routes"
 	"github.com/go-git/go-git/v5"
@@ -11,11 +12,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
 	"io"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
-	"fmt"
-	"log"
 )
 
 //type IndexFileEntry struct {
@@ -34,8 +34,8 @@ import (
 
 type IndexEntry struct {
 	Path       string `json:"path"`
-	LineOffset int64 `json:"lineOffset"`
-	LineCount  int64 `json:"lineCount"`
+	LineOffset int64  `json:"lineOffset"`
+	LineCount  int64  `json:"lineCount"`
 }
 
 type Index struct {

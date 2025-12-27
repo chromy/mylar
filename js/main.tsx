@@ -83,11 +83,12 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
     <div>
       {isLoading && <DecryptLoader />}
       <ul>
-      {
-        data && data.entries.map(e =>
-          (<li>{e.path} {e.lineOffset} {e.lineCount}</li>)
-        )
-      }
+        {data &&
+          data.entries.map(e => (
+            <li>
+              {e.path} {e.lineOffset} {e.lineCount}
+            </li>
+          ))}
       </ul>
     </div>
   );

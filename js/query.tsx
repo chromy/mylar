@@ -120,7 +120,9 @@ export function useJsonQuery<T>(
 
       if (!response.ok) {
         const body = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText}: ${body}`);
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText}: ${body}`,
+        );
       }
 
       const rawJson = await response.json();
