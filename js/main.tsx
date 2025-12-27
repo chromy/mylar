@@ -66,12 +66,12 @@ const IndexResponseSchema = z.object({
 
 interface IndexPanelProps {
   repo: string;
-  commitish: string;
+  committish: string;
 }
 
-const IndexPanel = ({ repo, commitish }: IndexPanelProps) => {
+const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
   const { data, isLoading, isError, error } = useJsonQuery({
-    path: `/api/repo/${repo}/${commitish}/index`,
+    path: `/api/repo/${repo}/${committish}/index`,
     schema: IndexResponseSchema,
   });
 
@@ -96,13 +96,13 @@ const IndexPanel = ({ repo, commitish }: IndexPanelProps) => {
 const Repo = () => {
   const params = useParams();
   const repo = params.repo || "";
-  const commitish = params.commitish || "";
+  const committish = params.committish || "";
 
   return (
     <div className="grid">
-      <IndexPanel repo={repo} commitish={commitish} />
+      <IndexPanel repo={repo} committish={committish} />
       <div className="absolute bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo} commitish={commitish} />
+        <Viewer repo={repo} committish={committish} />
       </div>
     </div>
   );
@@ -112,7 +112,7 @@ const App = () => (
   <>
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/app/repo/:repo/:commitish" component={Repo} />
+      <Route path="/app/repo/:repo/:committish" component={Repo} />
       <Route>404: No such page!</Route>
     </Switch>
   </>

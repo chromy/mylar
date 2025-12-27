@@ -77,39 +77,33 @@ func Get(_ context.Context, name string) (*git.Repository, error) {
 	}
 }
 
-func ResolveCommitish(repo *git.Repository, commitish string) (plumbing.Hash, error) {
-	if commitish == "" {
-		ref, err := repo.Head()
-		if err != nil {
-			return plumbing.ZeroHash, fmt.Errorf("failed to get HEAD: %w", err)
-		}
-		return ref.Hash(), nil
+func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.Hash, error) {
+	if plumbing.IsHash(committish) {
+		hash := plumbing.NewHash(committish)
+		return hash, nil
 	}
 
-	hash := plumbing.NewHash(commitish)
-	if !hash.IsZero() {
-		_, err := repo.CommitObject(hash)
-		if err == nil {
-			return hash, nil
-		}
-	}
-
-	ref, err := repo.Reference(plumbing.ReferenceName("refs/heads/"+commitish), true)
+	hash, err := repo.ResolveRevision(plumbing.Revision(committish))
 	if err == nil {
-		return ref.Hash(), nil
+		return *hash, nil
 	}
 
-	ref, err = repo.Reference(plumbing.ReferenceName("refs/tags/"+commitish), true)
+	return plumbing.ZeroHash, fmt.Errorf("unable to resolve committish '%s'", committish)
+}
+
+
+func ResolveCommittishToTreeish(repo *git.Repository, committish string) (plumbing.Hash, error) {
+	hash, err := ResolveCommittishToHash(repo, committish)
+	if err != nil {
+		return hash, err
+	}
+
+	commit, err := repo.CommitObject(hash)
 	if err == nil {
-		return ref.Hash(), nil
+		return commit.TreeHash, nil
 	}
 
-	ref, err = repo.Reference(plumbing.ReferenceName("refs/remotes/origin/"+commitish), true)
-	if err == nil {
-		return ref.Hash(), nil
-	}
-
-	return plumbing.ZeroHash, fmt.Errorf("unable to resolve commitish '%s'", commitish)
+	return hash, nil
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -317,14 +311,14 @@ func init() {
 	routes.Register(routes.Route{
 		Id:      "repo.raw",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:commitish/raw/*path",
+		Path:    "/api/repo/:repo/:committish/raw/*path",
 		Handler: RawHandler,
 	})
 
 	routes.Register(routes.Route{
 		Id:      "repo.info",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:commitish/info/*path",
+		Path:    "/api/repo/:repo/:committish/info/*path",
 		Handler: InfoHandler,
 	})
 

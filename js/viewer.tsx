@@ -4,10 +4,10 @@ import { Camera } from "./camera.js";
 
 export interface ViewerProps {
   repo: string;
-  commitish: string;
+  committish: string;
 }
 
-export const Viewer = ({ repo, commitish }: ViewerProps) => {
+export const Viewer = ({ repo, committish }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<Camera>(null);
 
