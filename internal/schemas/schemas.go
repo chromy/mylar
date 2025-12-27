@@ -3,13 +3,13 @@ package schemas
 import (
 	"fmt"
 	"github.com/hypersequent/zen"
-	"sync"
 	"sort"
+	"sync"
 )
 
 type Schema struct {
-	Id     string
-	Value  interface{}
+	Id    string
+	Value interface{}
 }
 
 type State struct {
@@ -26,8 +26,8 @@ func Register(id string, structValue interface{}) {
 	defer mu.Unlock()
 
 	schema := Schema{
-		Id:     id,
-		Value:   structValue,
+		Id:    id,
+		Value: structValue,
 	}
 
 	if _, found := state.Schemas[schema.Id]; found {
@@ -36,7 +36,6 @@ func Register(id string, structValue interface{}) {
 
 	state.Schemas[schema.Id] = schema
 }
-
 
 func Get(id string) (Schema, bool) {
 	mu.RLock()
@@ -60,7 +59,6 @@ func List() []string {
 func ToZodSchema() string {
 	mu.RLock()
 	defer mu.RUnlock()
-
 
 	var ids []string
 	for id := range state.Schemas {

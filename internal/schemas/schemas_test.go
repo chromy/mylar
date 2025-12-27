@@ -68,4 +68,3 @@ func TestListSchemas(t *testing.T) {
 		t.Error("Expected both test schemas to be in the list")
 	}
 }
-

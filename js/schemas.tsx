@@ -1,12 +1,10 @@
 import { z } from "zod";
 
-// index.GranularLineLength
 export const GranularLineLengthSchema = z.object({
   LinesLengths: z.number().array().nullable(),
 });
 export type GranularLineLength = z.infer<typeof GranularLineLengthSchema>;
 
-// index.Index
 export const IndexEntrySchema = z.object({
   path: z.string(),
   lineOffset: z.number(),
@@ -19,45 +17,11 @@ export const IndexSchema = z.object({
 });
 export type Index = z.infer<typeof IndexSchema>;
 
-// index.IndexEntry
-export const IndexEntrySchema = z.object({
-  path: z.string(),
-  lineOffset: z.number(),
-  lineCount: z.number(),
-});
-export type IndexEntry = z.infer<typeof IndexEntrySchema>;
-
-// index.LineLength
 export const LineLengthSchema = z.object({
   maximum: z.number(),
 });
 export type LineLength = z.infer<typeof LineLengthSchema>;
 
-// repo.FileSystemEntry
-export type FileSystemEntry = {
-  name: string;
-  path: string;
-  type: string;
-  size?: number | undefined;
-  hash?: string | undefined;
-  children?: FileSystemEntry[] | undefined;
-};
-const FileSystemEntrySchemaShape = {
-  name: z.string(),
-  path: z.string(),
-  type: z.string(),
-  size: z.number().optional(),
-  hash: z.string().optional(),
-  children: z
-    .lazy(() => FileSystemEntrySchema)
-    .array()
-    .optional(),
-};
-export const FileSystemEntrySchema: z.ZodType<FileSystemEntry> = z.object(
-  FileSystemEntrySchemaShape,
-);
-
-// repo.InfoResponse
 export type FileSystemEntry = {
   name: string;
   path: string;
@@ -86,13 +50,6 @@ export const InfoResponseSchema = z.object({
 });
 export type InfoResponse = z.infer<typeof InfoResponseSchema>;
 
-// repo.RepoInfo
-export const RepoInfoSchema = z.object({
-  name: z.string(),
-});
-export type RepoInfo = z.infer<typeof RepoInfoSchema>;
-
-// repo.RepoListResponse
 export const RepoInfoSchema = z.object({
   name: z.string(),
 });
