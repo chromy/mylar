@@ -23,7 +23,7 @@ func DoServe(ctx context.Context, port uint) {
 		}
 	}
 
-	repo.AddFromPath("self", ".")
+	repo.AddFromPath(ctx, "self", ".")
 
 	log.Printf("ready serve http://localhost:%d", port)
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(int(port)), router))
