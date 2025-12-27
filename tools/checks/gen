@@ -35,6 +35,25 @@ def main():
         print("Error: './viz' binary not found. Run 'go build ./cmd/viz' first.", file=sys.stderr)
         return 1
 
+    # Format the generated content with prettier
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsx', delete=False) as temp_file:
+        temp_file.write(generated_content)
+        temp_file_path = temp_file.name
+    
+    format_result = subprocess.run(
+        ["pnpm", "-C", ROOT_DIR, "exec", "prettier", "--write", temp_file_path],
+        capture_output=True,
+        text=True
+    )
+    
+    if format_result.returncode == 0:
+        # Read the formatted content back
+        with open(temp_file_path, 'r') as f:
+            generated_content = f.read()
+    
+    # Clean up temp file
+    os.unlink(temp_file_path)
+
     # Read current content of js/schemas.tsx
     try:
         with open(TARGET_FILE, 'r') as f:

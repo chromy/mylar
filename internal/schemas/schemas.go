@@ -35,7 +35,7 @@ func Register(schema Schema) {
 func RegisterStruct(id string, structValue interface{}) {
 	structType := reflect.TypeOf(structValue)
 	zodSchema := zen.StructToZodSchema(structValue)
-	
+
 	Register(Schema{
 		Id:     id,
 		Type:   structType,
