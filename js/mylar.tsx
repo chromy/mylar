@@ -24,7 +24,7 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
       {isLoading && <DecryptLoader />}
       <ul>
         {data &&
-          data.entries.map(e => (
+          (data.entries ?? []).map(e => (
             <li>
               {e.path} {e.lineOffset} {e.lineCount}
             </li>
@@ -41,8 +41,8 @@ export interface MylarContentProps {
 }
 
 const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
-  const fileCount = index.entries.length;
-  const lastFile = index.entries[fileCount - 1];
+  const fileCount = (index.entries ?? []).length;
+  const lastFile = (index.entries ?? [])[fileCount - 1];
   const lineCount =
     lastFile === undefined ? "-" : lastFile.lineOffset + lastFile.lineCount;
 

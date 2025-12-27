@@ -28,7 +28,7 @@ type IndexEntry struct {
 }
 
 type Index struct {
-	Entries []IndexEntry `json:"entries",validate:"required"`
+	Entries []IndexEntry `json:"entries"`
 }
 
 func ComputeIndex(ctx context.Context, repository *git.Repository, hash plumbing.Hash) (*Index, error) {
