@@ -9,7 +9,7 @@ TOOLS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = os.path.dirname(TOOLS_DIR)
 
 def is_target(path):
-  return path.endswith(b".ts")
+  return path.endswith(b".ts") or path.endswith(b".tsx")
 
 
 def main():
