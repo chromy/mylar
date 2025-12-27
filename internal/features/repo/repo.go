@@ -77,7 +77,39 @@ func Get(_ context.Context, name string) (*git.Repository, error) {
 	}
 }
 
-func ResolveCommitish(*git.Repository) (plumbing.Hash, error) {
+func ResolveCommitish(repo *git.Repository, commitish string) (plumbing.Hash, error) {
+	if commitish == "" {
+		ref, err := repo.Head()
+		if err != nil {
+			return plumbing.ZeroHash, fmt.Errorf("failed to get HEAD: %w", err)
+		}
+		return ref.Hash(), nil
+	}
+
+	hash := plumbing.NewHash(commitish)
+	if !hash.IsZero() {
+		_, err := repo.CommitObject(hash)
+		if err == nil {
+			return hash, nil
+		}
+	}
+
+	ref, err := repo.Reference(plumbing.ReferenceName("refs/heads/"+commitish), true)
+	if err == nil {
+		return ref.Hash(), nil
+	}
+
+	ref, err = repo.Reference(plumbing.ReferenceName("refs/tags/"+commitish), true)
+	if err == nil {
+		return ref.Hash(), nil
+	}
+
+	ref, err = repo.Reference(plumbing.ReferenceName("refs/remotes/origin/"+commitish), true)
+	if err == nil {
+		return ref.Hash(), nil
+	}
+
+	return plumbing.ZeroHash, fmt.Errorf("unable to resolve commitish '%s'", commitish)
 }
 
 

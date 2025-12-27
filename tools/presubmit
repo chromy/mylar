@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import argparse
+import subprocess
+
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+CHECKS_DIR = os.path.join(TOOLS_DIR, "checks")
+
+def is_dirty():
+  return bool(subprocess.check_output(["git", "status", "--porcelain"]))
+
+def main():
+  description = "Run all presubmit checks"
+  parser = argparse.ArgumentParser(description=description)
+  parser.add_argument("--check", action="store_true")
+  parser.add_argument("--force", action="store_true")
+  args = parser.parse_args()
+
+  if not args.check and not args.force and is_dirty():
+    print("Working directory dirty, rerun with --force.", file=sys.stderr)
+    return 0
+
+  failures = []
+
+  checks = os.listdir(CHECKS_DIR)
+  checks.sort()
+  for check in checks:
+    check_path = os.path.join(CHECKS_DIR, check)
+
+    cmd = [check_path]
+    if args.check:
+      cmd.append("--check")
+    code = subprocess.run(cmd).returncode
+    if code != 0:
+      failures.append(check)
+
+  if failures:
+    print("The following checks failed:", file=sys.stderr)
+    for failure in failures:
+      print(failure, file=sys.stderr)
+
+  return 1 if failures else 0
+
+if __name__ == "__main__":
+  sys.exit(main())
+

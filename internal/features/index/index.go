@@ -3,13 +3,17 @@ package index
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"io"
+	"net/http"
 	"sort"
 	"strings"
-
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/julienschmidt/httprouter"
+	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/features/repo"
 )
 
 type IndexEntry struct {
@@ -143,14 +147,26 @@ func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 
-	repo, err := Get(r.Context(), repoName)
+	repository, err := repo.Get(r.Context(), repoName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	hash, err := repo.ResolveCommitish(repository, commitish)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	index, err := ComputeIndex(r.Context(), repository, hash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(index); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
@@ -160,7 +176,7 @@ func init() {
 		Id: "index.get",
 		Method: http.MethodGet,
 		Path: "/api/repo/:repo/:commitish/index/*path",
-		Handler: RawHandler,
+		Handler: IndexHandler,
 	})
 }
 
