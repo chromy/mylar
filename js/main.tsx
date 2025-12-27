@@ -47,9 +47,48 @@ const Home = () => {
 
         {data &&
           data.repos.map(r => (
-            <Link href={`/app/repo/{r.name}`}>{r.name}</Link>
+            <Link href={`/app/repo/${r.name}/HEAD`}>{r.name}</Link>
           ))}
       </div>
+    </div>
+  );
+};
+
+const IndexEntry = z.object({
+  path: z.string(),
+  lineOffset: z.number(),
+  lineCount: z.number(),
+});
+
+const IndexResponseSchema = z.object({
+  entries: z.array(IndexEntry),
+});
+
+interface IndexPanelProps {
+  repo: string;
+  commitish: string;
+}
+
+const IndexPanel = ({ repo, commitish }: IndexPanelProps) => {
+  const { data, isLoading, isError, error } = useJsonQuery({
+    path: `/api/repo/${repo}/${commitish}/index`,
+    schema: IndexResponseSchema,
+  });
+
+  if (isError) {
+    throw new Error(error);
+  }
+
+  return (
+    <div>
+      {isLoading && <DecryptLoader />}
+      <ul>
+      {
+        data && data.entries.map(e =>
+          (<li>{e.path} {e.lineOffset} {e.lineCount}</li>)
+        )
+      }
+      </ul>
     </div>
   );
 };
@@ -57,11 +96,13 @@ const Home = () => {
 const Repo = () => {
   const params = useParams();
   const repo = params.repo || "";
+  const commitish = params.commitish || "";
 
   return (
     <div className="grid">
+      <IndexPanel repo={repo} commitish={commitish} />
       <div className="absolute bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo} />
+        <Viewer repo={repo} commitish={commitish} />
       </div>
     </div>
   );
@@ -71,7 +112,7 @@ const App = () => (
   <>
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/app/repo/:repo" component={Repo} />
+      <Route path="/app/repo/:repo/:commitish" component={Repo} />
       <Route>404: No such page!</Route>
     </Switch>
   </>

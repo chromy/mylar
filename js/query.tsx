@@ -53,7 +53,6 @@ export function useQuery<TData = unknown, TError = Error>(
           setIsLoading(false);
         }
       } catch (err: any) {
-        console.log("err!", err);
         if (err.name === "AbortError") {
           return;
         }
@@ -120,7 +119,8 @@ export function useJsonQuery<T>(
       const response = await fetch(url.toString(), { signal });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const body = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText}: ${body}`);
       }
 
       const rawJson = await response.json();

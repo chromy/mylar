@@ -2,17 +2,12 @@ import { vec2, vec3 } from "gl-matrix";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 
-export interface IndexPanelProps {
-  repo: string;
-}
-
-export const IndexPanel = ({ repo }: IndexPanelProps) => {};
-
 export interface ViewerProps {
   repo: string;
+  commitish: string;
 }
 
-export const Viewer = ({ repo }: ViewerProps) => {
+export const Viewer = ({ repo, commitish }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<Camera>(null);
 

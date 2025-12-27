@@ -317,14 +317,14 @@ func init() {
 	routes.Register(routes.Route{
 		Id:      "repo.raw",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/raw/*path",
+		Path:    "/api/repo/:repo/:commitish/raw/*path",
 		Handler: RawHandler,
 	})
 
 	routes.Register(routes.Route{
 		Id:      "repo.info",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/info/*path",
+		Path:    "/api/repo/:repo/:commitish/info/*path",
 		Handler: InfoHandler,
 	})
 

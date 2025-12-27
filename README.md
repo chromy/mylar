@@ -1,5 +1,6 @@
 # TODO:
 - Zoom to mouse
+- Middle mouse button to pan
 - Make pinch feel better
 - Camera limits
 - Generate zod schemas from golang structs

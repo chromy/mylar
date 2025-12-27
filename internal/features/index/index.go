@@ -16,14 +16,28 @@ import (
 	"strings"
 )
 
+//type IndexFileEntry struct {
+//	Path string `json:"path"`
+//	Name string `json:"name"`
+//	SizeBytes int64 `json:"sizeBytes"`
+//	OffsetBytes int64 `json:"offsetBytes"`
+//	Index int `json:"index"`
+//}
+//
+//type IndexStatusResponse struct {
+//	Message   string      `json:"message"`
+//	FileCount int64       `json:"fileCount"`
+//	Status    IndexStatus `json:"status"`
+//}
+
 type IndexEntry struct {
-	Path       string
-	LineOffset int64
-	LineCount  int64
+	Path       string `json:"path"`
+	LineOffset int64 `json:"lineOffset"`
+	LineCount  int64 `json:"lineCount"`
 }
 
 type Index struct {
-	Entries []IndexEntry
+	Entries []IndexEntry `json:"entries"`
 }
 
 func ComputeIndex(ctx context.Context, repository *git.Repository, hash plumbing.Hash) (*Index, error) {
