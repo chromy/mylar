@@ -6,8 +6,10 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/chromy/viz/internal/features"
+	"github.com/chromy/viz/internal/schemas"
 	"io/fs"
 	"os"
+	"sort"
 )
 
 //go:embed static/*
@@ -60,6 +62,16 @@ func Cmd() {
 		return 0
 	}
 
+	schemasCmd := func(args []string) int {
+		fs := flag.NewFlagSet("schemas", flag.ExitOnError)
+		if err := fs.Parse(args); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			return 1
+		}
+		DoSchemas(ctx)
+		return 0
+	}
+
 	main := func(args []string) int {
 		cmd := args[1]
 		subArgs := args[2:]
@@ -70,6 +82,8 @@ func Cmd() {
 			return assets(subArgs)
 		case "dev":
 			return dev(subArgs)
+		case "schemas":
+			return schemasCmd(subArgs)
 		default:
 			fmt.Fprintf(os.Stderr, "Unknown subcommand '%s'\n", cmd)
 			Usage()
@@ -85,4 +99,21 @@ func DoAssets(ctx context.Context) {
 		fmt.Println(path)
 		return nil
 	})
+}
+
+func DoSchemas(ctx context.Context) {
+	allSchemas := schemas.GetAllSchemas()
+	fmt.Printf("import { z } from \"zod\";\n\n")
+	
+	// Sort schema IDs for deterministic output
+	var ids []string
+	for id := range allSchemas {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	
+	for _, id := range ids {
+		schema := allSchemas[id]
+		fmt.Printf("// %s\n%s\n\n", id, schema)
+	}
 }

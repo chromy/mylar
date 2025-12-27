@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
@@ -321,4 +322,8 @@ func init() {
 		Handler: InfoHandler,
 	})
 
+	schemas.RegisterStruct("repo.RepoInfo", RepoInfo{})
+	schemas.RegisterStruct("repo.RepoListResponse", RepoListResponse{})
+	schemas.RegisterStruct("repo.FileSystemEntry", FileSystemEntry{})
+	schemas.RegisterStruct("repo.InfoResponse", InfoResponse{})
 }

@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"iter"
-	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -313,4 +313,8 @@ func init() {
 		Handler: LineLengthHandler,
 	})
 
+	schemas.RegisterStruct("index.IndexEntry", IndexEntry{})
+	schemas.RegisterStruct("index.Index", Index{})
+	schemas.RegisterStruct("index.GranularLineLength", GranularLineLength{})
+	schemas.RegisterStruct("index.LineLength", LineLength{})
 }
