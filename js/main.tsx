@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { Link, Route, Switch, useParams } from "wouter";
-import { Viewer } from "./viewer.js";
 import { z } from "zod";
 import { DecryptLoader } from "./DecryptLoader.js";
 import { useJsonQuery } from "./query.js";
+import { Mylar } from "./mylar.js";
 
 async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
   const response = await fetch("/api/fs/get", { signal });
@@ -34,7 +34,7 @@ const IndexStatusResponseSchema = z.object({
   fileCount: z.number(),
 });
 
-const Home = () => {
+const HomePage = () => {
   const { data, isLoading, isError, error } = useJsonQuery({
     path: "/api/repo",
     schema: RepoListResponseSchema,
@@ -54,66 +54,20 @@ const Home = () => {
   );
 };
 
-const IndexEntry = z.object({
-  path: z.string(),
-  lineOffset: z.number(),
-  lineCount: z.number(),
-});
 
-const IndexResponseSchema = z.object({
-  entries: z.array(IndexEntry),
-});
-
-interface IndexPanelProps {
-  repo: string;
-  committish: string;
-}
-
-const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
-  const { data, isLoading, isError, error } = useJsonQuery({
-    path: `/api/repo/${repo}/${committish}/index`,
-    schema: IndexResponseSchema,
-  });
-
-  if (isError) {
-    throw new Error(error);
-  }
-
-  return (
-    <div>
-      {isLoading && <DecryptLoader />}
-      <ul>
-        {data &&
-          data.entries.map(e => (
-            <li>
-              {e.path} {e.lineOffset} {e.lineCount}
-            </li>
-          ))}
-      </ul>
-    </div>
-  );
-};
-
-const Repo = () => {
+const RepoPage = () => {
   const params = useParams();
   const repo = params.repo || "";
   const committish = params.committish || "";
 
-  return (
-    <div className="grid">
-      <IndexPanel repo={repo} committish={committish} />
-      <div className="absolute bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo} committish={committish} />
-      </div>
-    </div>
-  );
+  return (<Mylar repo={repo} committish={committish} />)
 };
 
 const App = () => (
   <>
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/app/repo/:repo/:committish" component={Repo} />
+      <Route path="/" component={HomePage} />
+      <Route path="/app/repo/:repo/:committish" component={RepoPage} />
       <Route>404: No such page!</Route>
     </Switch>
   </>

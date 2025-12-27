@@ -16,21 +16,8 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"iter"
 )
-
-//type IndexFileEntry struct {
-//	Path string `json:"path"`
-//	Name string `json:"name"`
-//	SizeBytes int64 `json:"sizeBytes"`
-//	OffsetBytes int64 `json:"offsetBytes"`
-//	Index int `json:"index"`
-//}
-//
-//type IndexStatusResponse struct {
-//	Message   string      `json:"message"`
-//	FileCount int64       `json:"fileCount"`
-//	Status    IndexStatus `json:"status"`
-//}
 
 type IndexEntry struct {
 	Path       string `json:"path"`
@@ -147,7 +134,6 @@ func countLines(reader io.Reader) (int64, error) {
 func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	repoName := ps.ByName("repo")
 	committish := ps.ByName("committish")
-	path := ps.ByName("path")
 
 	if repoName == "" {
 		http.Error(w, "repo must be set", http.StatusBadRequest)
@@ -156,11 +142,6 @@ func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	if committish == "" {
 		http.Error(w, "committish must be set", http.StatusBadRequest)
-		return
-	}
-
-	if path == "" {
-		http.Error(w, "path must be set", http.StatusBadRequest)
 		return
 	}
 
@@ -188,11 +169,115 @@ func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	}
 }
 
+type GranularLineLength struct {
+	LinesLengths []int64
+}
+
+type LineLength struct {
+	Maximum int64 `json:"maximum"`
+}
+
+func ComputeLineLength(ctx context.Context, repository *git.Repository, hash plumbing.Hash) (*LineLength, error) {
+	// TODO: Try and load from cache
+
+	obj, err := repository.Object(plumbing.AnyObject, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	switch obj := obj.(type) {
+	case *object.Blob:
+		return computeLineLengthForBlob(obj)
+	case *object.Tree:
+		return computeLineLengthForTree(ctx, repository, obj)
+	default:
+		return nil, fmt.Errorf("unexpected object %v", obj)
+	}
+}
+
+func computeGranularLineLengthForBlob(blob *object.Blob) (*GranularLineLength, error) {
+	reader, err := blob.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+
+}
+
+func computeLineLengthForBlob(blob *object.Blob) (*LineLength, error) {
+	granular, err := computeGranularLineLengthForBlob(blob)
+	if err != nil {
+		return nil, err
+	}
+
+	maximum := 0
+
+	for n := range granular.LinesLengths {
+		maximum = max(n, maximum)
+	}
+
+	return &LineLength{Maximum: Maximum}, nil
+}
+
+func computeLineLengthForTree(ctx context.Context, repository *git.Repository, tree *object.Tree) (*LineLength, error) {
+}
+
+func Lines(reader io.Reader) iter.Seq2[string, error] {
+}
+
+func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoName := ps.ByName("repo")
+	committish := ps.ByName("committish")
+
+	if repoName == "" {
+		http.Error(w, "repo must be set", http.StatusBadRequest)
+		return
+	}
+
+	if committish == "" {
+		http.Error(w, "committish must be set", http.StatusBadRequest)
+		return
+	}
+
+	repository, err := repo.Get(r.Context(), repoName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	hash, err := repo.ResolveCommittishToTreeish(repository, committish)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	index, err := ComputeLineLength(r.Context(), repository, hash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(index); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+
 func init() {
 	routes.Register(routes.Route{
 		Id:      "index.get",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:committish/index/*path",
+		Path:    "/api/repo/:repo/:committish/index",
 		Handler: IndexHandler,
 	})
+
+	routes.Register(routes.Route{
+		Id:      "index.get",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/:committish/index/",
+		Handler: LineLengthHandler,
+	})
+
 }

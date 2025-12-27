@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+.mylar-content {
+  display: grid;
+  grid:
+    "a     b     c" 1fr
+    "d     e     f" 1fr
+    "g     h     info" auto
+    / 1fr 1fr minmax(auto, 1fr);
+}
+
+.mylar-content-info {
+  grid-area: info;
+}
