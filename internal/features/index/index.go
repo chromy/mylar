@@ -12,11 +12,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
 	"io"
+	"iter"
 	"log"
 	"net/http"
 	"sort"
 	"strings"
-	"iter"
 )
 
 type IndexEntry struct {
@@ -202,7 +202,16 @@ func computeGranularLineLengthForBlob(blob *object.Blob) (*GranularLineLength, e
 	}
 	defer reader.Close()
 
+	var lineLengths []int64
 
+	for line, err := range Lines(reader) {
+		if err != nil {
+			return nil, err
+		}
+		lineLengths = append(lineLengths, int64(len(line)))
+	}
+
+	return &GranularLineLength{LinesLengths: lineLengths}, nil
 }
 
 func computeLineLengthForBlob(blob *object.Blob) (*LineLength, error) {
@@ -217,13 +226,38 @@ func computeLineLengthForBlob(blob *object.Blob) (*LineLength, error) {
 		maximum = max(n, maximum)
 	}
 
-	return &LineLength{Maximum: Maximum}, nil
+	return &LineLength{Maximum: int64(maximum)}, nil
 }
 
 func computeLineLengthForTree(ctx context.Context, repository *git.Repository, tree *object.Tree) (*LineLength, error) {
+	var maxLength int64
+
+	for _, entry := range tree.Entries {
+		childLineLength, err := ComputeLineLength(ctx, repository, entry.Hash)
+		if err != nil {
+			return nil, err
+		}
+
+		if childLineLength.Maximum > maxLength {
+			maxLength = childLineLength.Maximum
+		}
+	}
+
+	return &LineLength{Maximum: maxLength}, nil
 }
 
 func Lines(reader io.Reader) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			if !yield(scanner.Text(), nil) {
+				return
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			yield("", err)
+		}
+	}
 }
 
 func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -264,19 +298,18 @@ func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 }
 
-
 func init() {
 	routes.Register(routes.Route{
 		Id:      "index.get",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:committish/index",
+		Path:    "/api/repo/:repo/:committish/index/",
 		Handler: IndexHandler,
 	})
 
 	routes.Register(routes.Route{
-		Id:      "index.get",
+		Id:      "index.line_length",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:committish/index/",
+		Path:    "/api/repo/:repo/:committish/line_length/",
 		Handler: LineLengthHandler,
 	})
 

@@ -16,7 +16,6 @@ This is "viz" - a code visualization tool that serves Git repositories with an i
 - `go build ./cmd/viz` - Build the viz binary
 
 ### Frontend/Assets
-- `./tools/check` - TypeScript type checking (runs `pnpm exec tsc --noEmit`)
 - Frontend assets are built using esbuild and embedded into the Go binary via `//go:embed`
 
 ## Architecture
@@ -59,3 +58,4 @@ React SPA using wouter for routing:
 - Git operations use go-git library for repository access
 - Frontend uses strict TypeScript configuration with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`
 - The viewer component renders to HTML5 Canvas with 2D transformations for code visualization
+- ./tools/presubmit to run presubmit checks.

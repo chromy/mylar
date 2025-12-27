@@ -54,13 +54,12 @@ const HomePage = () => {
   );
 };
 
-
 const RepoPage = () => {
   const params = useParams();
   const repo = params.repo || "";
   const committish = params.committish || "";
 
-  return (<Mylar repo={repo} committish={committish} />)
+  return <Mylar repo={repo} committish={committish} />;
 };
 
 const App = () => (

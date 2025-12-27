@@ -20,7 +20,7 @@ interface IndexPanelProps {
 
 const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
   const { data, isLoading, isError, error } = useJsonQuery({
-    path: `/api/repo/${repo}/${committish}/index`,
+    path: `/api/repo/${repo}/${committish}/index/`,
     schema: IndexResponseSchema,
   });
 
@@ -46,14 +46,14 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
 export interface MylarContentProps {
   repo: string;
   committish: string;
-  index: IndexResponseSchema,
+  index: IndexResponseSchema;
 }
 
-
-const MylarContent = ({repo, committish, index}: MylarContentProps) => {
+const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   const fileCount = index.entries.length;
   const lastFile = index.entries[fileCount - 1];
-  const lineCount = (lastFile === undefined) ? "-" : lastFile.lineOffset + lastFile.lineCount;
+  const lineCount =
+    lastFile === undefined ? "-" : lastFile.lineOffset + lastFile.lineCount;
 
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
@@ -84,7 +84,7 @@ const MylarContent = ({repo, committish, index}: MylarContentProps) => {
 };
 
 const MylarLoading = () => {
-  return ( <DecryptLoader />);
+  return <DecryptLoader />;
 };
 
 export interface MylarProps {
@@ -92,7 +92,7 @@ export interface MylarProps {
   committish: string;
 }
 
-export const Mylar = ({repo, committish}: MylarProps) => {
+export const Mylar = ({ repo, committish }: MylarProps) => {
   const { data, isLoading, isError, error } = useJsonQuery({
     path: `/api/repo/${repo}/${committish}/index`,
     schema: IndexResponseSchema,
@@ -105,10 +105,9 @@ export const Mylar = ({repo, committish}: MylarProps) => {
   return (
     <>
       {isLoading && <DecryptLoader />}
-      {data && <MylarContent repo={repo} committish={committish} index={data}/>}
+      {data && (
+        <MylarContent repo={repo} committish={committish} index={data} />
+      )}
     </>
   );
 };
-
-
-
