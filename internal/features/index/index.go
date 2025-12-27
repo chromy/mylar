@@ -19,6 +19,8 @@ import (
 	"strings"
 )
 
+const TileSize = 128
+
 type IndexEntry struct {
 	Path       string `json:"path"`
 	LineOffset int64  `json:"lineOffset"`
@@ -39,10 +41,8 @@ func ComputeIndex(ctx context.Context, repository *git.Repository, hash plumbing
 
 	switch obj := obj.(type) {
 	case *object.Blob:
-		log.Printf("is blob: %v\n", hash)
 		return computeIndexForBlob(obj)
 	case *object.Tree:
-		log.Printf("is tree: %v\n", hash)
 		return computeIndexForTree(ctx, repository, obj)
 	default:
 		return nil, fmt.Errorf("unexpected object %v", obj)
@@ -208,7 +208,6 @@ func computeGranularLineLengthForBlob(blob *object.Blob) (*GranularLineLength, e
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("%s %d", line, len(line))
 		lineLengths = append(lineLengths, int64(len(line)))
 	}
 
