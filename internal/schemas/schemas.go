@@ -2,8 +2,8 @@ package schemas
 
 import (
 	"fmt"
-	"github.com/hypersequent/zen"
 	"github.com/chromy/viz/internal/constants"
+	"github.com/hypersequent/zen"
 	"sort"
 	"sync"
 )
@@ -75,7 +75,7 @@ func ToZodSchema() string {
 
 	var text string
 	text += fmt.Sprintf("import { z } from \"zod\";\n\n")
-	text += fmt.Sprintf("const TILE_SIZE = %d;\n\n", constants.TileSize)
+	text += fmt.Sprintf("export const TILE_SIZE = %d;\n\n", constants.TileSize)
 	text += c.Export()
 
 	return text

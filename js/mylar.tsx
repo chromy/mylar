@@ -1,8 +1,9 @@
-import { Viewer } from "./viewer.js";
+import { useMemo } from "react";
+import { type TileLayout, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { DecryptLoader } from "./loader.js";
-import { type Index, IndexSchema } from "./schemas.js";
+import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
 
 interface IndexPanelProps {
   repo: string;
@@ -34,20 +35,19 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
   );
 };
 
-
-
-interface TileLayout {
-  total: number;
-}
-
-
 function toTileLayout(index: Index): TileLayout {
   const entries = index.entries ?? [];
   const lastFile = entries[entries.length - 1];
-  const total = (lastFile === undefined) ? 0 : lastFile.lineOffset + lastFile.lineCount;
+  if (lastFile === undefined) {
+    throw new Error("We can't handle zero files");
+  }
+
+  const lineCount = lastFile.lineOffset + lastFile.lineCount;
+  const tileCount = Math.ceil(lineCount / (TILE_SIZE*TILE_SIZE));
 
   return {
-    total,
+    lineCount,
+    tileCount,
   };
 }
 
@@ -63,10 +63,14 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   const lineCount =
     lastFile === undefined ? "-" : lastFile.lineOffset + lastFile.lineCount;
 
+  const layout = useMemo(() => {
+    return toTileLayout(index);
+  }, [index]);
+
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
       <div className="fixed bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo} committish={committish} />
+        <Viewer repo={repo} committish={committish} layout={layout} />
       </div>
       <div className="mylar-content-info backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2">
         <table className="table-auto w-full text-zinc-950/80 text-sm">

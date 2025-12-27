@@ -12,4 +12,4 @@
 - Length
 - File type / extension
 - Roll over file with mouse
-
+- Investigate rgba-float16

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/routes"
 	"github.com/chromy/viz/internal/schemas"
@@ -17,9 +18,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"github.com/chromy/viz/internal/constants"
 )
-
 
 type IndexEntry struct {
 	Path       string `json:"path"`

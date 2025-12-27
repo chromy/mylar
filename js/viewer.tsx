@@ -1,13 +1,29 @@
 import { vec2, vec3 } from "gl-matrix";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
+import { TILE_SIZE } from "./schemas.js";
+
+function createTileImageData(): ImageData {
+  let data = new ImageData(TILE_SIZE, TILE_SIZE);
+  return data;
+}
+
+// On each frame:
+// - Given repo, committish, bounds in world space, ops
+// - 
+
+export interface TileLayout {
+  lineCount: number;
+  tileCount: number;
+}
 
 export interface ViewerProps {
   repo: string;
   committish: string;
+  layout: TileLayout;
 }
 
-export const Viewer = ({ repo, committish }: ViewerProps) => {
+export const Viewer = ({ repo, committish, layout }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<Camera>(null);
 
