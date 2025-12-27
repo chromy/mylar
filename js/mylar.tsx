@@ -1,7 +1,7 @@
 import { Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
-import { DecryptLoader } from "./DecryptLoader.js";
+import { DecryptLoader } from "./loader.js";
 import { type Index, IndexSchema } from "./schemas.js";
 
 interface IndexPanelProps {
@@ -33,6 +33,23 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
     </div>
   );
 };
+
+
+
+interface TileLayout {
+  total: number;
+}
+
+
+function toTileLayout(index: Index): TileLayout {
+  const entries = index.entries ?? [];
+  const lastFile = entries[entries.length - 1];
+  const total = (lastFile === undefined) ? 0 : lastFile.lineOffset + lastFile.lineCount;
+
+  return {
+    total,
+  };
+}
 
 export interface MylarContentProps {
   repo: string;

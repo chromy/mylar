@@ -17,9 +17,9 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"github.com/chromy/viz/internal/constants"
 )
 
-const TileSize = 128
 
 type IndexEntry struct {
 	Path       string `json:"path"`
@@ -187,7 +187,7 @@ func ComputeLineLength(ctx context.Context, repository *git.Repository, hash plu
 
 	switch obj := obj.(type) {
 	case *object.Blob:
-		return computeLineLengthForBlob(obj)
+		return computeLineLengthForBlob(ctx, obj)
 	case *object.Tree:
 		return computeLineLengthForTree(ctx, repository, obj)
 	default:
@@ -195,7 +195,7 @@ func ComputeLineLength(ctx context.Context, repository *git.Repository, hash plu
 	}
 }
 
-func computeGranularLineLengthForBlob(blob *object.Blob) (*GranularLineLength, error) {
+func computeGranularLineLengthForBlob(ctx context.Context, blob *object.Blob) (*GranularLineLength, error) {
 	reader, err := blob.Reader()
 	if err != nil {
 		return nil, err
@@ -214,8 +214,8 @@ func computeGranularLineLengthForBlob(blob *object.Blob) (*GranularLineLength, e
 	return &GranularLineLength{LinesLengths: lineLengths}, nil
 }
 
-func computeLineLengthForBlob(blob *object.Blob) (*LineLength, error) {
-	granular, err := computeGranularLineLengthForBlob(blob)
+func computeLineLengthForBlob(ctx context.Context, blob *object.Blob) (*LineLength, error) {
+	granular, err := computeGranularLineLengthForBlob(ctx, blob)
 	if err != nil {
 		return nil, err
 	}
@@ -298,6 +298,54 @@ func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 }
 
+func TileLineLength(ctx context.Context, repository *git.Repository, level int, x int, y int) ([]int64, error) {
+	tile := make([]int64, constants.TileSize*constants.TileSize)
+
+	for i := range tile {
+		tile[i] = int64(i)
+	}
+
+	return tile, nil
+}
+
+func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoName := ps.ByName("repo")
+	committish := ps.ByName("committish")
+
+	if repoName == "" {
+		http.Error(w, "repo must be set", http.StatusBadRequest)
+		return
+	}
+
+	if committish == "" {
+		http.Error(w, "committish must be set", http.StatusBadRequest)
+		return
+	}
+
+	repository, err := repo.Get(r.Context(), repoName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// For now, using default values for level, x, y
+	// TODO: Extract these from query parameters if needed
+	level := 0
+	x := 0
+	y := 0
+
+	tile, err := TileLineLength(r.Context(), repository, level, x, y)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(tile); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 func init() {
 	routes.Register(routes.Route{
 		Id:      "index.get",
@@ -311,6 +359,13 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/line_length/",
 		Handler: LineLengthHandler,
+	})
+
+	routes.Register(routes.Route{
+		Id:      "tile.line_length",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/:committish/tile/length/",
+		Handler: TileLineLengthHandler,
 	})
 
 	schemas.Register("index.IndexEntry", IndexEntry{})

@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { Link, Route, Switch, useParams } from "wouter";
 import { z } from "zod";
-import { DecryptLoader } from "./DecryptLoader.js";
+import { DecryptLoader } from "./loader.js";
 import { useJsonQuery } from "./query.js";
 import { Mylar } from "./mylar.js";
 
