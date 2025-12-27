@@ -2,16 +2,7 @@ import { Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { DecryptLoader } from "./DecryptLoader.js";
-
-const IndexEntry = z.object({
-  path: z.string(),
-  lineOffset: z.number(),
-  lineCount: z.number(),
-});
-
-const IndexResponseSchema = z.object({
-  entries: z.array(IndexEntry),
-});
+import { type Index, IndexSchema } from "./schemas.js";
 
 interface IndexPanelProps {
   repo: string;
@@ -21,11 +12,11 @@ interface IndexPanelProps {
 const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
   const { data, isLoading, isError, error } = useJsonQuery({
     path: `/api/repo/${repo}/${committish}/index/`,
-    schema: IndexResponseSchema,
+    schema: IndexSchema,
   });
 
   if (isError) {
-    throw new Error(error);
+    throw error;
   }
 
   return (
@@ -46,7 +37,7 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
 export interface MylarContentProps {
   repo: string;
   committish: string;
-  index: IndexResponseSchema;
+  index: Index;
 }
 
 const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
@@ -61,7 +52,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
         <Viewer repo={repo} committish={committish} />
       </div>
       <div className="mylar-content-info backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2">
-        <table class="table-auto w-full text-zinc-950/80 text-sm">
+        <table className="table-auto w-full text-zinc-950/80 text-sm">
           <thead></thead>
           <tbody>
             <tr>
@@ -95,11 +86,11 @@ export interface MylarProps {
 export const Mylar = ({ repo, committish }: MylarProps) => {
   const { data, isLoading, isError, error } = useJsonQuery({
     path: `/api/repo/${repo}/${committish}/index`,
-    schema: IndexResponseSchema,
+    schema: IndexSchema,
   });
 
   if (isError) {
-    throw new Error(error);
+    throw error;
   }
 
   return (
