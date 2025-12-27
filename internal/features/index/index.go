@@ -208,6 +208,7 @@ func computeGranularLineLengthForBlob(blob *object.Blob) (*GranularLineLength, e
 		if err != nil {
 			return nil, err
 		}
+		log.Printf("%s %d", line, len(line))
 		lineLengths = append(lineLengths, int64(len(line)))
 	}
 
@@ -220,9 +221,9 @@ func computeLineLengthForBlob(blob *object.Blob) (*LineLength, error) {
 		return nil, err
 	}
 
-	maximum := 0
+	var maximum int64
 
-	for n := range granular.LinesLengths {
+	for _, n := range granular.LinesLengths {
 		maximum = max(n, maximum)
 	}
 
