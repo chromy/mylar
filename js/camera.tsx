@@ -90,12 +90,26 @@ export class Camera {
     this.update();
   }
 
-  setScreenSize(screenSize: vec2) {
+  setScreenSize(screenSize: vec2): void {
     if (vec2.equals(this.screenSizePx, screenSize)) {
       return;
     }
     vec2.copy(this.screenSizePx, screenSize);
     this.update();
+  }
+
+  getScreenSize(): vec2 {
+    const screenSize = vec2.create();
+    vec2.copy(screenSize, this.screenSizePx);
+    return screenSize;
+  }
+
+  get screenWidthPx(): number {
+    return this.screenSizePx[0];
+  }
+
+  get screenHeightPx(): number {
+    return this.screenSizePx[1];
   }
 
   private update() {
