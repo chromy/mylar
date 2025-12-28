@@ -104,6 +104,17 @@ export class Camera {
     return screenSize;
   }
 
+  getWorldBoundingBox(): [vec2, vec2] {
+    const topLeft = vec2.create();
+    const widthHeight = vec2.clone(this.screenSizePx)
+    this.toWorld(topLeft, topLeft);
+    this.toWorld(widthHeight, widthHeight);
+    vec2.sub(widthHeight, widthHeight, topLeft);
+    widthHeight[0] = Math.abs(widthHeight[0]);
+    widthHeight[1] = Math.abs(widthHeight[1]);
+    return [topLeft, widthHeight];
+  }
+
   get screenWidthPx(): number {
     return this.screenSizePx[0];
   }

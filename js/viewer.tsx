@@ -17,13 +17,21 @@ export interface TileLayout {
   tileCount: number;
 }
 
+export type DebugKeyValue = [string, string];
+export type DebugInfo = DebugKeyValue[];
+
 interface CanvasState {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   dpr: number;
 }
 
-// Rename Viewer -> RendererHost
+interface RendererHostCallbacks {
+  getCanvas: () => HTMLCanvasElement|undefined;
+  setDebug: (info: DebugInfo) => void;
+  setFrameHistory: (history: number[]) => void;
+}
+
 class Renderer {
   private repo: string;
   private committish: string;
@@ -31,15 +39,16 @@ class Renderer {
   private camera: Camera;
   private frameId: undefined|number;
   private lastTimestampMs: number;
+  private lastDebugUpdateMs: number;
   private lastFrameMs: number;
-  private getCanvas: () => HTMLCanvasElement|undefined;
   private canvasState: CanvasState|undefined;
+  private callbacks: RendererHostCallbacks;
 
   private boundFrame: (timestamp: number) => void;
   private boundHandleWheel: (e: WheelEvent) => void;
   private boundHandleResize: () => void;
 
-  constructor(repo: string, committish: string, layout: TileLayout, getCanvas: () => HTMLCanvasElement|undefined) {
+  constructor(repo: string, committish: string, layout: TileLayout, callbacks: RendererHostCallbacks) {
     this.repo = repo;
     this.committish = committish;
     this.layout = layout;
@@ -47,7 +56,8 @@ class Renderer {
     this.frameId = undefined;
     this.lastTimestampMs = 0;
     this.lastFrameMs = 0;
-    this.getCanvas = getCanvas;
+    this.lastDebugUpdateMs = 0;
+    this.callbacks = callbacks;
 
     this.boundFrame = this.frame.bind(this);
     this.boundHandleWheel = this.handleWheel.bind(this);
@@ -83,7 +93,7 @@ class Renderer {
   }
 
   private tryHookCanvas(): void {
-    const canvas = this.getCanvas();
+    const canvas = this.callbacks.getCanvas();
     if (canvas  === undefined) {
       return;
     }
@@ -114,20 +124,44 @@ class Renderer {
   }
 
   private frame(timestamp: number): void {
+    // Frame bookkeeping:
     this.lastFrameMs = timestamp - this.lastTimestampMs;
     this.lastTimestampMs = timestamp;
 
-
+    // If we haven't yet managed to initialize the canvas do so now:
     if (this.canvasState === undefined) {
       this.tryHookCanvas();
     }
 
+    if (timestamp - this.lastDebugUpdateMs > 100) {
+      const [topLeft, widthHeight] = this.camera.getWorldBoundingBox();
+
+      const x = Math.round(topLeft[0]);
+      const y = Math.round(topLeft[1]);
+      const w = Math.round(widthHeight[0]);
+      const h = Math.round(widthHeight[1]);
+
+      this.lastDebugUpdateMs = timestamp;
+      this.callbacks.setDebug([
+        ["Frame duration (ms)", this.lastFrameMs.toFixed(2)],
+        ["World bbox", `${x},${y} ${w},${h}`],
+      ]);
+    }
+
+    // Figure out what tiles ought to be ready:
+    // Change this to write into output to avoid garbage.
+    const [topLeft, widthHeight] = this.camera.getWorldBoundingBox();
+
+    // Render tiles which are ready:
     const canvasState = this.canvasState;
     if (canvasState !== undefined) {
       const {ctx} = canvasState;
       this.renderFrame(ctx);
     }
+    // Do as much computation as fits in budget:
+    // TODO
 
+    // Schedule next frame:
     this.frameId = window.requestAnimationFrame(this.boundFrame);
   }
 
@@ -226,23 +260,31 @@ export interface ViewerProps {
   repo: string;
   committish: string;
   layout: TileLayout;
+  setDebug: (info: DebugInfo) => void;
 }
 
-export const Viewer = ({ repo, committish, layout }: ViewerProps) => {
+// Rename Viewer -> RendererHost
+export const Viewer = ({ repo, committish, layout, setDebug }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [frameHistory, setFrameHistory] = useState<number[]>([]);
 
   useEffect(() => {
     const getCanvas = () => {
       return canvasRef.current ?? undefined;
     };
 
-    const renderer = new Renderer(repo, committish, layout, getCanvas);
+    const renderer = new Renderer(repo, committish, layout, {
+      getCanvas,
+      setFrameHistory,
+      setDebug,
+    });
     renderer.start();
 
     return () => {
       renderer.stop();
     };
-  }, []);
+  }, [setFrameHistory, setDebug]);
 
   return (
     <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }}></canvas>

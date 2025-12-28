@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { type TileLayout, Viewer } from "./viewer.js";
+import { useState, useMemo } from "react";
+import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { DecryptLoader } from "./loader.js";
@@ -63,6 +63,8 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   const lineCount =
     lastFile === undefined ? "-" : lastFile.lineOffset + lastFile.lineCount;
 
+  const [debug, setDebug] = useState<DebugInfo>([]);
+
   const layout = useMemo(() => {
     return toTileLayout(index);
   }, [index]);
@@ -70,7 +72,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
       <div className="fixed bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo} committish={committish} layout={layout} />
+        <Viewer repo={repo} committish={committish} layout={layout} setDebug={setDebug}/>
       </div>
       <div className="mylar-content-info backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2">
         <table className="table-auto w-full text-zinc-950/80 text-sm">
@@ -88,6 +90,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
               <td>Ref</td>
               <td>{committish}</td>
             </tr>
+            {debug.map(kv => (<tr><td>{kv[0]}</td><td>{kv[1]}</td></tr>))}
           </tbody>
         </table>
       </div>
