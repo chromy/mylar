@@ -2,6 +2,7 @@ import { vec2, vec3 } from "gl-matrix";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
+import {type aabb, aabb} from "./aabb.js";
 
 function createTileImageData(): ImageData {
   let data = new ImageData(TILE_SIZE, TILE_SIZE);
@@ -47,6 +48,7 @@ class Renderer {
   private boundFrame: (timestamp: number) => void;
   private boundHandleWheel: (e: WheelEvent) => void;
   private boundHandleResize: () => void;
+  private screenWorldAabb: aabb;
 
   constructor(repo: string, committish: string, layout: TileLayout, callbacks: RendererHostCallbacks) {
     this.repo = repo;
@@ -127,30 +129,24 @@ class Renderer {
     // Frame bookkeeping:
     this.lastFrameMs = timestamp - this.lastTimestampMs;
     this.lastTimestampMs = timestamp;
+    this.camera.intoWorldBoundingBox(this.screenWorldAabb);
 
     // If we haven't yet managed to initialize the canvas do so now:
     if (this.canvasState === undefined) {
       this.tryHookCanvas();
     }
 
+
     if (timestamp - this.lastDebugUpdateMs > 100) {
-      const [topLeft, widthHeight] = this.camera.getWorldBoundingBox();
-
-      const x = Math.round(topLeft[0]);
-      const y = Math.round(topLeft[1]);
-      const w = Math.round(widthHeight[0]);
-      const h = Math.round(widthHeight[1]);
-
       this.lastDebugUpdateMs = timestamp;
       this.callbacks.setDebug([
         ["Frame duration (ms)", this.lastFrameMs.toFixed(2)],
-        ["World bbox", `${x},${y} ${w},${h}`],
+        ["World bbox", aabb.str(this.screenWorldAabb)],
       ]);
     }
 
     // Figure out what tiles ought to be ready:
     // Change this to write into output to avoid garbage.
-    const [topLeft, widthHeight] = this.camera.getWorldBoundingBox();
 
     // Render tiles which are ready:
     const canvasState = this.canvasState;
