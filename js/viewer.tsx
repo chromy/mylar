@@ -4,17 +4,13 @@ import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
 import { requiredTiles, quadtreeAABBs, toLod } from "./math.js";
+import { TileRequest } from "./store.js";
 
 function createTileImageData(): ImageData {
   let data = new ImageData(TILE_SIZE, TILE_SIZE);
   return data;
 }
 
-interface TileRequest {
-  x: number;
-  y: number;
-  lod: number;
-}
 
 function boxToTileRequest(box: aabb): TileRequest {
   const width = aabb.width(box);
