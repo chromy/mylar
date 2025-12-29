@@ -3,10 +3,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
+import { quadtreeAABBs } from "./math.js";
 
 function createTileImageData(): ImageData {
   let data = new ImageData(TILE_SIZE, TILE_SIZE);
   return data;
+}
+
+function toLod(box: aabb): number {
+  return aabb.width(box);
 }
 
 // On each frame:
@@ -156,6 +161,7 @@ class Renderer {
 
     // Figure out what tiles ought to be ready:
 
+
     // Render tiles which are ready:
     const canvasState = this.canvasState;
     if (canvasState !== undefined) {
@@ -167,6 +173,42 @@ class Renderer {
 
     // Schedule next frame:
     this.frameId = window.requestAnimationFrame(this.boundFrame);
+  }
+
+  private requiredTiles(bounds: aabb): aabb[] {
+    const tiles = [];
+
+    const limit = 100;
+    let count = 0;
+
+    for (const quadAABB of quadtreeAABBs(this.layout.lineCount)) {
+      if (tiles.length >= limit) {
+        break;
+      }
+      if (toLod(aabb) < TILE_SIZE) {
+        break;
+      }
+      if (aabb.overlaps(quadAABB, this.screenWorldAabb)) {
+        tiles.push(quadAABB);
+      }
+    }
+  }
+
+  private renderAABB(ctx: CanvasRenderingContext2D, aabb: aabb): void {
+    const topLeft = vec2.fromValues(aabb[0], aabb[1]);
+    const bottomRight = vec2.fromValues(aabb[2], aabb[3]);
+
+    const screenTopLeft = vec2.create();
+    const screenBottomRight = vec2.create();
+
+    this.camera.toScreen(screenTopLeft, topLeft);
+    this.camera.toScreen(screenBottomRight, bottomRight);
+
+    const width = screenBottomRight[0] - screenTopLeft[0];
+    const height = screenBottomRight[1] - screenTopLeft[1];
+
+    ctx.lineWidth = 5;
+    ctx.strokeRect(screenTopLeft[0], screenTopLeft[1], width, height);
   }
 
   private renderFrame(ctx: CanvasRenderingContext2D): void {
@@ -207,7 +249,7 @@ class Renderer {
     for (let row = startRow; row < endRow; row++) {
       for (let col = startCol; col < endCol; col++) {
         const isEven = (row + col) % 2 === 0;
-        ctx.fillStyle = isEven ? "pink" : "white";
+        ctx.fillStyle = isEven ? "#f5f5f5" : "white";
 
         // Convert world space square to screen space for drawing
         const worldPos = vec2.fromValues(col * squareSize, row * squareSize);
@@ -241,6 +283,20 @@ class Renderer {
     ctx.fill();
 
     this.camera.toScreen(screenCenter, worldCenter);
+
+    // Render first 100 quadtree AABBs that intersect with screen
+    let count = 0;
+    let renderCount = 0;
+    for (const quadAABB of quadtreeAABBs(this.layout.lineCount)) {
+      if (renderCount >= 100) break;
+      const hue = (count * 360 / 100) % 360;
+      ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
+      if (aabb.overlaps(quadAABB, this.screenWorldAabb)) {
+        this.renderAABB(ctx, quadAABB);
+        renderCount++;
+      }
+      count++;
+    }
   }
 
   start(): void {
