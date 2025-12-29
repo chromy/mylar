@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const TILE_SIZE = 128;
+export const TILE_SIZE = 64;
 
 export const GranularLineLengthSchema = z.object({
   LinesLengths: z.number().array().nullable(),

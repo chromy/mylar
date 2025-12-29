@@ -1,3 +1,3 @@
 package constants
 
-const TileSize = 128
+const TileSize = 64

@@ -3,15 +3,26 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
-import { quadtreeAABBs } from "./math.js";
+import { requiredTiles, quadtreeAABBs, toLod } from "./math.js";
 
 function createTileImageData(): ImageData {
   let data = new ImageData(TILE_SIZE, TILE_SIZE);
   return data;
 }
 
-function toLod(box: aabb): number {
-  return aabb.width(box);
+interface TileRequest {
+  x: number;
+  y: number;
+  lod: number;
+}
+
+function boxToTileRequest(box: aabb): TileRequest {
+  const width = aabb.width(box);
+  return {
+    x: box[0] / width,
+    y: box[1] / width,
+    lod: toLod(box),
+  };
 }
 
 // On each frame:
@@ -147,7 +158,16 @@ class Renderer {
       this.tryHookCanvas();
     }
 
-    if (timestamp - this.lastDebugUpdateMs > 100) {
+    // Figure out what tiles ought to be ready:
+    const reqs: TileRequest[] = [];
+    for (const box of requiredTiles(
+      this.screenWorldAabb,
+      this.layout.lineCount,
+    )) {
+      reqs.push(boxToTileRequest(box));
+    }
+
+    if (timestamp - this.lastDebugUpdateMs > 1000) {
       this.lastDebugUpdateMs = timestamp;
       const x = Math.round(this.screenWorldAabb[0]).toString().padStart(4);
       const y = Math.round(this.screenWorldAabb[1]).toString().padStart(4);
@@ -157,10 +177,8 @@ class Renderer {
         ["Frame duration", this.lastFrameMs.toFixed(2) + "ms"],
         ["World bbox", `(${x}, ${y}) (${w}, ${h})`],
       ]);
+      console.log(reqs);
     }
-
-    // Figure out what tiles ought to be ready:
-
 
     // Render tiles which are ready:
     const canvasState = this.canvasState;
@@ -173,25 +191,6 @@ class Renderer {
 
     // Schedule next frame:
     this.frameId = window.requestAnimationFrame(this.boundFrame);
-  }
-
-  private requiredTiles(bounds: aabb): aabb[] {
-    const tiles = [];
-
-    const limit = 100;
-    let count = 0;
-
-    for (const quadAABB of quadtreeAABBs(this.layout.lineCount)) {
-      if (tiles.length >= limit) {
-        break;
-      }
-      if (toLod(aabb) < TILE_SIZE) {
-        break;
-      }
-      if (aabb.overlaps(quadAABB, this.screenWorldAabb)) {
-        tiles.push(quadAABB);
-      }
-    }
   }
 
   private renderAABB(ctx: CanvasRenderingContext2D, aabb: aabb): void {
@@ -289,7 +288,7 @@ class Renderer {
     let renderCount = 0;
     for (const quadAABB of quadtreeAABBs(this.layout.lineCount)) {
       if (renderCount >= 100) break;
-      const hue = (count * 360 / 100) % 360;
+      const hue = ((count * 360) / 100) % 360;
       ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
       if (aabb.overlaps(quadAABB, this.screenWorldAabb)) {
         this.renderAABB(ctx, quadAABB);
