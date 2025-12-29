@@ -22,9 +22,10 @@ import (
 )
 
 type IndexEntry struct {
-	Path       string `json:"path"`
-	LineOffset int64  `json:"lineOffset"`
-	LineCount  int64  `json:"lineCount"`
+	Path       string           `json:"path"`
+	LineOffset int64            `json:"lineOffset"`
+	LineCount  int64            `json:"lineCount"`
+	Hash       plumbing.Hash    `json:"hash"`
 }
 
 type Index struct {
@@ -65,6 +66,7 @@ func computeIndexForBlob(blob *object.Blob) (*Index, error) {
 		Path:       ".",
 		LineOffset: 0,
 		LineCount:  lineCount,
+		Hash:       blob.Hash,
 	}
 
 	return &Index{Entries: []IndexEntry{entry}}, nil
@@ -92,6 +94,7 @@ func computeIndexForTree(ctx context.Context, repository *git.Repository, tree *
 				Path:       entry.Name,
 				LineOffset: currentOffset,
 				LineCount:  childEntry.LineCount,
+				Hash:       childEntry.Hash,
 			}
 
 			if childEntry.Path != "." {
@@ -378,11 +381,61 @@ func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 }
 
-func TileLineLength(ctx context.Context, repository *git.Repository, level int, x int, y int) ([]int64, error) {
+func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbing.Hash, level int, x int, y int) ([]int64, error) {
 	tile := make([]int64, constants.TileSize*constants.TileSize)
+	
+	// Handle only lod=0 for now, return all zeros for lod > 0
+	if level > 0 {
+		return tile, nil
+	}
 
-	for i := range tile {
-		tile[i] = int64(x * y)
+	// Get the index for the repository
+	index, err := ComputeIndex(ctx, repository, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate tile boundaries in line space
+	tileStartLine := int64(y * constants.TileSize)
+	tileEndLine := tileStartLine + constants.TileSize
+
+	// Find files from index that are in the area covered by the tile
+	for _, entry := range index.Entries {
+		entryStartLine := entry.LineOffset
+		entryEndLine := entry.LineOffset + entry.LineCount
+
+		// Check if this file overlaps with our tile
+		if entryStartLine < tileEndLine && entryEndLine > tileStartLine {
+			// Get the object directly using the hash from the index entry
+			obj, err := repository.Object(plumbing.AnyObject, entry.Hash)
+			if err != nil {
+				continue // Skip files we can't read
+			}
+
+			// Only process blobs (files)
+			if blob, ok := obj.(*object.Blob); ok {
+				// Use computeGranularLineLengthForBlob to get the length of each line
+				granular, err := computeGranularLineLengthForBlob(ctx, blob)
+				if err != nil {
+					continue // Skip files we can't process
+				}
+
+				// Write the relevant lines into the tile
+				for lineIdx, lineLength := range granular.LinesLengths {
+					absoluteLineIdx := entryStartLine + int64(lineIdx)
+					
+					// Check if this line falls within our tile
+					if absoluteLineIdx >= tileStartLine && absoluteLineIdx < tileEndLine {
+						tileLineIdx := absoluteLineIdx - tileStartLine
+						// For now, we'll put line length in the first column (x=0)
+						// This is a simplified mapping - more complex mapping might be needed
+						if x == 0 && tileLineIdx < constants.TileSize {
+							tile[tileLineIdx*constants.TileSize] = lineLength
+						}
+					}
+				}
+			}
+		}
 	}
 
 	return tile, nil
@@ -447,7 +500,13 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	tile, err := TileLineLength(r.Context(), repository, int(lod), int(x), int(y))
+	hash, err := repo.ResolveCommittishToTreeish(repository, committish)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	tile, err := TileLineLength(r.Context(), repository, hash, int(lod), int(x), int(y))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
