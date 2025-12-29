@@ -18,6 +18,7 @@ import (
 	"iter"
 	"net/http"
 	"sort"
+	"strconv"
 )
 
 type IndexEntry struct {
@@ -387,40 +388,75 @@ func TileLineLength(ctx context.Context, repository *git.Repository, level int, 
 	return tile, nil
 }
 
-func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	repoName := ps.ByName("repo")
-	committish := ps.ByName("committish")
+type TileMetadata struct {
+	X int64  `json:"y"`
+	Y int64  `json:"x"`
+	Lod int64  `json:"lod"`
+}
 
+func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	repoName := ps.ByName("repo")
 	if repoName == "" {
 		http.Error(w, "repo must be set", http.StatusBadRequest)
 		return
 	}
 
+	committish := ps.ByName("committish")
 	if committish == "" {
 		http.Error(w, "committish must be set", http.StatusBadRequest)
 		return
 	}
 
-	repository, err := repo.Get(r.Context(), repoName)
+	rawX := ps.ByName("x")
+	if rawX == "" {
+		http.Error(w, "x must be set", http.StatusBadRequest)
+		return
+	}
+	x, err := strconv.ParseInt(rawX, 10, 64)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "x must be number", http.StatusBadRequest)
 		return
 	}
 
-	// For now, using default values for level, x, y
-	// TODO: Extract these from query parameters if needed
-	level := 0
-	x := 0
-	y := 0
 
-	tile, err := TileLineLength(r.Context(), repository, level, x, y)
+	rawY := ps.ByName("y")
+	if rawY == "" {
+		http.Error(w, "y must be set", http.StatusBadRequest)
+		return
+	}
+	y, err := strconv.ParseInt(rawY, 10, 64)
+	if err != nil {
+		http.Error(w, "y must be number", http.StatusBadRequest)
+		return
+	}
+
+
+	rawLod := ps.ByName("lod")
+	if rawLod == "" {
+		http.Error(w, "lod must be set", http.StatusBadRequest)
+		return
+	}
+	lod, err := strconv.ParseInt(rawLod, 10, 64)
+	if err != nil {
+		http.Error(w, "lod must be number", http.StatusBadRequest)
+		return
+	}
+
+	tile, err := TileLineLength(r.Context(), repository, lod, x, y)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	metadata := TileMetadata{
+		X: x,
+		Y: y,
+		Lod: lod,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(tile); err != nil {
+	if err := json.NewEncoder(w).Encode(metadata); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
@@ -443,7 +479,7 @@ func init() {
 	routes.Register(routes.Route{
 		Id:      "tile.line_length",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:committish/tile/length/",
+		Path:    "/api/repo/:repo/:committish/tile/:lod/:x/:y/length",
 		Handler: TileLineLengthHandler,
 	})
 
@@ -451,4 +487,5 @@ func init() {
 	schemas.Register("index.Index", Index{})
 	schemas.Register("index.GranularLineLength", GranularLineLength{})
 	schemas.Register("index.LineLength", LineLength{})
+	schemas.Register("tile.TileMetadata", TileMetadata{})
 }
