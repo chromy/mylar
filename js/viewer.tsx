@@ -130,7 +130,9 @@ class Renderer {
       return;
     }
 
+    // Disable all forms of image smoothing for pixel-perfect rendering
     ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingQuality = "low";
 
     const dpr = window.devicePixelRatio || 1;
 
@@ -188,7 +190,6 @@ class Renderer {
         ["Frame duration", this.lastFrameMs.toFixed(2) + "ms"],
         ["World bbox", `(${x}, ${y}) (${w}, ${h})`],
       ]);
-      console.log(reqs);
     }
 
     // Render tiles which are ready:
@@ -238,12 +239,12 @@ class Renderer {
 
     this.camera.toScreen(screenA, worldA);
     this.camera.toScreen(screenB, worldB);
-    console.log(screenA, screenB, worldA, worldB, worldSize);
-    const screenMinX = Math.min(screenA[0], screenB[0]);
-    const screenMinY = Math.min(screenA[1], screenB[1]);
-    const screenMaxX = Math.max(screenA[0], screenB[0]);
-    const screenMaxY = Math.max(screenA[1], screenB[1]);
 
+    // Round to pixel boundaries to prevent sub-pixel rendering blur
+    const screenMinX = Math.round(Math.min(screenA[0], screenB[0]));
+    const screenMinY = Math.round(Math.min(screenA[1], screenB[1]));
+    const screenMaxX = Math.round(Math.max(screenA[0], screenB[0]));
+    const screenMaxY = Math.round(Math.max(screenA[1], screenB[1]));
 
     ctx.drawImage(
       imageBitmap,
@@ -407,6 +408,12 @@ export const Viewer = ({ repo, committish, layout, setDebug }: ViewerProps) => {
   }, [setFrameHistory, setDebug]);
 
   return (
-    <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }}></canvas>
+    <canvas
+      ref={canvasRef}
+      style={{
+        width: "100%",
+        height: "100%",
+      }}
+    ></canvas>
   );
 };

@@ -12,3 +12,7 @@
 .mylar-content-info {
   grid-area: info;
 }
+
+canvas {
+  image-rendering: pixelated;
+}

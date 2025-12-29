@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/routes"
 	"github.com/chromy/viz/internal/schemas"

@@ -54,7 +54,7 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
 
   const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
   for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
-    const value = Math.min(255, Math.max(0, tileData[i]!));
+    const value = 255 - Math.min(255, Math.max(0, tileData[i]!));
     const pixelIndex = i * 4;
     buffer[pixelIndex] = value; // R
     buffer[pixelIndex + 1] = value; // G
@@ -63,8 +63,16 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
   }
 
   const imageData = new ImageData(buffer, TILE_SIZE);
-  //const imageBitmap = await createImageBitmap(imageData);
-  const imageBitmap = await createImageBitmap(imageData, 0, 0, TILE_SIZE, TILE_SIZE);
+
+  // Create ImageBitmap with specific options for crisp rendering
+  const imageBitmap = await createImageBitmap(imageData, 0, 0, TILE_SIZE, TILE_SIZE, {
+    resizeWidth: TILE_SIZE * 16,
+    resizeHeight: TILE_SIZE * 16,
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none',
+    imageOrientation: 'none',
+    resizeQuality: 'pixelated'
+  });
 
   return {
     metadata,
