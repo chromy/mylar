@@ -1,5 +1,5 @@
 function rot(x: number): number {
-  switch(x){
+  switch (x) {
     case 1:
       return 2;
     case 2:
@@ -10,7 +10,7 @@ function rot(x: number): number {
 }
 
 function graycode(x: number): number {
-  switch(x){
+  switch (x) {
     case 3:
       return 2;
     case 2:
@@ -36,22 +36,21 @@ export function hilbertToPoint(curve: number, h: number): [number, number] {
   let y = 0;
   for (let i = 0; i < curve; i++) {
     // Extract 2 bits from h
-    let w = (h >> (hwidth - (i*2) - 2)) & 3;
+    let w = (h >> (hwidth - i * 2 - 2)) & 3;
 
     let l = graycode(w);
-    if (d === 0)
-      l = rot(l);
+    if (d === 0) l = rot(l);
     l = l ^ e;
-    let bit = 1 << (curve-i-1);
-    if (l&2) {
+    let bit = 1 << (curve - i - 1);
+    if (l & 2) {
       x |= bit;
     }
-    if (l&1) {
+    if (l & 1) {
       y |= bit;
     }
 
     if (w == 3) {
-      e = 3-e;
+      e = 3 - e;
     }
     if (w === 0 || w == 3) {
       d ^= 1;
@@ -72,14 +71,14 @@ export function pointToHilbert(curve: number, x: number, y: number): number {
     let off = curve - i - 1;
     let a = (y >> off) & 1;
     let b = (x >> off) & 1;
-    let l = a | b << 1;
+    let l = a | (b << 1);
     l = l ^ e;
     if (d === 0) {
       l = rot(l);
     }
     let w = graycode(l);
     if (w == 3) {
-      e = 3-e;
+      e = 3 - e;
     }
     h = (h << 2) | w;
     if (w === 0 || w == 3) {

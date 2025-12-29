@@ -2,7 +2,7 @@ import { vec2, vec3 } from "gl-matrix";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
-import {aabb} from "./aabb.js";
+import { aabb } from "./aabb.js";
 
 function createTileImageData(): ImageData {
   let data = new ImageData(TILE_SIZE, TILE_SIZE);
@@ -11,7 +11,7 @@ function createTileImageData(): ImageData {
 
 // On each frame:
 // - Given repo, committish, bounds in world space, ops
-// - 
+// -
 
 export interface TileLayout {
   lineCount: number;
@@ -28,7 +28,7 @@ interface CanvasState {
 }
 
 interface RendererHostCallbacks {
-  getCanvas: () => HTMLCanvasElement|undefined;
+  getCanvas: () => HTMLCanvasElement | undefined;
   setDebug: (info: DebugInfo) => void;
   setFrameHistory: (history: number[]) => void;
 }
@@ -38,11 +38,11 @@ class Renderer {
   private committish: string;
   private layout: TileLayout;
   private camera: Camera;
-  private frameId: undefined|number;
+  private frameId: undefined | number;
   private lastTimestampMs: number;
   private lastDebugUpdateMs: number;
   private lastFrameMs: number;
-  private canvasState: CanvasState|undefined;
+  private canvasState: CanvasState | undefined;
   private callbacks: RendererHostCallbacks;
 
   private boundFrame: (timestamp: number) => void;
@@ -50,7 +50,12 @@ class Renderer {
   private boundHandleResize: () => void;
   private screenWorldAabb: aabb;
 
-  constructor(repo: string, committish: string, layout: TileLayout, callbacks: RendererHostCallbacks) {
+  constructor(
+    repo: string,
+    committish: string,
+    layout: TileLayout,
+    callbacks: RendererHostCallbacks,
+  ) {
     this.repo = repo;
     this.committish = committish;
     this.layout = layout;
@@ -73,7 +78,7 @@ class Renderer {
       return;
     }
 
-    const {canvas, dpr} = canvasState;
+    const { canvas, dpr } = canvasState;
 
     const cssWidth = canvas.offsetWidth;
     const cssHeight = canvas.offsetHeight;
@@ -97,7 +102,7 @@ class Renderer {
 
   private tryHookCanvas(): void {
     const canvas = this.callbacks.getCanvas();
-    if (canvas  === undefined) {
+    if (canvas === undefined) {
       return;
     }
 
@@ -154,7 +159,7 @@ class Renderer {
     // Render tiles which are ready:
     const canvasState = this.canvasState;
     if (canvasState !== undefined) {
-      const {ctx} = canvasState;
+      const { ctx } = canvasState;
       this.renderFrame(ctx);
     }
     // Do as much computation as fits in budget:
@@ -236,17 +241,16 @@ class Renderer {
     ctx.fill();
 
     this.camera.toScreen(screenCenter, worldCenter);
-
   }
 
   start(): void {
-    console.log("renderer starting")
+    console.log("renderer starting");
     this.lastTimestampMs = performance.now();
     this.frameId = window.requestAnimationFrame(this.boundFrame);
   }
 
   stop(): void {
-    console.log("renderer stopping")
+    console.log("renderer stopping");
     if (this.frameId !== undefined) {
       window.cancelAnimationFrame(this.frameId);
     }

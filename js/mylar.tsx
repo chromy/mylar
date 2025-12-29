@@ -43,7 +43,7 @@ function toTileLayout(index: Index): TileLayout {
   }
 
   const lineCount = lastFile.lineOffset + lastFile.lineCount;
-  const tileCount = Math.ceil(lineCount / (TILE_SIZE*TILE_SIZE));
+  const tileCount = Math.ceil(lineCount / (TILE_SIZE * TILE_SIZE));
 
   return {
     lineCount,
@@ -72,7 +72,12 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
       <div className="fixed bottom-0 left-0 top-0 right-0">
-        <Viewer repo={repo} committish={committish} layout={layout} setDebug={setDebug}/>
+        <Viewer
+          repo={repo}
+          committish={committish}
+          layout={layout}
+          setDebug={setDebug}
+        />
       </div>
       <div className="mylar-content-info backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2">
         <table className="table-auto w-full text-zinc-950/80 text-xs">
@@ -90,7 +95,14 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
               <td>Ref</td>
               <td>{committish}</td>
             </tr>
-            {debug.map(kv => (<tr><td>{kv[0]}</td><td><pre>{kv[1]}</pre></td></tr>))}
+            {debug.map(kv => (
+              <tr>
+                <td>{kv[0]}</td>
+                <td>
+                  <pre>{kv[1]}</pre>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

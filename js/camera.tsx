@@ -1,5 +1,5 @@
 import { vec2, vec3, vec4, mat4 } from "gl-matrix";
-import {aabb} from "./aabb.js";
+import { aabb } from "./aabb.js";
 
 export enum Direction {
   UP = "up",
@@ -101,7 +101,7 @@ export class Camera {
 
   getWorldBoundingBox(): [vec2, vec2] {
     const topLeft = vec2.create();
-    const widthHeight = vec2.clone(this.screenSizePx)
+    const widthHeight = vec2.clone(this.screenSizePx);
     this.toWorld(topLeft, topLeft);
     this.toWorld(widthHeight, widthHeight);
     vec2.sub(widthHeight, widthHeight, topLeft);
@@ -119,7 +119,7 @@ export class Camera {
     aabb[1] = Math.min(a[1], b[1]);
     aabb[2] = Math.max(a[0], b[0]);
     aabb[3] = Math.max(a[1], b[1]);
-   }
+  }
 
   get screenWidthPx(): number {
     return this.screenSizePx[0];
