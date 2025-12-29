@@ -1,3 +1,5 @@
+import { TILE_SIZE } from "./schemas.js";
+
 export interface TileRequest {
   x: number;
   y: number;
@@ -5,7 +7,7 @@ export interface TileRequest {
 }
 
 interface TileData {
-  imageData: ImageData;
+  imageBitmap: ImageBitmap;
 }
 
 export class TileStore {
@@ -30,10 +32,10 @@ export class TileStore {
     }
   }
 
-  get(request: TileRequest): ImageData | undefined {
+  get(request: TileRequest): ImageBitmap | undefined {
     const key = this.tileKey(request);
     const tileData = this.tileCache.get(key);
-    return tileData?.imageData;
+    return tileData?.imageBitmap;
   }
 
   private async fetchTile(request: TileRequest): Promise<void> {
@@ -41,24 +43,18 @@ export class TileStore {
     this.pendingRequests.add(key);
 
     try {
-      const url = `https://placehold.co/256x256?text=${request.x},${request.y},${request.lod}`;
+      const url = `https://placehold.co/${TILE_SIZE}x${TILE_SIZE}?text=${request.x},${request.y},${request.lod}`;
       const response = await fetch(url);
       const blob = await response.blob();
 
       const image = new Image();
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-
-        if (ctx) {
-          ctx.drawImage(image, 0, 0);
-          const imageData = ctx.getImageData(0, 0, 256, 256);
-
-          this.tileCache.set(key, { imageData });
+      image.onload = async () => {
+        try {
+          const imageBitmap = await createImageBitmap(image);
+          this.tileCache.set(key, { imageBitmap });
+        } catch (error) {
+          console.error('Failed to create ImageBitmap:', error);
         }
-
         this.pendingRequests.delete(key);
       };
 

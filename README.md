@@ -1,4 +1,7 @@
 # TODO:
+- Singleton TileStore?
+- JS tests
+
 - Home reset button
 - Zoom to mouse
 - Middle mouse button to pan

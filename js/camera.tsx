@@ -14,7 +14,7 @@ export class Camera {
   private _project: mat4;
   private _inverse: mat4;
   private screenSizePx: vec2;
-  private eye: vec3;
+  private _eye: vec3;
   private focal: vec3;
   private perspective: mat4;
   private view: mat4;
@@ -33,7 +33,7 @@ export class Camera {
     this.inverseView = mat4.create();
     this.perspective = mat4.create();
     this.view = mat4.create();
-    this.eye = vec3.fromValues(6.5, 5, 5.2);
+    this._eye = vec3.fromValues(6.5, 5, 5.2);
     this.focal = vec3.create();
     this.temp1 = vec4.create();
     this.temp2 = vec4.create();
@@ -42,10 +42,10 @@ export class Camera {
 
   snap(position: vec3 | vec2) {
     if (position.length === 3) {
-      vec3.copy(this.eye, position);
+      vec3.copy(this._eye, position);
     } else {
-      this.eye[0] = position[0];
-      this.eye[1] = position[1];
+      this._eye[0] = position[0];
+      this._eye[1] = position[1];
     }
     this.update();
   }
@@ -54,35 +54,35 @@ export class Camera {
     if (delta[0] === 0 && delta[1] === 0 && delta[2] === 0) {
       return;
     }
-    const zCompensation = this.eye[2] * 0.1;
+    const zCompensation = this._eye[2] * 0.1;
     const xyFactor = 0.01;
     const zFactor = 0.1;
-    this.eye[0] -= delta[0] * xyFactor * zCompensation;
-    this.eye[1] -= delta[1] * xyFactor * -1 * zCompensation;
+    this._eye[0] -= delta[0] * xyFactor * zCompensation;
+    this._eye[1] -= delta[1] * xyFactor * -1 * zCompensation;
     // TODO: zoom on mouse
-    this.eye[2] -= delta[2] * zFactor * -1;
+    this._eye[2] -= delta[2] * zFactor * -1;
     this.update();
   }
 
   jog(d: Direction): void {
     switch (d) {
       case Direction.UP:
-        this.eye[1] += this.jogAmplitude;
+        this._eye[1] += this.jogAmplitude;
         break;
       case Direction.LEFT:
-        this.eye[0] -= this.jogAmplitude;
+        this._eye[0] -= this.jogAmplitude;
         break;
       case Direction.RIGHT:
-        this.eye[0] += this.jogAmplitude;
+        this._eye[0] += this.jogAmplitude;
         break;
       case Direction.DOWN:
-        this.eye[1] -= this.jogAmplitude;
+        this._eye[1] -= this.jogAmplitude;
         break;
       case Direction.IN:
-        this.eye[2] -= this.jogAmplitude;
+        this._eye[2] -= this.jogAmplitude;
         break;
       case Direction.OUT:
-        this.eye[2] += this.jogAmplitude;
+        this._eye[2] += this.jogAmplitude;
         break;
       default:
         const _: never = d;
@@ -129,17 +129,21 @@ export class Camera {
     return this.screenSizePx[1];
   }
 
+  get eye(): vec3 {
+    return this._eye;
+  }
+
   private update() {
     // Cap:
-    this.eye[2] = Math.max(0.1, this.eye[2]);
+    this._eye[2] = Math.max(0.1, this._eye[2]);
 
-    this.focal[0] = this.eye[0];
-    this.focal[1] = this.eye[1];
+    this.focal[0] = this._eye[0];
+    this.focal[1] = this._eye[1];
     const aspect = this.screenSizePx[0] / this.screenSizePx[1];
     mat4.perspectiveZO(this.perspective, Math.PI / 3, aspect, 0.1, 1000);
 
     const up = vec3.fromValues(0, 1, 0);
-    mat4.lookAt(this.view, this.eye, this.focal, up);
+    mat4.lookAt(this.view, this._eye, this.focal, up);
 
     mat4.multiply(this._project, this.perspective, this.view);
 

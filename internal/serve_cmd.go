@@ -23,6 +23,7 @@ func DoServe(ctx context.Context, port uint) {
 	}
 
 	repo.AddFromPath(ctx, "self", ".")
+	repo.AddFromPath(ctx, "perfetto", "/Users/chromy/src/perfetto")
 
 	log.Printf("ready serve http://localhost:%d", port)
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(int(port)), router))

@@ -16,7 +16,19 @@ export function nextPowerOfTwo(n: number): number {
   return power;
 }
 
-export function* quadtreeAABBs(m: number): Generator<aabb> {
+export function toLod(box: aabb): number {
+  return Math.log2(aabb.width(box) / TILE_SIZE);
+}
+
+// lod 0 -> TILE_SIZE
+// lod 1 -> TILE_SIZE*2
+// lod 2 -> TILE_SIZE*4
+// etc
+export function lodToSize(lod: number): number {
+  return TILE_SIZE * Math.pow(2, lod);
+}
+
+export function* quadtreeAABBs(m: number, predicate: (box: aabb) => boolean): Generator<aabb> {
   if (m <= 0) {
     return;
   }
@@ -28,36 +40,33 @@ export function* quadtreeAABBs(m: number): Generator<aabb> {
 
   while (queue.length > 0) {
     const currentAABB = queue.shift();
-    if (!currentAABB) break;
-    yield currentAABB;
+    if (!currentAABB) {
+      break;
+    }
 
-    const size = aabb.width(currentAABB);
-    if (size > 1) {
-      const halfSize = size / 2;
-      const minX = currentAABB[0];
-      const minY = currentAABB[1];
+    if (predicate(currentAABB)) {
+      yield currentAABB;
 
-      queue.push(
-        aabb.fromValues(minX, minY, minX + halfSize, minY + halfSize),
-        aabb.fromValues(minX + halfSize, minY, minX + size, minY + halfSize),
-        aabb.fromValues(minX, minY + halfSize, minX + halfSize, minY + size),
-        aabb.fromValues(
-          minX + halfSize,
-          minY + halfSize,
-          minX + size,
-          minY + size,
-        ),
-      );
+      const size = aabb.width(currentAABB);
+      if (size > 1) {
+        const halfSize = size / 2;
+        const minX = currentAABB[0];
+        const minY = currentAABB[1];
+
+        queue.push(
+          aabb.fromValues(minX, minY, minX + halfSize, minY + halfSize),
+          aabb.fromValues(minX + halfSize, minY, minX + size, minY + halfSize),
+          aabb.fromValues(minX, minY + halfSize, minX + halfSize, minY + size),
+          aabb.fromValues(
+            minX + halfSize,
+            minY + halfSize,
+            minX + size,
+            minY + size,
+          ),
+        );
+      }
     }
   }
-}
-
-export function toLod(box: aabb): number {
-  // width === TILE_SIZE -> 0
-  // width === TILE_SIZE*2 -> 1
-  // width === TILE_SIZE*4 -> 2
-  // etc
-  return Math.log2(aabb.width(box) / TILE_SIZE);
 }
 
 export function* requiredTiles(
@@ -67,16 +76,16 @@ export function* requiredTiles(
   const limit = 100;
   let count = 0;
 
-  for (const quadAABB of quadtreeAABBs(lineCount)) {
+  const inScope = (box: aabb) => aabb.overlaps(box, bounds);
+
+  for (const quadAABB of quadtreeAABBs(lineCount, inScope)) {
     if (count >= limit) {
       break;
     }
     if (toLod(quadAABB) < 0) {
       break;
     }
-    if (aabb.overlaps(quadAABB, bounds)) {
-      yield quadAABB;
-      count += 1;
-    }
+    yield quadAABB;
+    count += 1;
   }
 }

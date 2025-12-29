@@ -2,6 +2,7 @@ package index
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,7 +18,6 @@ import (
 	"iter"
 	"net/http"
 	"sort"
-	"strings"
 )
 
 type IndexEntry struct {
@@ -105,26 +105,64 @@ func computeIndexForTree(ctx context.Context, repository *git.Repository, tree *
 	return &Index{Entries: allEntries}, nil
 }
 
-func countLines(reader io.Reader) (int64, error) {
-	scanner := bufio.NewScanner(reader)
-	var lineCount int64
-
-	for scanner.Scan() {
-		lineCount++
+// isBinary checks if content appears to be binary by looking for null bytes
+// in the first 8000 bytes (similar to how Git detects binary files)
+func isBinary(content []byte) bool {
+	// Check up to 8000 bytes for null bytes
+	checkLen := len(content)
+	if checkLen > 8000 {
+		checkLen = 8000
 	}
+	return bytes.IndexByte(content[:checkLen], 0) != -1
+}
 
-	if err := scanner.Err(); err != nil {
+func countLines(reader io.Reader) (int64, error) {
+	bufferedReader := bufio.NewReader(reader)
+	
+	// Peek at the beginning to check if it's binary - use smaller size to avoid buffer full errors
+	peek, err := bufferedReader.Peek(512)
+	if err != nil && err != io.EOF && err.Error() != "bufio: buffer full" {
 		return 0, err
 	}
+	// If we got "buffer full", just use what we could peek
+	if err != nil && err.Error() == "bufio: buffer full" {
+		peek, _ = bufferedReader.Peek(bufferedReader.Buffered())
+	}
 
-	if lineCount == 0 {
-		content, err := io.ReadAll(reader)
+	// For binary files, read all content and return file size as one line
+	if len(peek) > 0 && isBinary(peek) {
+		// Reset reader and read all content to get actual size
+		content, err := io.ReadAll(bufferedReader)
 		if err != nil {
 			return 0, err
 		}
-		if len(content) > 0 && !strings.HasSuffix(string(content), "\n") {
-			lineCount = 1
+		return int64(len(content) + len(peek)), nil
+	}
+
+	// For text files, count lines using ReadLine for large line support
+	var lineCount int64
+	var hasContent bool
+
+	for {
+		_, isPrefix, err := bufferedReader.ReadLine()
+		if err == io.EOF {
+			break
 		}
+		if err != nil {
+			return 0, err
+		}
+		
+		hasContent = true
+		
+		// Only count as a line when we've read the complete line (not a prefix)
+		if !isPrefix {
+			lineCount++
+		}
+	}
+
+	// Handle files without trailing newline
+	if lineCount == 0 && hasContent {
+		lineCount = 1
 	}
 
 	return lineCount, nil
@@ -201,9 +239,32 @@ func computeGranularLineLengthForBlob(ctx context.Context, blob *object.Blob) (*
 	}
 	defer reader.Close()
 
-	var lineLengths []int64
+	bufferedReader := bufio.NewReader(reader)
+	
+	// Peek at the beginning to check if it's binary - use smaller size to avoid buffer full errors
+	peek, err := bufferedReader.Peek(512)
+	if err != nil && err != io.EOF && err.Error() != "bufio: buffer full" {
+		return nil, err
+	}
+	// If we got "buffer full", just use what we could peek
+	if err != nil && err.Error() == "bufio: buffer full" {
+		peek, _ = bufferedReader.Peek(bufferedReader.Buffered())
+	}
 
-	for line, err := range Lines(reader) {
+	// For binary files, return the file size as one line
+	if len(peek) > 0 && isBinary(peek) {
+		// Read all remaining content to get actual size
+		content, err := io.ReadAll(bufferedReader)
+		if err != nil {
+			return nil, err
+		}
+		totalSize := int64(len(content) + len(peek))
+		return &GranularLineLength{LinesLengths: []int64{totalSize}}, nil
+	}
+
+	// For text files, process lines normally using the updated Lines function
+	var lineLengths []int64
+	for line, err := range Lines(bufferedReader) {
 		if err != nil {
 			return nil, err
 		}
@@ -247,14 +308,33 @@ func computeLineLengthForTree(ctx context.Context, repository *git.Repository, t
 
 func Lines(reader io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			if !yield(scanner.Text(), nil) {
+		bufferedReader := bufio.NewReader(reader)
+		var line []byte
+		
+		for {
+			chunk, isPrefix, err := bufferedReader.ReadLine()
+			if err == io.EOF {
+				// If we have a partial line without a trailing newline, yield it
+				if len(line) > 0 {
+					yield(string(line), nil)
+				}
+				break
+			}
+			if err != nil {
+				yield("", err)
 				return
 			}
-		}
-		if err := scanner.Err(); err != nil {
-			yield("", err)
+			
+			// Append chunk to current line
+			line = append(line, chunk...)
+			
+			// If this isn't a prefix (i.e., we've read the complete line), yield it
+			if !isPrefix {
+				if !yield(string(line), nil) {
+					return
+				}
+				line = line[:0] // Reset line buffer
+			}
 		}
 	}
 }

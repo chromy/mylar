@@ -3,14 +3,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
-import { requiredTiles, quadtreeAABBs, toLod } from "./math.js";
-import { TileRequest } from "./store.js";
-
-function createTileImageData(): ImageData {
-  let data = new ImageData(TILE_SIZE, TILE_SIZE);
-  return data;
-}
-
+import { requiredTiles, lodToSize, toLod } from "./math.js";
+import { type TileRequest, TileStore } from "./store.js";
 
 function boxToTileRequest(box: aabb): TileRequest {
   const width = aabb.width(box);
@@ -56,6 +50,7 @@ class Renderer {
   private lastFrameMs: number;
   private canvasState: CanvasState | undefined;
   private callbacks: RendererHostCallbacks;
+  private tileStore: TileStore;
 
   private boundFrame: (timestamp: number) => void;
   private boundHandleWheel: (e: WheelEvent) => void;
@@ -78,6 +73,7 @@ class Renderer {
     this.lastDebugUpdateMs = 0;
     this.callbacks = callbacks;
     this.screenWorldAabb = aabb.create();
+    this.tileStore = new TileStore();
 
     this.boundFrame = this.frame.bind(this);
     this.boundHandleWheel = this.handleWheel.bind(this);
@@ -163,6 +159,9 @@ class Renderer {
       reqs.push(boxToTileRequest(box));
     }
 
+    // Update tile store with required tiles
+    this.tileStore.update(reqs);
+
     if (timestamp - this.lastDebugUpdateMs > 1000) {
       this.lastDebugUpdateMs = timestamp;
       const x = Math.round(this.screenWorldAabb[0]).toString().padStart(4);
@@ -180,7 +179,7 @@ class Renderer {
     const canvasState = this.canvasState;
     if (canvasState !== undefined) {
       const { ctx } = canvasState;
-      this.renderFrame(ctx);
+      this.renderFrame(ctx, reqs);
     }
     // Do as much computation as fits in budget:
     // TODO
@@ -206,7 +205,27 @@ class Renderer {
     ctx.strokeRect(screenTopLeft[0], screenTopLeft[1], width, height);
   }
 
-  private renderFrame(ctx: CanvasRenderingContext2D): void {
+  private renderTile(ctx: CanvasRenderingContext2D, request: TileRequest, imageBitmap: ImageBitmap): void {
+    const tileSize = lodToSize(request.lod);
+    const worldX = request.x * tileSize;
+    const worldY = request.y * tileSize;
+
+    const worldTopLeft = vec2.fromValues(worldX, worldY);
+    const worldBottomRight = vec2.fromValues(worldX + tileSize, worldY + tileSize);
+
+    const screenTopLeft = vec2.create();
+    const screenBottomRight = vec2.create();
+
+    this.camera.toScreen(screenTopLeft, worldTopLeft);
+    this.camera.toScreen(screenBottomRight, worldBottomRight);
+
+    const screenWidth = screenBottomRight[0] - screenTopLeft[0];
+    const screenHeight = screenBottomRight[1] - screenTopLeft[1];
+
+    ctx.drawImage(imageBitmap, screenTopLeft[0], screenTopLeft[1], screenWidth, screenHeight);
+  }
+
+  private renderFrame(ctx: CanvasRenderingContext2D, requiredTileRequests: TileRequest[]): void {
     const width = this.camera.screenWidthPx;
     const height = this.camera.screenHeightPx;
 
@@ -216,54 +235,63 @@ class Renderer {
     // Checkerboard
     const squareSize = 4;
 
-    // Transform the visible corners to world space using Camera
-    const corners = [
-      vec2.fromValues(0, 0),
-      vec2.fromValues(width, 0),
-      vec2.fromValues(width, height),
-      vec2.fromValues(0, height),
-    ];
-
-    const worldCorners = corners.map(corner => {
-      const world = vec2.create();
-      this.camera.toWorld(world, corner);
-      return world;
-    });
-
-    // Find bounding box in world space
-    const minX = Math.min(...worldCorners.map(c => c[0]));
-    const maxX = Math.max(...worldCorners.map(c => c[0]));
-    const minY = Math.min(...worldCorners.map(c => c[1]));
-    const maxY = Math.max(...worldCorners.map(c => c[1]));
+    // Use pre-computed world bounding box
+    const minX = this.screenWorldAabb[0];
+    const minY = this.screenWorldAabb[1];
+    const maxX = this.screenWorldAabb[2];
+    const maxY = this.screenWorldAabb[3];
 
     const startCol = Math.floor(minX / squareSize);
     const endCol = Math.ceil(maxX / squareSize);
     const startRow = Math.floor(minY / squareSize);
     const endRow = Math.ceil(maxY / squareSize);
+    const squareCount = (endCol - startCol) * (endRow - startRow);
+    const zoomFadeStart = 20;
+    const zoomFadeEnd = 400;
+    const currentZ = this.camera.eye[2];
 
-    for (let row = startRow; row < endRow; row++) {
-      for (let col = startCol; col < endCol; col++) {
-        const isEven = (row + col) % 2 === 0;
-        ctx.fillStyle = isEven ? "#f5f5f5" : "white";
+    let opacity = 1;
+    if (currentZ > zoomFadeStart) {
+      opacity = Math.max(0, 1 - (currentZ - zoomFadeStart) / (zoomFadeEnd - zoomFadeStart));
+    }
 
-        // Convert world space square to screen space for drawing
-        const worldPos = vec2.fromValues(col * squareSize, row * squareSize);
-        const screenPos = vec2.create();
-        this.camera.toScreen(screenPos, worldPos);
 
-        const worldPosEnd = vec2.fromValues(
-          (col + 1) * squareSize,
-          (row + 1) * squareSize,
-        );
-        const screenPosEnd = vec2.create();
-        this.camera.toScreen(screenPosEnd, worldPosEnd);
+    if (opacity >= 0.01) {
+      ctx.fillStyle = `rgba(245, 245, 245, ${opacity})`;
 
-        ctx.fillRect(
-          screenPos[0],
-          screenPos[1],
-          screenPosEnd[0] - screenPos[0],
-          screenPosEnd[1] - screenPos[1],
-        );
+      for (let row = startRow; row < endRow; row++) {
+        for (let col = startCol; col < endCol; col++) {
+          const isEven = (row + col) % 2 === 0;
+          if (isEven) {
+            continue;
+          }
+
+          // Convert world space square to screen space for drawing
+          const worldPos = vec2.fromValues(col * squareSize, row * squareSize);
+          const screenPos = vec2.create();
+          this.camera.toScreen(screenPos, worldPos);
+
+          const worldPosEnd = vec2.fromValues(
+            (col + 1) * squareSize,
+            (row + 1) * squareSize,
+          );
+          const screenPosEnd = vec2.create();
+          this.camera.toScreen(screenPosEnd, worldPosEnd);
+
+          ctx.fillRect(
+            screenPos[0],
+            screenPos[1],
+            screenPosEnd[0] - screenPos[0],
+            screenPosEnd[1] - screenPos[1],
+          );
+        }
+      }
+    }
+
+    for (const request of requiredTileRequests) {
+      const imageBitmap = this.tileStore.get(request);
+      if (imageBitmap) {
+        this.renderTile(ctx, request, imageBitmap);
       }
     }
 
@@ -279,17 +307,13 @@ class Renderer {
 
     this.camera.toScreen(screenCenter, worldCenter);
 
-    // Render first 100 quadtree AABBs that intersect with screen
     let count = 0;
-    let renderCount = 0;
-    for (const quadAABB of quadtreeAABBs(this.layout.lineCount)) {
-      if (renderCount >= 100) break;
-      const hue = ((count * 360) / 100) % 360;
+    for (const r of requiredTileRequests) {
+      const hue = ((count * 360) / requiredTileRequests.length) % 360;
       ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
-      if (aabb.overlaps(quadAABB, this.screenWorldAabb)) {
-        this.renderAABB(ctx, quadAABB);
-        renderCount++;
-      }
+      const size = lodToSize(r.lod);
+      const box = aabb.fromValues(r.x * size, r.y * size, (r.x+1) * size, (r.y+1) * size);
+      this.renderAABB(ctx, box);
       count++;
     }
   }
