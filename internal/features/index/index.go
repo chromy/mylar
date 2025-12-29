@@ -382,7 +382,7 @@ func TileLineLength(ctx context.Context, repository *git.Repository, level int, 
 	tile := make([]int64, constants.TileSize*constants.TileSize)
 
 	for i := range tile {
-		tile[i] = int64(i)
+		tile[i] = int64(x * y)
 	}
 
 	return tile, nil
@@ -465,9 +465,6 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 	if err := json.NewEncoder(w).Encode(metadata); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
-
-	w.Write([]byte("\n"))
-
 	if err := json.NewEncoder(w).Encode(tile); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}

@@ -18937,6 +18937,11 @@ var RepoInfoSchema = external_exports.object({
 var RepoListResponseSchema = external_exports.object({
   repos: RepoInfoSchema.array().nullable()
 });
+var TileMetadataSchema = external_exports.object({
+  y: external_exports.number(),
+  x: external_exports.number(),
+  lod: external_exports.number()
+});
 
 // js/math.tsx
 function nextPowerOfTwo(n) {
