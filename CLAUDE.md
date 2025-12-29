@@ -59,3 +59,5 @@ React SPA using wouter for routing:
 - Frontend uses strict TypeScript configuration with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`
 - The viewer component renders to HTML5 Canvas with 2D transformations for code visualization
 - ./tools/presubmit to run presubmit checks.
+
+- Always run tools/test after changes.

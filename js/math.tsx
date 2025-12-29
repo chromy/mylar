@@ -1,5 +1,6 @@
 import { aabb } from "./aabb.js";
 import { TILE_SIZE } from "./schemas.js";
+import { initialSize } from "./utils.js";
 
 export function nextPowerOfTwo(n: number): number {
   if (n <= 0) {
@@ -20,18 +21,10 @@ export function toLod(box: aabb): number {
   return Math.log2(aabb.width(box) / TILE_SIZE);
 }
 
-// lod 0 -> TILE_SIZE
-// lod 1 -> TILE_SIZE*2
-// lod 2 -> TILE_SIZE*4
-// etc
-export function lodToSize(lod: number): number {
-  return TILE_SIZE * Math.pow(2, lod);
-}
 
 export function quadtreeBoundingBox(m: number): aabb {
-  const k = Math.ceil(Math.log2(Math.sqrt(m)));
-  const initialSize = 2 ** k;
-  return aabb.fromValues(0, 0, initialSize, initialSize);
+  const size = initialSize(m);
+  return aabb.fromValues(0, 0, size, size);
 }
 
 export function* quadtreeAABBs(

@@ -6,9 +6,9 @@ import { aabb } from "./aabb.js";
 import {
   quadtreeBoundingBox,
   requiredTiles,
-  lodToSize,
   toLod,
 } from "./math.js";
+import { lodToSize } from "./utils.js";
 import { type TileRequest, TileStore } from "./store.js";
 
 function boxToTileRequest(
@@ -130,6 +130,8 @@ class Renderer {
       return;
     }
 
+    ctx.imageSmoothingEnabled = false;
+
     const dpr = window.devicePixelRatio || 1;
 
     const cssWidth = canvas.offsetWidth;
@@ -224,31 +226,31 @@ class Renderer {
     request: TileRequest,
     imageBitmap: ImageBitmap,
   ): void {
-    const tileSize = lodToSize(request.lod);
-    const worldX = request.x * tileSize;
-    const worldY = request.y * tileSize;
+    const worldSize = lodToSize(request.lod);
+    const worldX = request.x * worldSize;
+    const worldY = request.y * worldSize;
 
-    const worldTopLeft = vec2.fromValues(worldX, worldY);
-    const worldBottomRight = vec2.fromValues(
-      worldX + tileSize,
-      worldY + tileSize,
-    );
+    const worldA = vec2.fromValues(worldX, worldY);
+    const worldB = vec2.fromValues(worldX+worldSize, worldY+worldSize);
 
-    const screenTopLeft = vec2.create();
-    const screenBottomRight = vec2.create();
+    const screenA = vec2.create();
+    const screenB = vec2.create();
 
-    this.camera.toScreen(screenTopLeft, worldTopLeft);
-    this.camera.toScreen(screenBottomRight, worldBottomRight);
+    this.camera.toScreen(screenA, worldA);
+    this.camera.toScreen(screenB, worldB);
+    console.log(screenA, screenB, worldA, worldB, worldSize);
+    const screenMinX = Math.min(screenA[0], screenB[0]);
+    const screenMinY = Math.min(screenA[1], screenB[1]);
+    const screenMaxX = Math.max(screenA[0], screenB[0]);
+    const screenMaxY = Math.max(screenA[1], screenB[1]);
 
-    const screenWidth = screenBottomRight[0] - screenTopLeft[0];
-    const screenHeight = screenBottomRight[1] - screenTopLeft[1];
 
     ctx.drawImage(
       imageBitmap,
-      screenTopLeft[0],
-      screenTopLeft[1],
-      screenWidth,
-      screenHeight,
+      screenMinX,
+      screenMinY,
+      screenMaxX - screenMinX,
+      screenMaxY - screenMinY,
     );
   }
 

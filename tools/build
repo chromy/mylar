@@ -9,4 +9,3 @@ pnpm exec tsc --noEmit
 node internal/static/tests_bundle.js
 go build cmd/viz/viz.go
 go test ./...
-

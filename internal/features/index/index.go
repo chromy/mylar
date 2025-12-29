@@ -22,10 +22,10 @@ import (
 )
 
 type IndexEntry struct {
-	Path       string           `json:"path"`
-	LineOffset int64            `json:"lineOffset"`
-	LineCount  int64            `json:"lineCount"`
-	Hash       plumbing.Hash    `json:"hash"`
+	Path       string        `json:"path"`
+	LineOffset int64         `json:"lineOffset"`
+	LineCount  int64         `json:"lineCount"`
+	Hash       plumbing.Hash `json:"hash"`
 }
 
 type Index struct {
@@ -381,11 +381,11 @@ func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 }
 
-func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbing.Hash, level int, x int, y int) ([]int64, error) {
+func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
 	tile := make([]int64, constants.TileSize*constants.TileSize)
-	
+
 	// Handle only lod=0 for now, return all zeros for lod > 0
-	if level > 0 {
+	if lod > 0 {
 		return tile, nil
 	}
 
@@ -396,8 +396,9 @@ func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbi
 	}
 
 	// Calculate tile boundaries in line space
-	tileStartLine := int64(y * constants.TileSize)
-	tileEndLine := tileStartLine + constants.TileSize
+
+	tileStartLine := int64(0)
+	tileEndLine := tileStartLine + (constants.TileSize * constants.TileSize)
 
 	// Find files from index that are in the area covered by the tile
 	for _, entry := range index.Entries {
@@ -423,15 +424,10 @@ func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbi
 				// Write the relevant lines into the tile
 				for lineIdx, lineLength := range granular.LinesLengths {
 					absoluteLineIdx := entryStartLine + int64(lineIdx)
-					
-					// Check if this line falls within our tile
+
 					if absoluteLineIdx >= tileStartLine && absoluteLineIdx < tileEndLine {
 						tileLineIdx := absoluteLineIdx - tileStartLine
-						// For now, we'll put line length in the first column (x=0)
-						// This is a simplified mapping - more complex mapping might be needed
-						if x == 0 && tileLineIdx < constants.TileSize {
-							tile[tileLineIdx*constants.TileSize] = lineLength
-						}
+						tile[tileLineIdx] = lineLength
 					}
 				}
 			}
@@ -440,6 +436,10 @@ func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbi
 
 	return tile, nil
 }
+
+type WorldPosition struct {
+}
+
 
 type TileMetadata struct {
 	X   int64 `json:"y"`
@@ -506,7 +506,7 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	tile, err := TileLineLength(r.Context(), repository, hash, int(lod), int(x), int(y))
+	tile, err := TileLineLength(r.Context(), repository, hash, lod, x, y)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -2,7 +2,6 @@ import o from "ospec";
 import {
   nextPowerOfTwo,
   toLod,
-  lodToSize,
   quadtreeBoundingBox,
 } from "./math.js";
 import { aabb } from "./aabb.js";
@@ -42,14 +41,6 @@ o.spec("math", () => {
     });
   });
 
-  o.spec("lodToSize", () => {
-    o("converts LOD to correct size", () => {
-      o(lodToSize(0)).equals(64);
-      o(lodToSize(1)).equals(128);
-      o(lodToSize(2)).equals(256);
-      o(lodToSize(3)).equals(512);
-    });
-  });
 
   o.spec("quadtreeBoundingBox", () => {
     o("creates correct bounding box for different values", () => {

@@ -11,6 +11,7 @@ export const IndexEntrySchema = z.object({
   path: z.string(),
   lineOffset: z.number(),
   lineCount: z.number(),
+  hash: z.number().array().length(20),
 });
 export type IndexEntry = z.infer<typeof IndexEntrySchema>;
 
