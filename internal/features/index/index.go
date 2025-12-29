@@ -443,7 +443,13 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	tile, err := TileLineLength(r.Context(), repository, lod, x, y)
+	repository, err := repo.Get(r.Context(), repoName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tile, err := TileLineLength(r.Context(), repository, int(lod), int(x), int(y))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -457,6 +463,12 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(metadata); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+
+	w.Write([]byte("\n"))
+
+	if err := json.NewEncoder(w).Encode(tile); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }

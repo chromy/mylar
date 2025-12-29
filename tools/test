@@ -2,5 +2,6 @@
 set -e
 
 pnpm exec tsc --noEmit
+pnpm exec ospec
 go build ./...
 go test ./...
