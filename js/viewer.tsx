@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
-import { requiredTiles, lodToSize, toLod } from "./math.js";
+import { quadtreeBoundingBox, requiredTiles, lodToSize, toLod } from "./math.js";
 import { type TileRequest, TileStore } from "./store.js";
 
 function boxToTileRequest(box: aabb): TileRequest {
@@ -128,6 +128,9 @@ class Renderer {
     canvas.width = width;
     canvas.height = height;
     this.camera.setScreenSize(vec2.fromValues(width, height));
+
+    const vizBox = quadtreeBoundingBox(this.layout.lineCount);
+    this.camera.snapToBox(vizBox);
 
     canvas.addEventListener("wheel", this.boundHandleWheel);
     window.addEventListener("resize", this.boundHandleResize);
@@ -254,7 +257,6 @@ class Renderer {
     if (currentZ > zoomFadeStart) {
       opacity = Math.max(0, 1 - (currentZ - zoomFadeStart) / (zoomFadeEnd - zoomFadeStart));
     }
-
 
     if (opacity >= 0.01) {
       ctx.fillStyle = `rgba(245, 245, 245, ${opacity})`;

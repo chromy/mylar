@@ -28,15 +28,19 @@ export function lodToSize(lod: number): number {
   return TILE_SIZE * Math.pow(2, lod);
 }
 
+
+export function quadtreeBoundingBox(m: number): aabb {
+  const k = Math.ceil(Math.log2(Math.sqrt(m)));
+  const initialSize = 2 ** k;
+  return aabb.fromValues(0, 0, initialSize, initialSize);
+}
+
 export function* quadtreeAABBs(m: number, predicate: (box: aabb) => boolean): Generator<aabb> {
   if (m <= 0) {
     return;
   }
 
-  const k = Math.ceil(Math.log2(Math.sqrt(m)));
-  const initialSize = 2 ** k;
-
-  const queue = [aabb.fromValues(0, 0, initialSize, initialSize)];
+  const queue = [quadtreeBoundingBox(m)];
 
   while (queue.length > 0) {
     const currentAABB = queue.shift();

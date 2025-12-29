@@ -50,17 +50,42 @@ export class Camera {
     this.update();
   }
 
+  snapToBox(box: aabb) {
+    const center = vec2.create();
+    const size = vec2.create();
+    aabb.getCenter(center, box);
+    aabb.getSize(size, box);
+
+    this._eye[0] = center[0];
+    this._eye[1] = center[1];
+
+    const aspect = this.screenSizePx[0] / this.screenSizePx[1];
+    const boxAspect = size[0] / size[1];
+
+    let zoomFactor: number;
+    if (boxAspect > aspect) {
+      zoomFactor = size[0] / aspect;
+    } else {
+      zoomFactor = size[1];
+    }
+
+    const fov = Math.PI / 3;
+    this._eye[2] = zoomFactor / (2 * Math.tan(fov / 2));
+
+    this.update();
+  }
+
   dolly(delta: vec3) {
     if (delta[0] === 0 && delta[1] === 0 && delta[2] === 0) {
       return;
     }
     const zCompensation = this._eye[2] * 0.1;
     const xyFactor = 0.01;
-    const zFactor = 0.1;
+    const zFactor = 0.01;
     this._eye[0] -= delta[0] * xyFactor * zCompensation;
     this._eye[1] -= delta[1] * xyFactor * -1 * zCompensation;
     // TODO: zoom on mouse
-    this._eye[2] -= delta[2] * zFactor * -1;
+    this._eye[2] -= delta[2] * zFactor * -1 * zCompensation;
     this.update();
   }
 
@@ -97,17 +122,6 @@ export class Camera {
     }
     vec2.copy(this.screenSizePx, screenSize);
     this.update();
-  }
-
-  getWorldBoundingBox(): [vec2, vec2] {
-    const topLeft = vec2.create();
-    const widthHeight = vec2.clone(this.screenSizePx);
-    this.toWorld(topLeft, topLeft);
-    this.toWorld(widthHeight, widthHeight);
-    vec2.sub(widthHeight, widthHeight, topLeft);
-    widthHeight[0] = Math.abs(widthHeight[0]);
-    widthHeight[1] = Math.abs(widthHeight[1]);
-    return [topLeft, widthHeight];
   }
 
   intoWorldBoundingBox(aabb: aabb): void {
