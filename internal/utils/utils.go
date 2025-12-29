@@ -15,6 +15,9 @@ func LodToSize(lod int) int {
 }
 
 func InitialSize(m int) int {
+	if m <= 1 {
+		return 2
+	}
 	k := math.Ceil(math.Log2(math.Sqrt(float64(m))))
 	return int(math.Pow(2, k))
 }
@@ -50,13 +53,65 @@ type TilePosition struct {
 type LinePosition int64
 
 func LineToWorld(line LinePosition, layout TileLayout) WorldPosition {
+	x, y := mortonDecode(uint64(line))
+	return WorldPosition{X: int64(x), Y: int64(y)}
 }
 
 func WorldToTile(world WorldPosition, layout TileLayout) TilePosition {
+	tileX := world.X / int64(constants.TileSize)
+	tileY := world.Y / int64(constants.TileSize)
+	offsetX := world.X % int64(constants.TileSize)
+	offsetY := world.Y % int64(constants.TileSize)
+	
+	return TilePosition{
+		Lod: 0,
+		TileX: tileX,
+		TileY: tileY,
+		OffsetX: offsetX,
+		OffsetY: offsetY,
+	}
 }
 
 func TileToWorld(tile TilePosition, layout TileLayout) WorldPosition {
+	tileSize := int64(LodToSize(int(tile.Lod)))
+	worldX := tile.TileX * tileSize + tile.OffsetX
+	worldY := tile.TileY * tileSize + tile.OffsetY
+	
+	return WorldPosition{X: worldX, Y: worldY}
 }
 
 func WorldToLine(world WorldPosition, layout TileLayout) LinePosition {
+	encoded := mortonEncode(uint32(world.X), uint32(world.Y))
+	return LinePosition(encoded)
+}
+
+// mortonEncode interleaves the bits of x and y to produce a Morton code
+func mortonEncode(x, y uint32) uint64 {
+	return uint64(spreadBits(x)) | (uint64(spreadBits(y)) << 1)
+}
+
+// mortonDecode extracts x and y from a Morton code
+func mortonDecode(code uint64) (uint32, uint32) {
+	x := compactBits(uint32(code))
+	y := compactBits(uint32(code >> 1))
+	return x, y
+}
+
+// spreadBits spreads the bits of a 16-bit number across 32 bits
+func spreadBits(x uint32) uint32 {
+	x = (x | (x << 8)) & 0x00FF00FF
+	x = (x | (x << 4)) & 0x0F0F0F0F
+	x = (x | (x << 2)) & 0x33333333
+	x = (x | (x << 1)) & 0x55555555
+	return x
+}
+
+// compactBits compacts spread bits back to a 16-bit number
+func compactBits(x uint32) uint32 {
+	x = x & 0x55555555
+	x = (x ^ (x >> 1)) & 0x33333333
+	x = (x ^ (x >> 2)) & 0x0F0F0F0F
+	x = (x ^ (x >> 4)) & 0x00FF00FF
+	x = (x ^ (x >> 8)) & 0x0000FFFF
+	return x
 }

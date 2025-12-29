@@ -31,11 +31,8 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Build application
-      run: go build ./cmd/viz
+    - name: Build and test
+      run: ./tools/build
 
-    - name: Run presubmit checks
-      run: ./tools/presubmit --check
-
-    - name: Run Go tests
-      run: go test ./...
+    - name: Run tests
+      run: ./tools/test

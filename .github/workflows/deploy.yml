@@ -7,17 +7,41 @@ on:
 
 env:
   PROJECT_ID: tsundoku-io
-  GAR_LOCATION: us-central1
+  GAR_LOCATION: europe
   SERVICE: mylar
-  REGION: us-central1
+  REGION: europe
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build and test
+      run: ./tools/build
+
+    - name: Run tests
+      run: ./tools/test
 
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
