@@ -1,6 +1,8 @@
 # TODO:
 - Singleton TileStore?
 - JS tests
+- Handle: org/repo
+- Load arbitery github repos.
 
 - Home reset button
 - Zoom to mouse

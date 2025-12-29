@@ -118,7 +118,7 @@ func isBinary(content []byte) bool {
 
 func countLines(reader io.Reader) (int64, error) {
 	bufferedReader := bufio.NewReader(reader)
-	
+
 	// Peek at the beginning to check if it's binary - use smaller size to avoid buffer full errors
 	peek, err := bufferedReader.Peek(512)
 	if err != nil && err != io.EOF && err.Error() != "bufio: buffer full" {
@@ -151,9 +151,9 @@ func countLines(reader io.Reader) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		
+
 		hasContent = true
-		
+
 		// Only count as a line when we've read the complete line (not a prefix)
 		if !isPrefix {
 			lineCount++
@@ -240,7 +240,7 @@ func computeGranularLineLengthForBlob(ctx context.Context, blob *object.Blob) (*
 	defer reader.Close()
 
 	bufferedReader := bufio.NewReader(reader)
-	
+
 	// Peek at the beginning to check if it's binary - use smaller size to avoid buffer full errors
 	peek, err := bufferedReader.Peek(512)
 	if err != nil && err != io.EOF && err.Error() != "bufio: buffer full" {
@@ -310,7 +310,7 @@ func Lines(reader io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		bufferedReader := bufio.NewReader(reader)
 		var line []byte
-		
+
 		for {
 			chunk, isPrefix, err := bufferedReader.ReadLine()
 			if err == io.EOF {
@@ -324,10 +324,10 @@ func Lines(reader io.Reader) iter.Seq2[string, error] {
 				yield("", err)
 				return
 			}
-			
+
 			// Append chunk to current line
 			line = append(line, chunk...)
-			
+
 			// If this isn't a prefix (i.e., we've read the complete line), yield it
 			if !isPrefix {
 				if !yield(string(line), nil) {

@@ -53,7 +53,7 @@ export class TileStore {
           const imageBitmap = await createImageBitmap(image);
           this.tileCache.set(key, { imageBitmap });
         } catch (error) {
-          console.error('Failed to create ImageBitmap:', error);
+          console.error("Failed to create ImageBitmap:", error);
         }
         this.pendingRequests.delete(key);
       };
@@ -64,7 +64,7 @@ export class TileStore {
 
       image.src = URL.createObjectURL(blob);
     } catch (error) {
-      console.error('Failed to fetch tile:', error);
+      console.error("Failed to fetch tile:", error);
       this.pendingRequests.delete(key);
     }
   }

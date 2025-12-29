@@ -3,7 +3,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
-import { quadtreeBoundingBox, requiredTiles, lodToSize, toLod } from "./math.js";
+import {
+  quadtreeBoundingBox,
+  requiredTiles,
+  lodToSize,
+  toLod,
+} from "./math.js";
 import { type TileRequest, TileStore } from "./store.js";
 
 function boxToTileRequest(box: aabb): TileRequest {
@@ -208,13 +213,20 @@ class Renderer {
     ctx.strokeRect(screenTopLeft[0], screenTopLeft[1], width, height);
   }
 
-  private renderTile(ctx: CanvasRenderingContext2D, request: TileRequest, imageBitmap: ImageBitmap): void {
+  private renderTile(
+    ctx: CanvasRenderingContext2D,
+    request: TileRequest,
+    imageBitmap: ImageBitmap,
+  ): void {
     const tileSize = lodToSize(request.lod);
     const worldX = request.x * tileSize;
     const worldY = request.y * tileSize;
 
     const worldTopLeft = vec2.fromValues(worldX, worldY);
-    const worldBottomRight = vec2.fromValues(worldX + tileSize, worldY + tileSize);
+    const worldBottomRight = vec2.fromValues(
+      worldX + tileSize,
+      worldY + tileSize,
+    );
 
     const screenTopLeft = vec2.create();
     const screenBottomRight = vec2.create();
@@ -225,10 +237,19 @@ class Renderer {
     const screenWidth = screenBottomRight[0] - screenTopLeft[0];
     const screenHeight = screenBottomRight[1] - screenTopLeft[1];
 
-    ctx.drawImage(imageBitmap, screenTopLeft[0], screenTopLeft[1], screenWidth, screenHeight);
+    ctx.drawImage(
+      imageBitmap,
+      screenTopLeft[0],
+      screenTopLeft[1],
+      screenWidth,
+      screenHeight,
+    );
   }
 
-  private renderFrame(ctx: CanvasRenderingContext2D, requiredTileRequests: TileRequest[]): void {
+  private renderFrame(
+    ctx: CanvasRenderingContext2D,
+    requiredTileRequests: TileRequest[],
+  ): void {
     const width = this.camera.screenWidthPx;
     const height = this.camera.screenHeightPx;
 
@@ -255,7 +276,10 @@ class Renderer {
 
     let opacity = 1;
     if (currentZ > zoomFadeStart) {
-      opacity = Math.max(0, 1 - (currentZ - zoomFadeStart) / (zoomFadeEnd - zoomFadeStart));
+      opacity = Math.max(
+        0,
+        1 - (currentZ - zoomFadeStart) / (zoomFadeEnd - zoomFadeStart),
+      );
     }
 
     if (opacity >= 0.01) {
@@ -314,7 +338,12 @@ class Renderer {
       const hue = ((count * 360) / requiredTileRequests.length) % 360;
       ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
       const size = lodToSize(r.lod);
-      const box = aabb.fromValues(r.x * size, r.y * size, (r.x+1) * size, (r.y+1) * size);
+      const box = aabb.fromValues(
+        r.x * size,
+        r.y * size,
+        (r.x + 1) * size,
+        (r.y + 1) * size,
+      );
       this.renderAABB(ctx, box);
       count++;
     }
