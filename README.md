@@ -4,6 +4,10 @@
 - Handle: org/repo
 - Load arbitery github repos.
 
+- Font choice?
+- Remove bbox notes
+- Commas in debug notes
+
 - Home reset button
 - Zoom to mouse
 - Middle mouse button to pan
