@@ -19,8 +19,19 @@ func InitialSize(m int) int {
 	return int(math.Pow(2, k))
 }
 
+// We convert freely between three spaces:
+// 'line space' is a 1D space from 0..layout.LastLine
+// WorldPosition is a 2D space. We map each LinePosition onto a single
+// WorldPosition. World space is a 2D square. If line space is 0..n
+// then the world square is (0..2**k), (0..2**k) st. k is the smallest
+// integer n <= 2**k * 2**k
+// World space is divided into lod=0 tiles of size TILE_SIZE. Each
+// (X, Y) in world space can be mapped into a single point into a
+// single  tile. If (wx, wy) then tx=wx//TILE_SIZE ty=wy//TILE_SIZE
+// and the offset within the tile is (wx % TILE_SIZE, wy % TILE_SIZE).
+
 type TileLayout struct {
-  lineCount: number;
+	LastLine LinePosition
 }
 
 type WorldPosition struct {
@@ -49,5 +60,3 @@ func TileToWorld(tile TilePosition, layout TileLayout) WorldPosition {
 
 func WorldToLine(world WorldPosition, layout TileLayout) LinePosition {
 }
-
-
