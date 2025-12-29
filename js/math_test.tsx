@@ -1,5 +1,10 @@
 import o from "ospec";
-import { nextPowerOfTwo, toLod, lodToSize, quadtreeBoundingBox } from "./math.js";
+import {
+  nextPowerOfTwo,
+  toLod,
+  lodToSize,
+  quadtreeBoundingBox,
+} from "./math.js";
 import { aabb } from "./aabb.js";
 
 o.spec("math", () => {

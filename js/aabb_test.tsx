@@ -108,7 +108,7 @@ o.spec("aabb", () => {
       const box2 = aabb.fromValues(3, 3, 8, 8);
       const result = aabb.create();
       aabb.union(result, box1, box2);
-      
+
       o(result[0]).equals(0);
       o(result[1]).equals(0);
       o(result[2]).equals(8);
@@ -122,7 +122,7 @@ o.spec("aabb", () => {
       const offset = vec2.fromValues(5, -3);
       const result = aabb.create();
       aabb.translate(result, box, offset);
-      
+
       o(result[0]).equals(5);
       o(result[1]).equals(-3);
       o(result[2]).equals(15);

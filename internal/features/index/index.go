@@ -389,9 +389,9 @@ func TileLineLength(ctx context.Context, repository *git.Repository, level int, 
 }
 
 type TileMetadata struct {
-	X int64  `json:"y"`
-	Y int64  `json:"x"`
-	Lod int64  `json:"lod"`
+	X   int64 `json:"y"`
+	Y   int64 `json:"x"`
+	Lod int64 `json:"lod"`
 }
 
 func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -419,7 +419,6 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-
 	rawY := ps.ByName("y")
 	if rawY == "" {
 		http.Error(w, "y must be set", http.StatusBadRequest)
@@ -430,7 +429,6 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, "y must be number", http.StatusBadRequest)
 		return
 	}
-
 
 	rawLod := ps.ByName("lod")
 	if rawLod == "" {
@@ -456,8 +454,8 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
 	metadata := TileMetadata{
-		X: x,
-		Y: y,
+		X:   x,
+		Y:   y,
 		Lod: lod,
 	}
 

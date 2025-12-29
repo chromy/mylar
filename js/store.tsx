@@ -15,59 +15,61 @@ interface TileData {
 }
 
 async function fetchTile(request: TileRequest): Promise<TileData> {
-   const url = `/api/repo/${request.repo}/${request.committish}/tile/${request.lod}/${request.x}/${request.y}/length`;
-   const response = await fetch(url);
+  const url = `/api/repo/${request.repo}/${request.committish}/tile/${request.lod}/${request.x}/${request.y}/length`;
+  const response = await fetch(url);
 
-   if (!response.ok) {
-     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-   }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
 
-   const responseText = await response.text();
-   const lines = responseText.split('\n');
+  const responseText = await response.text();
+  const lines = responseText.split("\n");
 
-   if (lines.length < 2) {
-     throw new Error('Invalid response format: expected metadata line and data line');
-   }
+  if (lines.length < 2) {
+    throw new Error(
+      "Invalid response format: expected metadata line and data line",
+    );
+  }
 
-   const rawMetadata = lines[0]!;
-   const rawData = lines[1]!;
+  const rawMetadata = lines[0]!;
+  const rawData = lines[1]!;
 
-   let metadata: TileMetadata;
-   try {
-     metadata = TileMetadataSchema.parse(JSON.parse(rawMetadata));
-   } catch (error) {
-     throw new Error(`Failed to parse tile metadata: ${error}`);
-   }
+  let metadata: TileMetadata;
+  try {
+    metadata = TileMetadataSchema.parse(JSON.parse(rawMetadata));
+  } catch (error) {
+    throw new Error(`Failed to parse tile metadata: ${error}`);
+  }
 
-   // Parse tile data from second line
-   let tileData: number[];
-   try {
-     tileData = JSON.parse(rawData);
-     if (!Array.isArray(tileData)) {
-       throw new Error('Tile data is not an array');
-     }
-   } catch (error) {
-     throw new Error(`Failed to parse tile data: ${error}`);
-   }
+  // Parse tile data from second line
+  let tileData: number[];
+  try {
+    tileData = JSON.parse(rawData);
+    if (!Array.isArray(tileData)) {
+      throw new Error("Tile data is not an array");
+    }
+  } catch (error) {
+    throw new Error(`Failed to parse tile data: ${error}`);
+  }
 
-   const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE);
-   for (let i = 0; i < tileData.length && i < TILE_SIZE * TILE_SIZE; i++) {
-     const value = Math.min(255, Math.max(0, tileData[i] || 0));
-     const pixelIndex = i * 4;
-     buffer[pixelIndex] = value;     // R
-     buffer[pixelIndex + 1] = value; // G
-     buffer[pixelIndex + 2] = value; // B
-     buffer[pixelIndex + 3] = 255;   // A
-   }
+  const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE);
+  for (let i = 0; i < tileData.length && i < TILE_SIZE * TILE_SIZE; i++) {
+    const value = Math.min(255, Math.max(0, tileData[i] || 0));
+    const pixelIndex = i * 4;
+    buffer[pixelIndex] = value; // R
+    buffer[pixelIndex + 1] = value; // G
+    buffer[pixelIndex + 2] = value; // B
+    buffer[pixelIndex + 3] = 255; // A
+  }
 
-   const imageData = new ImageData(buffer, TILE_SIZE);
-   const imageBitmap = await createImageBitmap(imageData);
+  const imageData = new ImageData(buffer, TILE_SIZE);
+  const imageBitmap = await createImageBitmap(imageData);
 
-   return {
-     metadata,
-     tileData,
-     imageBitmap
-   };
+  return {
+    metadata,
+    tileData,
+    imageBitmap,
+  };
 }
 
 export class TileStore {

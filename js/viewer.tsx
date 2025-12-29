@@ -11,7 +11,11 @@ import {
 } from "./math.js";
 import { type TileRequest, TileStore } from "./store.js";
 
-function boxToTileRequest(box: aabb, repo: string, committish: string): TileRequest {
+function boxToTileRequest(
+  box: aabb,
+  repo: string,
+  committish: string,
+): TileRequest {
   const width = aabb.width(box);
   return {
     x: box[0] / width,

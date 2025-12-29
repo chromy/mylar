@@ -156,10 +156,7 @@ o.spec("schemas", () => {
   o.spec("RepoListResponseSchema", () => {
     o("validates repo list", () => {
       const valid = {
-        repos: [
-          { name: "repo1" },
-          { name: "repo2" },
-        ],
+        repos: [{ name: "repo1" }, { name: "repo2" }],
       };
       const result = RepoListResponseSchema.safeParse(valid);
       o(result.success).equals(true);
