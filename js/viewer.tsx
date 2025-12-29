@@ -11,12 +11,14 @@ import {
 } from "./math.js";
 import { type TileRequest, TileStore } from "./store.js";
 
-function boxToTileRequest(box: aabb): TileRequest {
+function boxToTileRequest(box: aabb, repo: string, committish: string): TileRequest {
   const width = aabb.width(box);
   return {
     x: box[0] / width,
     y: box[1] / width,
     lod: toLod(box),
+    repo,
+    committish,
   };
 }
 
@@ -164,7 +166,7 @@ class Renderer {
       this.screenWorldAabb,
       this.layout.lineCount,
     )) {
-      reqs.push(boxToTileRequest(box));
+      reqs.push(boxToTileRequest(box, this.repo, this.committish));
     }
 
     // Update tile store with required tiles

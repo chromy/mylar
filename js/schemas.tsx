@@ -61,3 +61,10 @@ export const RepoListResponseSchema = z.object({
   repos: RepoInfoSchema.array().nullable(),
 });
 export type RepoListResponse = z.infer<typeof RepoListResponseSchema>;
+
+export const TileMetadataSchema = z.object({
+  y: z.number(),
+  x: z.number(),
+  lod: z.number(),
+});
+export type TileMetadata = z.infer<typeof TileMetadataSchema>;

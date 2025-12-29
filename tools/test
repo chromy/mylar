@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
+# Bundle and run JavaScript tests
+pnpm exec esbuild js/run_all_tests.tsx --bundle --outfile=js/run_all_tests.bundle.js --format=esm --platform=node
+node js/run_all_tests.bundle.js
+
 pnpm exec tsc --noEmit
-pnpm exec ospec
 go build ./...
 go test ./...
