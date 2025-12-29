@@ -75,7 +75,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
         <Viewer repo={repo} committish={committish} layout={layout} setDebug={setDebug}/>
       </div>
       <div className="mylar-content-info backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2">
-        <table className="table-auto w-full text-zinc-950/80 text-sm">
+        <table className="table-auto w-full text-zinc-950/80 text-xs">
           <thead></thead>
           <tbody>
             <tr>
@@ -90,7 +90,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
               <td>Ref</td>
               <td>{committish}</td>
             </tr>
-            {debug.map(kv => (<tr><td>{kv[0]}</td><td>{kv[1]}</td></tr>))}
+            {debug.map(kv => (<tr><td>{kv[0]}</td><td><pre>{kv[1]}</pre></td></tr>))}
           </tbody>
         </table>
       </div>

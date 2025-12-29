@@ -1,5 +1,5 @@
 import { vec2, vec3, vec4, mat4 } from "gl-matrix";
-import {type aabb} from "./aabb.js";
+import {aabb} from "./aabb.js";
 
 export enum Direction {
   UP = "up",
