@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -301,7 +302,47 @@ var content = core.RegisterBlobComputation("content", func(ctx context.Context, 
 		return nil, err
 	}
 
-	return "hello, world!", nil
+	blob, err := repo.BlobObject(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := blob.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	// Read first few bytes to check if it's binary
+	buffer := make([]byte, 512)
+	n, err := reader.Read(buffer)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	// Check for binary content by looking for null bytes
+	for i := 0; i < n; i++ {
+		if buffer[i] == 0 {
+			// Binary file - return empty string
+			return "", nil
+		}
+	}
+
+	// Get full content for text files
+	content, err := blob.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer content.Close()
+
+	// Read all content as string
+	fullBuffer := make([]byte, blob.Size)
+	_, err = content.Read(fullBuffer)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	return string(fullBuffer), nil
 })
 
 func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
