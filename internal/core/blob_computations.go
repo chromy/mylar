@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-type ObjectFunc func(ctx context.Context, hash plumbing.Hash) (interface{}, error)
+type ObjectFunc func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error)
 
 func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
-	return func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+	return func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
 		c := GetCache()
 		key := generateCacheKey(id, hash.String())
 
@@ -29,7 +29,7 @@ func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
 			return result, nil
 		}
 
-		result, err := execute(ctx, hash)
+		result, err := execute(ctx, repoId, hash)
 		if err != nil {
 			return nil, err
 		}

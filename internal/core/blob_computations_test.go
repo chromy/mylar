@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetBlobComputation(t *testing.T) {
-	RegisterBlobComputation("TestGetBlobComputation", func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+	RegisterBlobComputation("TestGetBlobComputation", func(ctx context.Context, _ string, hash plumbing.Hash) (interface{}, error) {
 		return "result", nil
 	})
 
@@ -25,13 +25,13 @@ func TestGetBlobComputation(t *testing.T) {
 }
 
 func TestExecuteBlobComputation(t *testing.T) {
-	RegisterBlobComputation("TestExecuteBlobComputation", func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+	RegisterBlobComputation("TestExecuteBlobComputation", func(ctx context.Context, _ string, hash plumbing.Hash) (interface{}, error) {
 		return "result", nil
 	})
 
 	c, _ := GetBlobComputation("TestExecuteBlobComputation")
 
-	result, err := c.Execute(context.Background(), plumbing.NewHash("efc4fcc2e78479e60133c9dcb3460c45a1c0efa9"))
+	result, err := c.Execute(context.Background(), "", plumbing.NewHash("efc4fcc2e78479e60133c9dcb3460c45a1c0efa9"))
 
 	if err != nil {
 		t.Error("Expected blob computation to succeed")
@@ -45,15 +45,15 @@ func TestExecuteBlobComputation(t *testing.T) {
 func TestBlobComputationCachesResults(t *testing.T) {
 	callCount := 0
 
-	f := RegisterBlobComputation("test2", func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+	f := RegisterBlobComputation("TestBlobComputationCachesResults", func(ctx context.Context, _ string, hash plumbing.Hash) (interface{}, error) {
 		callCount += 1
 		return hash.String(), nil
 	})
 
 	hash := plumbing.NewHash("efc4fcc2e78479e60133c9dcb3460c45a1c0efa9")
 
-	a, aErr := f(context.Background(), hash)
-	b, bErr := f(context.Background(), hash)
+	a, aErr := f(context.Background(), "", hash)
+	b, bErr := f(context.Background(), "", hash)
 
 	if aErr != nil {
 		t.Error("Expected a computation to succeed")
