@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { Registry } from "./registry.js";
 
-export type MylarAction = { type: string };
+export interface ChangeSettingMylarAction {
+  type: "CHANGE_SETTING";
+  id: string;
+  value: unknown;
+};
+
+export type MylarAction = ChangeSettingMylarAction;
 
 export interface MylarState {
   [key: string]: unknown;
@@ -9,15 +15,22 @@ export interface MylarState {
 
 export interface SettingArgs {
   id: string;
+  name?: string;
+}
+
+export interface SettingAction {
+  id: string;
+  name: string;
 }
 
 export interface Setting {
   id: string;
-  //  name: string;
+  name: string;
   //  description: string;
-  //  actions: MylarAction[];
-  //  get(state: MylarState): T;
-  //  set(state: MylarState, value: T): MylarState;
+  get(state: MylarState): boolean;
+  set(state: MylarState, rawValue: unknown): MylarState;
+  enable: MylarAction;
+  disable: MylarAction;
 }
 
 export class SettingsStore {
@@ -25,22 +38,60 @@ export class SettingsStore {
 
   constructor() {
     this.registry = new Registry();
+    //this.actions = new Registry();
   }
 
-  create(args: SettingArgs): Setting {
-    this.registry.register(args);
-    return args;
+  addBoolean(args: SettingArgs): Setting {
+    const schema = z.boolean().default(false);
+    const s: Setting = {
+      id: args.id,
+      name: args.name ?? args.id,
+      get(state: MylarState): boolean {
+        return schema.parse(state[this.id]);
+      },
+      set(state: MylarState, rawValue: unknown): MylarState {
+        const next = {...state};
+        next[args.id] = schema.parse(rawValue);
+        return next;
+      },
+      enable: {
+        type: "CHANGE_SETTING",
+        id: args.id,
+        value: true,
+      },
+      disable: {
+        type: "CHANGE_SETTING",
+        id: args.id,
+        value: false,
+      },
+    };
+    this.registry.register(s);
+    return s;
   }
 
   get items(): Setting[] {
     return this.registry.items;
   }
+
+  get(id: string): Setting {
+    const maybeSetting = this.registry.items.filter(item => item.id === id)[0];
+    if (maybeSetting === undefined) {
+      throw new Error(`No such setting ${maybeSetting}`);
+    }
+    return maybeSetting;
+  }
 }
 
 export const settings = new SettingsStore();
 
-const fpsSetting = settings.create({
-  id: "fps",
+export const fpsSetting = settings.addBoolean({
+  id: "setting.fps",
+  name: "Show FPS",
+});
+
+export const settingsPanelSetting = settings.addBoolean({
+  id: "setting.settingsPanel",
+  name: "Show settings panel",
 });
 
 export const mylarReducer = (
@@ -48,24 +99,8 @@ export const mylarReducer = (
   action: MylarAction,
 ): MylarState => {
   switch (action.type) {
-    case "SHOW_FPS_COUNTER":
-      return { ...state, showFpsCounter: true };
-    case "HIDE_FPS_COUNTER":
-      return { ...state, showFpsCounter: false };
-    case "TOGGLE_SETTINGS":
-      return {
-        ...state,
-        showSettings: !(state as any).showSettings,
-        showHelp: false,
-      };
-    case "TOGGLE_HELP":
-      return {
-        ...state,
-        showHelp: !(state as any).showHelp,
-        showSettings: false,
-      };
-    case "CLOSE_ALL_PANELS":
-      return { ...state, showSettings: false, showHelp: false };
+    case "CHANGE_SETTING":
+      return settings.get(action.id).set(state, action.value);
     default:
       return state;
   }

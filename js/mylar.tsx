@@ -1,4 +1,4 @@
-import { type ActionDispatch, useState, useMemo, useReducer } from "react";
+import { type ActionDispatch, useState, useMemo, useReducer, type ReactNode } from "react";
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
@@ -13,6 +13,7 @@ import {
   mylarReducer,
   initialMylarState,
   type MylarState,
+  settingsPanelSetting,
 } from "./state.js";
 
 interface IndexPanelProps {
@@ -89,13 +90,15 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           committish={committish}
           layout={layout}
           setDebug={setDebug}
+          dispatch={dispatch}
+          state={state}
         />
       </div>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
           <button
             className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
-            onClick={() => dispatch({ type: "TOGGLE_SETTINGS" })}
+            onClick={() => dispatch(settingsPanelSetting.enable)}
           >
             Settings
           </button>
@@ -171,17 +174,35 @@ interface SettingsPanelProps {
 const SettingsPanel = ({ dispatch, state }: SettingsPanelProps) => {
   return (
     <ModalPanel
-      isOpen={(state as any).showSettings}
-      onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
+      isOpen={settingsPanelSetting.get(state)}
+      onClose={() => dispatch(settingsPanelSetting.disable)}
       title="Settings"
     >
       <div className="space-y-4">
         {settings.items.map(s => (
           <div>
-            <label className="block mb-2">{s.id}</label>
+            <label className="block mb-2">{s.name}</label>
+            <p>Value: {s.get(state) ? "True" : "False"}</p>
+            <Button onClick={() => dispatch(s.enable)}>Enable</Button>
+            <Button onClick={() => dispatch(s.disable)}>Disable</Button>
           </div>
         ))}
       </div>
     </ModalPanel>
   );
 };
+
+interface ButtonProps {
+  onClick: () => void;
+  children: ReactNode;
+
+}
+
+const Button = ({onClick, children}: ButtonProps) => (
+  <button
+    className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
+    onClick={onClick}
+    >
+    {children}
+  </button>
+);

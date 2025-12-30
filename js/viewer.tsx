@@ -1,11 +1,19 @@
 import { vec2, vec3 } from "gl-matrix";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { type ActionDispatch, useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
 import { quadtreeBoundingBox, requiredTiles, toLod } from "./math.js";
 import { lodToSize } from "./utils.js";
 import { type TileRequest, TileStore } from "./store.js";
+import {
+  type MylarAction,
+  settings,
+  initialMylarState,
+  type MylarState,
+  fpsSetting,
+} from "./state.js";
+
 
 function boxToTileRequest(
   box: aabb,
@@ -21,10 +29,6 @@ function boxToTileRequest(
     committish,
   };
 }
-
-// On each frame:
-// - Given repo, committish, bounds in world space, ops
-// -
 
 export interface TileLayout {
   lineCount: number;
@@ -44,6 +48,7 @@ interface RendererHostCallbacks {
   getCanvas: () => HTMLCanvasElement | undefined;
   setDebug: (info: DebugInfo) => void;
   setFrameHistory: (history: number[]) => void;
+  getState(): MylarState;
 }
 
 class Renderer {
@@ -181,6 +186,7 @@ class Renderer {
     this.lastFrameMs = timestamp - this.lastTimestampMs;
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
+    const state = this.callbacks.getState();
 
     // If we haven't yet managed to initialize the canvas do so now:
     if (this.canvasState === undefined) {
@@ -213,12 +219,17 @@ class Renderer {
         .padStart(4);
       const worldMouseX = Math.round(this.worldMouse[0]).toString().padStart(4);
       const worldMouseY = Math.round(this.worldMouse[1]).toString().padStart(4);
-      this.callbacks.setDebug([
-        ["Frame duration", this.lastFrameMs.toFixed(2) + "ms"],
-        ["World bbox", `(${x}, ${y}) (${w}, ${h})`],
-        ["Screen mouse", `(${screenMouseX}, ${screenMouseY})`],
-        ["World mouse", `(${worldMouseX}, ${worldMouseY})`],
-      ]);
+
+      const debugItems: DebugInfo = [];
+
+      if (fpsSetting.get(state)) {
+        debugItems.push(["Frame duration", this.lastFrameMs.toFixed(2) + "ms"]);
+
+      }
+      debugItems.push(["World bbox", `(${x}, ${y}) (${w}, ${h})`]);
+      debugItems.push(["Screen mouse", `(${screenMouseX}, ${screenMouseY})`]);
+      debugItems.push(["World mouse", `(${worldMouseX}, ${worldMouseY})`]);
+      this.callbacks.setDebug(debugItems);
     }
 
     // Render tiles which are ready:
@@ -415,23 +426,35 @@ export interface ViewerProps {
   committish: string;
   layout: TileLayout;
   setDebug: (info: DebugInfo) => void;
+  dispatch: ActionDispatch<[action: MylarAction]>;
+  state: MylarState;
 }
 
 // Rename Viewer -> RendererHost
-export const Viewer = ({ repo, committish, layout, setDebug }: ViewerProps) => {
+export const Viewer = ({ dispatch, state, repo, committish, layout, setDebug }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef = useRef<MylarState>(initialMylarState);;
 
   const [frameHistory, setFrameHistory] = useState<number[]>([]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     const getCanvas = () => {
       return canvasRef.current ?? undefined;
     };
 
+    const getState = () => {
+      return stateRef.current;
+    };
+
     const renderer = new Renderer(repo, committish, layout, {
       getCanvas,
       setFrameHistory,
       setDebug,
+      getState,
     });
     renderer.start();
 
