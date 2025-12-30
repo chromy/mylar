@@ -1,9 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useReducer } from "react";
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { DecryptLoader } from "./loader.js";
 import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
+import { CommandMenu } from "./menu.js";
+import { GlassPanel } from "./glass-panel.js";
+import { ModalPanel } from "./modal_panel.js";
 
 interface IndexPanelProps {
   repo: string;
@@ -51,6 +54,34 @@ function toTileLayout(index: Index): TileLayout {
   };
 }
 
+interface MylarState {
+  showSettings: boolean;
+  showHelp: boolean;
+}
+
+type MylarAction =
+  | { type: 'TOGGLE_SETTINGS' }
+  | { type: 'TOGGLE_HELP' }
+  | { type: 'CLOSE_ALL_PANELS' };
+
+const mylarReducer = (state: MylarState, action: MylarAction): MylarState => {
+  switch (action.type) {
+    case 'TOGGLE_SETTINGS':
+      return { ...state, showSettings: !state.showSettings, showHelp: false };
+    case 'TOGGLE_HELP':
+      return { ...state, showHelp: !state.showHelp, showSettings: false };
+    case 'CLOSE_ALL_PANELS':
+      return { ...state, showSettings: false, showHelp: false };
+    default:
+      return state;
+  }
+};
+
+const initialMylarState: MylarState = {
+  showSettings: false,
+  showHelp: false,
+};
+
 export interface MylarContentProps {
   repo: string;
   committish: string;
@@ -64,6 +95,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
     lastFile === undefined ? "-" : lastFile.lineOffset + lastFile.lineCount;
 
   const [debug, setDebug] = useState<DebugInfo>([]);
+  const [state, dispatch] = useReducer(mylarReducer, initialMylarState);
 
   const layout = useMemo(() => {
     return toTileLayout(index);
@@ -71,6 +103,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
+      <CommandMenu/>
       <div className="fixed bottom-0 left-0 top-0 right-0">
         <Viewer
           repo={repo}
@@ -79,8 +112,24 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           setDebug={setDebug}
         />
       </div>
-      <div className="mylar-content-info backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2">
-        <table className="table-auto w-full text-zinc-950/80 text-xs">
+      <GlassPanel area="mylar-buttons fixed top-0 right-0">
+        <div className="flex gap-2">
+          <button 
+            className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
+            onClick={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
+          >
+            Settings
+          </button>
+          <button 
+            className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
+            onClick={() => dispatch({ type: 'TOGGLE_HELP' })}
+          >
+            Help
+          </button>
+        </div>
+      </GlassPanel>
+      <GlassPanel>
+        <table className="table-auto w-full">
           <thead></thead>
           <tbody>
             <tr>
@@ -105,7 +154,58 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
             ))}
           </tbody>
         </table>
-      </div>
+      </GlassPanel>
+
+      <ModalPanel
+        isOpen={state.showSettings}
+        onClose={() => dispatch({ type: 'CLOSE_ALL_PANELS' })}
+        title="Settings"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block mb-2">Theme</label>
+            <select className="w-full p-2 rounded bg-white/10 border border-white/20">
+              <option>Light</option>
+              <option>Dark</option>
+              <option>Auto</option>
+            </select>
+          </div>
+          <div>
+            <label className="block mb-2">Zoom Level</label>
+            <input
+              type="range"
+              min="50"
+              max="200"
+              defaultValue="100"
+              className="w-full"
+            />
+          </div>
+        </div>
+      </ModalPanel>
+
+      <ModalPanel
+        isOpen={state.showHelp}
+        onClose={() => dispatch({ type: 'CLOSE_ALL_PANELS' })}
+        title="Help"
+      >
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-medium mb-2">Navigation</h3>
+            <ul className="space-y-1 text-sm">
+              <li>• Pan: Click and drag</li>
+              <li>• Zoom: Mouse wheel</li>
+              <li>• Reset: Double click</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-medium mb-2">Keyboard Shortcuts</h3>
+            <ul className="space-y-1 text-sm">
+              <li>• <kbd className="bg-white/20 px-1 rounded">?</kbd> - Show help</li>
+              <li>• <kbd className="bg-white/20 px-1 rounded">Esc</kbd> - Close panels</li>
+            </ul>
+          </div>
+        </div>
+      </ModalPanel>
     </div>
   );
 };

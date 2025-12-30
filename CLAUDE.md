@@ -61,3 +61,4 @@ React SPA using wouter for routing:
 - ./tools/presubmit to run presubmit checks.
 
 - Always run tools/test after changes.
+- Remeber js files should be named with underscores not dashes.

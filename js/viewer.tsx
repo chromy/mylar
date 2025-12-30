@@ -66,7 +66,10 @@ class Renderer {
   private boundFrame: (timestamp: number) => void;
   private boundHandleWheel: (e: WheelEvent) => void;
   private boundHandleResize: () => void;
+  private boundHandleMouseMove: (e: MouseEvent) => void;
   private screenWorldAabb: aabb;
+  private screenMouse: vec2;
+  private worldMouse: vec2;
 
   constructor(
     repo: string,
@@ -89,6 +92,9 @@ class Renderer {
     this.boundFrame = this.frame.bind(this);
     this.boundHandleWheel = this.handleWheel.bind(this);
     this.boundHandleResize = this.handleResize.bind(this);
+    this.boundHandleMouseMove = this.handleMouseMove.bind(this);
+    this.screenMouse = vec2.create();
+    this.worldMouse = vec2.create();
   }
 
   private handleResize(): void {
@@ -119,6 +125,20 @@ class Renderer {
     }
   }
 
+  private handleMouseMove(e: MouseEvent): void {
+    const canvasState = this.canvasState;
+    if (canvasState === undefined) {
+      return;
+    }
+
+    const rect = canvasState.canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * canvasState.dpr;
+    const y = (e.clientY - rect.top) * canvasState.dpr;
+
+    vec2.set(this.screenMouse, x, y);
+    this.camera.toWorld(this.worldMouse, this.screenMouse);
+  }
+
   private tryHookCanvas(): void {
     const canvas = this.callbacks.getCanvas();
     if (canvas === undefined) {
@@ -145,9 +165,12 @@ class Renderer {
     this.camera.setScreenSize(vec2.fromValues(width, height));
 
     const vizBox = quadtreeBoundingBox(this.layout.lineCount);
-    this.camera.snapToBox(vizBox);
+    const expandedBox = aabb.create();
+    aabb.scale(expandedBox, vizBox, 1.1);
+    this.camera.snapToBox(expandedBox);
 
     canvas.addEventListener("wheel", this.boundHandleWheel);
+    canvas.addEventListener("mousemove", this.boundHandleMouseMove);
     window.addEventListener("resize", this.boundHandleResize);
 
     this.canvasState = {
@@ -180,15 +203,21 @@ class Renderer {
     // Update tile store with required tiles
     this.tileStore.update(reqs);
 
-    if (timestamp - this.lastDebugUpdateMs > 1000) {
+    if (timestamp - this.lastDebugUpdateMs > 100) {
       this.lastDebugUpdateMs = timestamp;
       const x = Math.round(this.screenWorldAabb[0]).toString().padStart(4);
       const y = Math.round(this.screenWorldAabb[1]).toString().padStart(4);
       const w = Math.round(this.screenWorldAabb[2]).toString().padStart(4);
       const h = Math.round(this.screenWorldAabb[3]).toString().padStart(4);
+      const screenMouseX = Math.round(this.screenMouse[0]).toString().padStart(4);
+      const screenMouseY = Math.round(this.screenMouse[1]).toString().padStart(4);
+      const worldMouseX = Math.round(this.worldMouse[0]).toString().padStart(4);
+      const worldMouseY = Math.round(this.worldMouse[1]).toString().padStart(4);
       this.callbacks.setDebug([
         ["Frame duration", this.lastFrameMs.toFixed(2) + "ms"],
         ["World bbox", `(${x}, ${y}) (${w}, ${h})`],
+        ["Screen mouse", `(${screenMouseX}, ${screenMouseY})`],
+        ["World mouse", `(${worldMouseX}, ${worldMouseY})`],
       ]);
     }
 
@@ -372,6 +401,7 @@ class Renderer {
     const canvasState = this.canvasState;
     if (canvasState) {
       canvasState.canvas.removeEventListener("wheel", this.boundHandleWheel);
+      canvasState.canvas.removeEventListener("mousemove", this.boundHandleMouseMove);
       window.removeEventListener("resize", this.boundHandleResize);
     }
   }
