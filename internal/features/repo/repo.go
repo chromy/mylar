@@ -11,6 +11,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -31,17 +32,14 @@ type RepoListResponse struct {
 	Repos []RepoInfo `json:"repos"`
 }
 
-type FileSystemEntry struct {
-	Name     string            `json:"name"`
-	Path     string            `json:"path"`
-	Type     string            `json:"type"`               // "file" or "directory"
-	Size     *int64            `json:"size,omitempty"`     // Only for files
-	Hash     string            `json:"hash,omitempty"`     // Only for files
-	Children []FileSystemEntry `json:"children,omitempty"` // Only for directories
+type TreeEntry struct {
+	Name string        `json:"name"`
+	Mode string        `json:"mode"`
+	Hash plumbing.Hash `json:"hash"`
 }
 
-type InfoResponse struct {
-	Entry FileSystemEntry `json:"entry"`
+type TreeEntries struct {
+	Entries []TreeEntry `json:"entries"`
 }
 
 func AddFromPath(_ context.Context, name string, path string) error {
@@ -189,6 +187,44 @@ var Content = core.RegisterBlobComputation("content", func(ctx context.Context, 
 	return string(buffer), nil
 })
 
+var Lines = core.RegisterBlobComputation("lines", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	content, err := Content(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+	
+	contentStr := content.(string)
+	if contentStr == "" {
+		return []string{}, nil
+	}
+	
+	lines := strings.Split(contentStr, "\n")
+	return lines, nil
+})
+
+var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	treeObj, err := repo.TreeObject(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	var entries []TreeEntry
+	for _, entry := range treeObj.Entries {
+		entries = append(entries, TreeEntry{
+			Name: entry.Name,
+			Mode: entry.Mode.String(),
+			Hash: entry.Hash,
+		})
+	}
+
+	return TreeEntries{Entries: entries}, nil
+})
+
 func init() {
 	mu.Lock()
 	defer mu.Unlock()
@@ -204,6 +240,6 @@ func init() {
 
 	schemas.Register("repo.RepoInfo", RepoInfo{})
 	schemas.Register("repo.RepoListResponse", RepoListResponse{})
-	schemas.Register("repo.FileSystemEntry", FileSystemEntry{})
-	schemas.Register("repo.InfoResponse", InfoResponse{})
+	schemas.Register("repo.TreeEntry", TreeEntry{})
+	schemas.Register("repo.TreeEntries", TreeEntries{})
 }
