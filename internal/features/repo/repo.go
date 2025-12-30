@@ -202,6 +202,44 @@ var Lines = core.RegisterBlobComputation("lines", func(ctx context.Context, repo
 	return lines, nil
 })
 
+var LineCount = core.RegisterBlobComputation("lineCount", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	isBinary, err := IsBinary(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	blob, err := repo.BlobObject(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := blob.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	if isBinary.(bool) {
+		content, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		return int64(len(content)), nil
+	}
+
+	lines, err := Lines(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return int64(len(lines.([]string))), nil
+})
+
 var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {

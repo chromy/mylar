@@ -9,7 +9,7 @@ env:
   PROJECT_ID: tsundoku-io
   GAR_LOCATION: europe
   SERVICE: mylar
-  REGION: europe
+  REGION: us-east1
 
 jobs:
   deploy:

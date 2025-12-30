@@ -41,6 +41,98 @@ var (
 	indexCache cache.Cache
 )
 
+var IndexForBlob = core.RegisterBlobComputation("indexForBlob", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	lineCount, err := repo.LineCount(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := IndexEntry{
+		Path:       ".",
+		LineOffset: 0,
+		LineCount:  lineCount.(int64),
+		Hash:       hash,
+	}
+
+	return &Index{Entries: []IndexEntry{entry}}, nil
+})
+
+var IndexForTree = core.RegisterBlobComputation("indexForTree", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	repository, err := repo.Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	treeObj, err := repository.TreeObject(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	var allEntries []IndexEntry
+	var currentOffset int64
+
+	entries := make([]object.TreeEntry, 0, len(treeObj.Entries))
+	entries = append(entries, treeObj.Entries...)
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
+
+	for _, entry := range entries {
+		childIndex, err := ComputeIndexBlobComputation(ctx, repoId, entry.Hash)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, childEntry := range childIndex.Entries {
+			newEntry := IndexEntry{
+				Path:       entry.Name,
+				LineOffset: currentOffset,
+				LineCount:  childEntry.LineCount,
+				Hash:       childEntry.Hash,
+			}
+
+			if childEntry.Path != "." {
+				newEntry.Path = entry.Name + "/" + childEntry.Path
+			}
+
+			allEntries = append(allEntries, newEntry)
+			currentOffset += childEntry.LineCount
+		}
+	}
+
+	return &Index{Entries: allEntries}, nil
+})
+
+func ComputeIndexBlobComputation(ctx context.Context, repoId string, hash plumbing.Hash) (*Index, error) {
+	repository, err := repo.Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := repository.Object(plumbing.AnyObject, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	switch obj.(type) {
+	case *object.Blob:
+		result, err := IndexForBlob(ctx, repoId, hash)
+		if err != nil {
+			return nil, err
+		}
+		return result.(*Index), nil
+	case *object.Tree:
+		result, err := IndexForTree(ctx, repoId, hash)
+		if err != nil {
+			return nil, err
+		}
+		return result.(*Index), nil
+	default:
+		return nil, fmt.Errorf("unexpected object %v", obj)
+	}
+}
+
 func generateCacheKey(parts ...string) string {
 	combined := strings.Join(parts, ":")
 	h := sha256.Sum256([]byte(combined))
