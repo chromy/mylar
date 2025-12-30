@@ -8,13 +8,9 @@ import (
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -126,177 +122,7 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
-func RawHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	repoName := ps.ByName("repo")
-	filePath := ps.ByName("path")
-
-	repo, err := Get(r.Context(), repoName)
-	if err != nil {
-		http.Error(w, "Repository not found", http.StatusNotFound)
-		return
-	}
-
-	ref, err := repo.Head()
-	if err != nil {
-		http.Error(w, "Failed to get repository HEAD", http.StatusInternalServerError)
-		return
-	}
-
-	commit, err := repo.CommitObject(ref.Hash())
-	if err != nil {
-		http.Error(w, "Failed to get commit", http.StatusInternalServerError)
-		return
-	}
-
-	tree, err := commit.Tree()
-	if err != nil {
-		http.Error(w, "Failed to get tree", http.StatusInternalServerError)
-		return
-	}
-
-	file, err := tree.File(filePath)
-	if err != nil {
-		http.Error(w, "File not found", http.StatusNotFound)
-		return
-	}
-
-	contents, err := file.Contents()
-	if err != nil {
-		http.Error(w, "Failed to read file contents", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(contents))
-}
-
-func InfoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	repoName := ps.ByName("repo")
-	targetPath := ps.ByName("path")
-
-	repo, found := state.Repos[repoName]
-	if !found {
-		http.Error(w, "Repository not found", http.StatusNotFound)
-		return
-	}
-
-	ref, err := repo.Head()
-	if err != nil {
-		http.Error(w, "Failed to get repository HEAD", http.StatusInternalServerError)
-		return
-	}
-
-	commit, err := repo.CommitObject(ref.Hash())
-	if err != nil {
-		http.Error(w, "Failed to get commit", http.StatusInternalServerError)
-		return
-	}
-
-	tree, err := commit.Tree()
-	if err != nil {
-		http.Error(w, "Failed to get tree", http.StatusInternalServerError)
-		return
-	}
-
-	file, fileErr := tree.File(targetPath)
-	if fileErr == nil {
-		size := file.Size
-		response := InfoResponse{
-			Entry: FileSystemEntry{
-				Name: filepath.Base(targetPath),
-				Path: targetPath,
-				Type: "file",
-				Size: &size,
-				Hash: file.Hash.String(),
-			},
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, "failed to encode response", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	var dirTree *object.Tree
-	if targetPath == "" || targetPath == "/" {
-		dirTree = tree
-	} else {
-		dirEntry, err := tree.FindEntry(targetPath)
-		if err != nil {
-			http.Error(w, "Path not found", http.StatusNotFound)
-			return
-		}
-
-		if dirEntry.Mode != filemode.Dir {
-			http.Error(w, "Path not found", http.StatusNotFound)
-			return
-		}
-
-		dirTree, err = tree.Tree(targetPath)
-		if err != nil {
-			http.Error(w, "Directory not found", http.StatusNotFound)
-			return
-		}
-	}
-
-	// Build directory response with children
-	children := make([]FileSystemEntry, 0)
-	for _, entry := range dirTree.Entries {
-		childPath := targetPath
-		if childPath != "" && !strings.HasSuffix(childPath, "/") {
-			childPath += "/"
-		}
-		childPath += entry.Name
-
-		if entry.Mode == filemode.Dir {
-			children = append(children, FileSystemEntry{
-				Name: entry.Name,
-				Path: childPath,
-				Type: "directory",
-				Hash: entry.Hash.String(),
-			})
-		} else {
-			// For files, we need to get the file object to get the size
-			childFile, err := dirTree.File(entry.Name)
-			if err == nil {
-				size := childFile.Size
-				children = append(children, FileSystemEntry{
-					Name: entry.Name,
-					Path: childPath,
-					Type: "file",
-					Size: &size,
-					Hash: entry.Hash.String(),
-				})
-			}
-		}
-	}
-
-	response := InfoResponse{
-		Entry: FileSystemEntry{
-			Name:     filepath.Base(targetPath),
-			Path:     targetPath,
-			Type:     "directory",
-			Hash:     dirTree.Hash.String(),
-			Children: children,
-		},
-	}
-
-	if targetPath == "" || targetPath == "/" {
-		response.Entry.Name = "/"
-		response.Entry.Path = ""
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-	}
-}
-
-var content = core.RegisterBlobComputation("content", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {
 		return nil, err
@@ -313,67 +139,55 @@ var content = core.RegisterBlobComputation("content", func(ctx context.Context, 
 	}
 	defer reader.Close()
 
-	// Read first few bytes to check if it's binary
-	buffer := make([]byte, 512)
+	buffer := make([]byte, 8000)
 	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
-
-	// Check for binary content by looking for null bytes
+	
 	for i := 0; i < n; i++ {
 		if buffer[i] == 0 {
-			// Binary file - return empty string
-			return "", nil
+			return true, nil
 		}
 	}
+	
+	return false, nil
+})
 
-	// Get full content for text files
-	content, err := blob.Reader()
+var Content = core.RegisterBlobComputation("content", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+
+	isBinary, err := IsBinary(ctx, repoId, hash)
 	if err != nil {
 		return nil, err
 	}
-	defer content.Close()
+	if isBinary.(bool) {
+		return "", nil
+	}
 
-	// Read all content as string
-	fullBuffer := make([]byte, blob.Size)
-	_, err = content.Read(fullBuffer)
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	blob, err := repo.BlobObject(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := blob.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	buffer := make([]byte, blob.Size)
+	_, err = reader.Read(buffer)
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
 
-	return string(fullBuffer), nil
+	return string(buffer), nil
 })
-
-func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	repoId := ps.ByName("repoId")
-	rawHash := ps.ByName("hash")
-	computationId := ps.ByName("computationId")
-
-	computation, found := core.GetBlobComputation(computationId)
-	if !found {
-		http.Error(w, fmt.Sprintf("Computation '%s' unknown", computationId), http.StatusNotFound)
-		return
-	}
-
-	if !plumbing.IsHash(rawHash) {
-		http.Error(w, fmt.Sprintf("Could not parse hash '%s'", rawHash), http.StatusNotFound)
-		return
-	}
-	hash := plumbing.NewHash(rawHash)
-
-
-	result, err := computation.Execute(r.Context(), repoId, hash)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
-}
 
 func init() {
 	mu.Lock()
@@ -386,27 +200,6 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/repo",
 		Handler: ListHandler,
-	})
-
-	core.RegisterRoute(core.Route{
-		Id:      "repo.raw",
-		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:committish/raw/*path",
-		Handler: RawHandler,
-	})
-
-	core.RegisterRoute(core.Route{
-		Id:      "repo.info",
-		Method:  http.MethodGet,
-		Path:    "/api/repo/:repo/:committish/info/*path",
-		Handler: InfoHandler,
-	})
-
-	core.RegisterRoute(core.Route{
-		Id:      "repo.compute",
-		Method:  http.MethodGet,
-		Path:    "/api/compute/:computationId/:repoId/:hash",
-		Handler: ComputeHandler,
 	})
 
 	schemas.Register("repo.RepoInfo", RepoInfo{})
