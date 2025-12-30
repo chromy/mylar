@@ -7,7 +7,13 @@ import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
 import { CommandMenu } from "./command_menu.js";
 import { GlassPanel } from "./glass_panel.js";
 import { ModalPanel } from "./modal_panel.js";
-import { type MylarAction, settings, mylarReducer, initialMylarState, type MylarState } from "./state.js";
+import {
+  type MylarAction,
+  settings,
+  mylarReducer,
+  initialMylarState,
+  type MylarState,
+} from "./state.js";
 
 interface IndexPanelProps {
   repo: string;
@@ -162,24 +168,20 @@ interface SettingsPanelProps {
   state: MylarState;
 }
 
-const SettingsPanel = ({dispatch, state}: SettingsPanelProps) => {
+const SettingsPanel = ({ dispatch, state }: SettingsPanelProps) => {
   return (
     <ModalPanel
-        isOpen={(state as any).showSettings}
-        onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
-        title="Settings"
-      >
-        <div className="space-y-4">
-        {
-          settings.items.map(s => (
-            <div>
-              <label className="block mb-2">{s.id}</label>
-            </div>
-          ))
-        }
-        </div>
-      </ModalPanel>
+      isOpen={(state as any).showSettings}
+      onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
+      title="Settings"
+    >
+      <div className="space-y-4">
+        {settings.items.map(s => (
+          <div>
+            <label className="block mb-2">{s.id}</label>
+          </div>
+        ))}
+      </div>
+    </ModalPanel>
   );
-}
-
-
+};

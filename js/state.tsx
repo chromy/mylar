@@ -1,12 +1,11 @@
-import {z} from "zod";
-import {Registry} from "./registry.js";
+import { z } from "zod";
+import { Registry } from "./registry.js";
 
-export type MylarAction = {type: string};
+export type MylarAction = { type: string };
 
 export interface MylarState {
   [key: string]: unknown;
 }
-
 
 export interface SettingArgs {
   id: string;
@@ -14,15 +13,15 @@ export interface SettingArgs {
 
 export interface Setting {
   id: string;
-//  name: string;
-//  description: string;
-//  actions: MylarAction[];
-//  get(state: MylarState): T;
-//  set(state: MylarState, value: T): MylarState;
+  //  name: string;
+  //  description: string;
+  //  actions: MylarAction[];
+  //  get(state: MylarState): T;
+  //  set(state: MylarState, value: T): MylarState;
 }
 
 export class SettingsStore {
-  registry: Registry<Setting>
+  registry: Registry<Setting>;
 
   constructor() {
     this.registry = new Registry();
@@ -41,10 +40,8 @@ export class SettingsStore {
 export const settings = new SettingsStore();
 
 const fpsSetting = settings.create({
-  id: "fps"
+  id: "fps",
 });
-
-
 
 export const mylarReducer = (
   state: MylarState,
@@ -56,9 +53,17 @@ export const mylarReducer = (
     case "HIDE_FPS_COUNTER":
       return { ...state, showFpsCounter: false };
     case "TOGGLE_SETTINGS":
-      return { ...state, showSettings: !(state as any).showSettings, showHelp: false };
+      return {
+        ...state,
+        showSettings: !(state as any).showSettings,
+        showHelp: false,
+      };
     case "TOGGLE_HELP":
-      return { ...state, showHelp: !(state as any).showHelp, showSettings: false };
+      return {
+        ...state,
+        showHelp: !(state as any).showHelp,
+        showSettings: false,
+      };
     case "CLOSE_ALL_PANELS":
       return { ...state, showSettings: false, showHelp: false };
     default:
@@ -71,5 +76,3 @@ export const initialMylarState: MylarState = {
   showHelp: false,
   showFpsCounter: false,
 };
-
-
