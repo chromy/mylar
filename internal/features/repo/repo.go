@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -301,21 +301,21 @@ func init() {
 	state = State{}
 	state.Repos = make(map[string]*git.Repository)
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "repo.list",
 		Method:  http.MethodGet,
 		Path:    "/api/repo",
 		Handler: ListHandler,
 	})
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "repo.raw",
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/raw/*path",
 		Handler: RawHandler,
 	})
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "repo.info",
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/info/*path",

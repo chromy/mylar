@@ -3,7 +3,7 @@ package viz
 import (
 	"context"
 	"github.com/chromy/viz/internal/features/repo"
-	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/core"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
@@ -15,9 +15,9 @@ func DoServe(ctx context.Context, port uint) {
 
 	router.ServeFiles("/static/*filepath", http.FS(staticFS))
 
-	routeIds := routes.List()
+	routeIds := core.ListRoutes()
 	for _, id := range routeIds {
-		if route, found := routes.Get(id); found {
+		if route, found := core.GetRoute(id); found {
 			router.Handle(route.Method, route.Path, route.Handler)
 		}
 	}

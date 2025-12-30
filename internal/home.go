@@ -1,7 +1,7 @@
 package viz
 
 import (
-	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/core"
 	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"io/fs"
@@ -48,14 +48,14 @@ func init() {
 		state.Templates[name] = t
 	}
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "home.index",
 		Method:  http.MethodGet,
 		Path:    "/",
 		Handler: Home,
 	})
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "home.others",
 		Method:  http.MethodGet,
 		Path:    "/app/*path",

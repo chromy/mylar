@@ -1,10 +1,9 @@
-package routes
+package core
 
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"sync"
 )
 
 type Route struct {
@@ -13,15 +12,6 @@ type Route struct {
 	Method  string
 	Handler func(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 }
-
-type State struct {
-	Routes map[string]Route
-}
-
-var (
-	mu    sync.RWMutex
-	state State
-)
 
 func isValidMethod(method string) bool {
 	switch method {
@@ -38,7 +28,7 @@ func isValidMethod(method string) bool {
 	}
 }
 
-func Register(route Route) {
+func RegisterRoute(route Route) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -46,34 +36,28 @@ func Register(route Route) {
 		panic(fmt.Sprintf("invalid HTTP method %s", route.Method))
 	}
 
-	if _, found := state.Routes[route.Id]; found {
+	if _, found := routes[route.Id]; found {
 		panic(fmt.Sprintf("route already registered %s", route.Id))
 	}
-	state.Routes[route.Id] = route
+	routes[route.Id] = route
 }
 
-func Get(id string) (Route, bool) {
+
+func GetRoute(id string) (Route, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	route, found := state.Routes[id]
+	route, found := routes[id]
 	return route, found
 }
 
-func List() []string {
+func ListRoutes() []string {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	list := make([]string, 0, len(state.Routes))
-	for id := range state.Routes {
+	list := make([]string, 0, len(routes))
+	for id := range routes {
 		list = append(list, id)
 	}
 	return list
-}
-
-func init() {
-	mu.Lock()
-	defer mu.Unlock()
-	state = State{}
-	state.Routes = make(map[string]Route)
 }

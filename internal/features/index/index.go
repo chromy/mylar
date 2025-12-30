@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/chromy/viz/internal/cache"
 	"github.com/chromy/viz/internal/features/repo"
-	"github.com/chromy/viz/internal/routes"
+	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/chromy/viz/internal/utils"
 	"github.com/go-git/go-git/v5"
@@ -647,21 +647,21 @@ func init() {
 	// Initialize with in-memory cache - can be replaced with other implementations
 	indexCache = cache.NewMemoryCache()
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "index.get",
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/index/",
 		Handler: IndexHandler,
 	})
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "index.line_length",
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/line_length/",
 		Handler: LineLengthHandler,
 	})
 
-	routes.Register(routes.Route{
+	core.RegisterRoute(core.Route{
 		Id:      "tile.line_length",
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/tile/:lod/:x/:y/length",

@@ -1,7 +1,8 @@
 package features
 
 import (
-	_ "github.com/chromy/viz/internal/features/archive"
+	// GLOBBY_START */
 	_ "github.com/chromy/viz/internal/features/index"
 	_ "github.com/chromy/viz/internal/features/repo"
+	// GLOBBY_END
 )
