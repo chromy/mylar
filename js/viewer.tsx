@@ -3,11 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
-import {
-  quadtreeBoundingBox,
-  requiredTiles,
-  toLod,
-} from "./math.js";
+import { quadtreeBoundingBox, requiredTiles, toLod } from "./math.js";
 import { lodToSize } from "./utils.js";
 import { type TileRequest, TileStore } from "./store.js";
 
@@ -209,8 +205,12 @@ class Renderer {
       const y = Math.round(this.screenWorldAabb[1]).toString().padStart(4);
       const w = Math.round(this.screenWorldAabb[2]).toString().padStart(4);
       const h = Math.round(this.screenWorldAabb[3]).toString().padStart(4);
-      const screenMouseX = Math.round(this.screenMouse[0]).toString().padStart(4);
-      const screenMouseY = Math.round(this.screenMouse[1]).toString().padStart(4);
+      const screenMouseX = Math.round(this.screenMouse[0])
+        .toString()
+        .padStart(4);
+      const screenMouseY = Math.round(this.screenMouse[1])
+        .toString()
+        .padStart(4);
       const worldMouseX = Math.round(this.worldMouse[0]).toString().padStart(4);
       const worldMouseY = Math.round(this.worldMouse[1]).toString().padStart(4);
       this.callbacks.setDebug([
@@ -261,7 +261,7 @@ class Renderer {
     const worldY = request.y * worldSize;
 
     const worldA = vec2.fromValues(worldX, worldY);
-    const worldB = vec2.fromValues(worldX+worldSize, worldY+worldSize);
+    const worldB = vec2.fromValues(worldX + worldSize, worldY + worldSize);
 
     const screenA = vec2.create();
     const screenB = vec2.create();
@@ -401,7 +401,10 @@ class Renderer {
     const canvasState = this.canvasState;
     if (canvasState) {
       canvasState.canvas.removeEventListener("wheel", this.boundHandleWheel);
-      canvasState.canvas.removeEventListener("mousemove", this.boundHandleMouseMove);
+      canvasState.canvas.removeEventListener(
+        "mousemove",
+        this.boundHandleMouseMove,
+      );
       window.removeEventListener("resize", this.boundHandleResize);
     }
   }

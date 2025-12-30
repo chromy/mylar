@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"testing"
 	"github.com/chromy/viz/internal/constants"
+	"testing"
 )
 
 func TestMortonEncoding(t *testing.T) {
@@ -42,7 +42,7 @@ func TestLineToWorldAndBack(t *testing.T) {
 	for _, line := range tests {
 		world := LineToWorld(line, layout)
 		backToLine := WorldToLine(world, layout)
-		
+
 		if backToLine != line {
 			t.Errorf("Round-trip failed for line %d: got %d", line, backToLine)
 		}
@@ -51,7 +51,7 @@ func TestLineToWorldAndBack(t *testing.T) {
 
 func TestWorldToTileAndBack(t *testing.T) {
 	layout := TileLayout{LastLine: 1023}
-	
+
 	tests := []WorldPosition{
 		{0, 0},
 		{1, 1},
@@ -65,7 +65,7 @@ func TestWorldToTileAndBack(t *testing.T) {
 	for _, world := range tests {
 		tile := WorldToTile(world, layout)
 		backToWorld := TileToWorld(tile, layout)
-		
+
 		if backToWorld != world {
 			t.Errorf("Round-trip failed for world %+v: got %+v", world, backToWorld)
 		}
@@ -74,34 +74,34 @@ func TestWorldToTileAndBack(t *testing.T) {
 
 func TestWorldToTileProperties(t *testing.T) {
 	layout := TileLayout{LastLine: 1023}
-	
+
 	// Test that coordinates within same tile map to same tile position
 	world1 := WorldPosition{10, 20}
 	world2 := WorldPosition{30, 40}
-	
+
 	tile1 := WorldToTile(world1, layout)
 	tile2 := WorldToTile(world2, layout)
-	
+
 	if tile1.TileX != tile2.TileX || tile1.TileY != tile2.TileY {
 		t.Errorf("Expected same tile for positions within same tile")
 	}
-	
+
 	// Test tile boundary
 	worldOnBoundary := WorldPosition{64, 64}
 	tile := WorldToTile(worldOnBoundary, layout)
-	
+
 	expectedTileX := int64(64 / constants.TileSize)
 	expectedTileY := int64(64 / constants.TileSize)
-	
+
 	if tile.TileX != expectedTileX || tile.TileY != expectedTileY {
-		t.Errorf("Tile position incorrect at boundary: got (%d,%d), want (%d,%d)", 
+		t.Errorf("Tile position incorrect at boundary: got (%d,%d), want (%d,%d)",
 			tile.TileX, tile.TileY, expectedTileX, expectedTileY)
 	}
 }
 
 func TestTileToWorldWithLod(t *testing.T) {
 	layout := TileLayout{LastLine: 1023}
-	
+
 	// Test different LOD levels
 	tests := []struct {
 		tile TilePosition
@@ -111,7 +111,7 @@ func TestTileToWorldWithLod(t *testing.T) {
 		{TilePosition{Lod: 1, TileX: 1, TileY: 1, OffsetX: 10, OffsetY: 20}, WorldPosition{138, 148}},
 		{TilePosition{Lod: 2, TileX: 1, TileY: 1, OffsetX: 10, OffsetY: 20}, WorldPosition{266, 276}},
 	}
-	
+
 	for _, tt := range tests {
 		got := TileToWorld(tt.tile, layout)
 		if got != tt.want {

@@ -7,7 +7,7 @@ import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
 import { CommandMenu } from "./command_menu.js";
 import { GlassPanel } from "./glass_panel.js";
 import { ModalPanel } from "./modal_panel.js";
-import { mylarReducer, initialMylarState, type MylarState } from "./state.js"
+import { mylarReducer, initialMylarState, type MylarState } from "./state.js";
 
 interface IndexPanelProps {
   repo: string;
@@ -89,13 +89,13 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
         <div className="flex gap-2">
           <button
             className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
-            onClick={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
+            onClick={() => dispatch({ type: "TOGGLE_SETTINGS" })}
           >
             Settings
           </button>
           <button
             className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
-            onClick={() => dispatch({ type: 'TOGGLE_HELP' })}
+            onClick={() => dispatch({ type: "TOGGLE_HELP" })}
           >
             Help
           </button>
@@ -131,7 +131,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 
       <ModalPanel
         isOpen={state.showSettings}
-        onClose={() => dispatch({ type: 'CLOSE_ALL_PANELS' })}
+        onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
         title="Settings"
       >
         <div className="space-y-4">
@@ -158,7 +158,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 
       <ModalPanel
         isOpen={state.showHelp}
-        onClose={() => dispatch({ type: 'CLOSE_ALL_PANELS' })}
+        onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
         title="Help"
       >
         <div className="space-y-4">
@@ -173,8 +173,13 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           <div>
             <h3 className="font-medium mb-2">Keyboard Shortcuts</h3>
             <ul className="space-y-1 text-sm">
-              <li>• <kbd className="bg-white/20 px-1 rounded">?</kbd> - Show help</li>
-              <li>• <kbd className="bg-white/20 px-1 rounded">Esc</kbd> - Close panels</li>
+              <li>
+                • <kbd className="bg-white/20 px-1 rounded">?</kbd> - Show help
+              </li>
+              <li>
+                • <kbd className="bg-white/20 px-1 rounded">Esc</kbd> - Close
+                panels
+              </li>
             </ul>
           </div>
         </div>

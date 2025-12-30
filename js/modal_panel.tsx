@@ -8,7 +8,12 @@ interface ModalPanelProps {
   children: ReactNode;
 }
 
-export const ModalPanel = ({ isOpen, onClose, title, children }: ModalPanelProps) => {
+export const ModalPanel = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: ModalPanelProps) => {
   if (!isOpen) {
     return null;
   }

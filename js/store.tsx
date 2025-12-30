@@ -65,14 +65,21 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
   const imageData = new ImageData(buffer, TILE_SIZE);
 
   // Create ImageBitmap with specific options for crisp rendering
-  const imageBitmap = await createImageBitmap(imageData, 0, 0, TILE_SIZE, TILE_SIZE, {
-    resizeWidth: TILE_SIZE * 16,
-    resizeHeight: TILE_SIZE * 16,
-    premultiplyAlpha: 'none',
-    colorSpaceConversion: 'none',
-    imageOrientation: 'none',
-    resizeQuality: 'pixelated'
-  });
+  const imageBitmap = await createImageBitmap(
+    imageData,
+    0,
+    0,
+    TILE_SIZE,
+    TILE_SIZE,
+    {
+      resizeWidth: TILE_SIZE * 16,
+      resizeHeight: TILE_SIZE * 16,
+      premultiplyAlpha: "none",
+      colorSpaceConversion: "none",
+      imageOrientation: "none",
+      resizeQuality: "pixelated",
+    },
+  );
 
   return {
     metadata,

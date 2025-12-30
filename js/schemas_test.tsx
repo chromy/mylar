@@ -44,7 +44,9 @@ o.spec("schemas", () => {
         path: "/some/path.ts",
         lineOffset: 100,
         lineCount: 50,
-        hash: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        hash: [
+          1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        ],
       };
       const result = IndexEntrySchema.safeParse(valid);
       o(result.success).equals(true);
@@ -61,8 +63,24 @@ o.spec("schemas", () => {
     o("validates index with entries", () => {
       const valid = {
         entries: [
-          { path: "/file1.ts", lineOffset: 0, lineCount: 100, hash: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
-          { path: "/file2.ts", lineOffset: 100, lineCount: 50, hash: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
+          {
+            path: "/file1.ts",
+            lineOffset: 0,
+            lineCount: 100,
+            hash: [
+              1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+              20,
+            ],
+          },
+          {
+            path: "/file2.ts",
+            lineOffset: 100,
+            lineCount: 50,
+            hash: [
+              1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+              20,
+            ],
+          },
         ],
       };
       const result = IndexSchema.safeParse(valid);

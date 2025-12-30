@@ -11,7 +11,10 @@ export type MylarAction =
   | { type: "TOGGLE_HELP" }
   | { type: "CLOSE_ALL_PANELS" };
 
-export const mylarReducer = (state: MylarState, action: MylarAction): MylarState => {
+export const mylarReducer = (
+  state: MylarState,
+  action: MylarAction,
+): MylarState => {
   switch (action.type) {
     case "SHOW_FPS_COUNTER":
       return { ...state, showFpsCounter: true };
@@ -33,4 +36,3 @@ export const initialMylarState: MylarState = {
   showHelp: false,
   showFpsCounter: false,
 };
-

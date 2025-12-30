@@ -21,7 +21,6 @@ export function toLod(box: aabb): number {
   return Math.log2(aabb.width(box) / TILE_SIZE);
 }
 
-
 export function quadtreeBoundingBox(m: number): aabb {
   const size = initialSize(m);
   return aabb.fromValues(0, 0, size, size);

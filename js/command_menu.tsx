@@ -1,5 +1,5 @@
-import { type MylarAction, type MylarState } from "./state.js"
-import { type ActionDispatch, useState, useEffect} from "react";
+import { type MylarAction, type MylarState } from "./state.js";
+import { type ActionDispatch, useState, useEffect } from "react";
 import { Command } from "cmdk";
 
 export interface CommandMenuProps {
@@ -7,23 +7,27 @@ export interface CommandMenuProps {
   state: MylarState;
 }
 
-export const CommandMenu = ({dispatch, state}: CommandMenuProps) => {
+export const CommandMenu = ({ dispatch, state }: CommandMenuProps) => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setOpen((open) => !open)
+        e.preventDefault();
+        setOpen(open => !open);
       }
-    }
+    };
 
-    document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, []);
 
   return (
-    <Command.Dialog open={open} onOpenChange={setOpen} label="Global Command Menu">
+    <Command.Dialog
+      open={open}
+      onOpenChange={setOpen}
+      label="Global Command Menu"
+    >
       <Command.Input />
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
@@ -38,5 +42,5 @@ export const CommandMenu = ({dispatch, state}: CommandMenuProps) => {
         <Command.Item>Apple</Command.Item>
       </Command.List>
     </Command.Dialog>
-  )
-}
+  );
+};

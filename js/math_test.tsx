@@ -1,9 +1,5 @@
 import o from "ospec";
-import {
-  nextPowerOfTwo,
-  toLod,
-  quadtreeBoundingBox,
-} from "./math.js";
+import { nextPowerOfTwo, toLod, quadtreeBoundingBox } from "./math.js";
 import { aabb } from "./aabb.js";
 
 o.spec("math", () => {
@@ -40,7 +36,6 @@ o.spec("math", () => {
       o(toLod(box256)).equals(2);
     });
   });
-
 
   o.spec("quadtreeBoundingBox", () => {
     o("creates correct bounding box for different values", () => {

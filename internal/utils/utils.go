@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"math"
 	"github.com/chromy/viz/internal/constants"
+	"math"
 )
 
 // LodToSize converts a level of detail to the corresponding size
@@ -43,9 +43,9 @@ type WorldPosition struct {
 }
 
 type TilePosition struct {
-	Lod int64
-	TileX int64
-	TileY int64
+	Lod     int64
+	TileX   int64
+	TileY   int64
 	OffsetX int64
 	OffsetY int64
 }
@@ -62,11 +62,11 @@ func WorldToTile(world WorldPosition, layout TileLayout) TilePosition {
 	tileY := world.Y / int64(constants.TileSize)
 	offsetX := world.X % int64(constants.TileSize)
 	offsetY := world.Y % int64(constants.TileSize)
-	
+
 	return TilePosition{
-		Lod: 0,
-		TileX: tileX,
-		TileY: tileY,
+		Lod:     0,
+		TileX:   tileX,
+		TileY:   tileY,
 		OffsetX: offsetX,
 		OffsetY: offsetY,
 	}
@@ -74,9 +74,9 @@ func WorldToTile(world WorldPosition, layout TileLayout) TilePosition {
 
 func TileToWorld(tile TilePosition, layout TileLayout) WorldPosition {
 	tileSize := int64(LodToSize(int(tile.Lod)))
-	worldX := tile.TileX * tileSize + tile.OffsetX
-	worldY := tile.TileY * tileSize + tile.OffsetY
-	
+	worldX := tile.TileX*tileSize + tile.OffsetX
+	worldY := tile.TileY*tileSize + tile.OffsetY
+
 	return WorldPosition{X: worldX, Y: worldY}
 }
 
