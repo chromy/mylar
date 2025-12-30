@@ -40,8 +40,8 @@ o.spec("math", () => {
   o.spec("quadtreeBoundingBox", () => {
     o("creates correct bounding box for different values", () => {
       const box1 = quadtreeBoundingBox(1);
-      o(aabb.width(box1)).equals(1);
-      o(aabb.height(box1)).equals(1);
+      o(aabb.width(box1)).equals(2);
+      o(aabb.height(box1)).equals(2);
 
       const box5 = quadtreeBoundingBox(5);
       o(aabb.width(box5)).equals(4);

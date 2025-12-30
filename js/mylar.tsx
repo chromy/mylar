@@ -102,7 +102,9 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
       </div>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
-          <Button onClick={() => dispatch(settingsPanelSetting.enable)}>Settings</Button>
+          <Button onClick={() => dispatch(settingsPanelSetting.enable)}>
+            Settings
+          </Button>
         </div>
       </GlassPanel>
       <GlassPanel>

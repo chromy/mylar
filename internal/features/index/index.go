@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/chromy/viz/internal/cache"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/routes"
 	"github.com/chromy/viz/internal/schemas"
@@ -19,6 +21,8 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
+	"time"
 )
 
 type IndexEntry struct {
@@ -32,22 +36,54 @@ type Index struct {
 	Entries []IndexEntry `json:"entries"`
 }
 
+var (
+	// Global cache instance for index calculations
+	indexCache cache.Cache
+)
+
+func generateCacheKey(parts ...string) string {
+	combined := strings.Join(parts, ":")
+	h := sha256.Sum256([]byte(combined))
+	return fmt.Sprintf("%x", h)
+}
+
 func ComputeIndex(ctx context.Context, repository *git.Repository, hash plumbing.Hash) (*Index, error) {
-	// TODO: Try and load from cache
+	// Try to load from cache first
+	cacheKey := generateCacheKey("index", hash.String())
+	if cached, err := indexCache.Get(cacheKey); err == nil {
+		var index Index
+		if err := json.Unmarshal(cached, &index); err == nil {
+			return &index, nil
+		}
+		// If unmarshaling fails, continue with computation
+	}
 
 	obj, err := repository.Object(plumbing.AnyObject, hash)
 	if err != nil {
 		return nil, err
 	}
 
+	var index *Index
+
 	switch obj := obj.(type) {
 	case *object.Blob:
-		return computeIndexForBlob(obj)
+		index, err = computeIndexForBlob(obj)
 	case *object.Tree:
-		return computeIndexForTree(ctx, repository, obj)
+		index, err = computeIndexForTree(ctx, repository, obj)
 	default:
 		return nil, fmt.Errorf("unexpected object %v", obj)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the result with 1 hour expiration
+	if indexData, err := json.Marshal(index); err == nil {
+		indexCache.Add(cacheKey, indexData, time.Hour)
+	}
+
+	return index, nil
 }
 
 func computeIndexForBlob(blob *object.Blob) (*Index, error) {
@@ -219,24 +255,55 @@ type LineLength struct {
 }
 
 func ComputeLineLength(ctx context.Context, repository *git.Repository, hash plumbing.Hash) (*LineLength, error) {
-	// TODO: Try and load from cache
+	// Try to load from cache first
+	cacheKey := generateCacheKey("linelength", hash.String())
+	if cached, err := indexCache.Get(cacheKey); err == nil {
+		var lineLength LineLength
+		if err := json.Unmarshal(cached, &lineLength); err == nil {
+			return &lineLength, nil
+		}
+		// If unmarshaling fails, continue with computation
+	}
 
 	obj, err := repository.Object(plumbing.AnyObject, hash)
 	if err != nil {
 		return nil, err
 	}
 
+	var lineLength *LineLength
+
 	switch obj := obj.(type) {
 	case *object.Blob:
-		return computeLineLengthForBlob(ctx, obj)
+		lineLength, err = computeLineLengthForBlob(ctx, obj)
 	case *object.Tree:
-		return computeLineLengthForTree(ctx, repository, obj)
+		lineLength, err = computeLineLengthForTree(ctx, repository, obj)
 	default:
 		return nil, fmt.Errorf("unexpected object %v", obj)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the result with 1 hour expiration
+	if lineLengthData, err := json.Marshal(lineLength); err == nil {
+		indexCache.Add(cacheKey, lineLengthData, time.Hour)
+	}
+
+	return lineLength, nil
 }
 
 func computeGranularLineLengthForBlob(ctx context.Context, blob *object.Blob) (*GranularLineLength, error) {
+	// Try to load from cache first
+	cacheKey := generateCacheKey("granular", blob.Hash.String())
+	if cached, err := indexCache.Get(cacheKey); err == nil {
+		var granular GranularLineLength
+		if err := json.Unmarshal(cached, &granular); err == nil {
+			return &granular, nil
+		}
+		// If unmarshaling fails, continue with computation
+	}
+
 	reader, err := blob.Reader()
 	if err != nil {
 		return nil, err
@@ -263,7 +330,14 @@ func computeGranularLineLengthForBlob(ctx context.Context, blob *object.Blob) (*
 			return nil, err
 		}
 		totalSize := int64(len(content) + len(peek))
-		return &GranularLineLength{LinesLengths: []int64{totalSize}}, nil
+		granular := &GranularLineLength{LinesLengths: []int64{totalSize}}
+
+		// Cache the result with 1 hour expiration
+		if granularData, err := json.Marshal(granular); err == nil {
+			indexCache.Add(cacheKey, granularData, time.Hour)
+		}
+
+		return granular, nil
 	}
 
 	// For text files, process lines normally using the updated Lines function
@@ -275,7 +349,14 @@ func computeGranularLineLengthForBlob(ctx context.Context, blob *object.Blob) (*
 		lineLengths = append(lineLengths, int64(len(line)))
 	}
 
-	return &GranularLineLength{LinesLengths: lineLengths}, nil
+	granular := &GranularLineLength{LinesLengths: lineLengths}
+
+	// Cache the result with 1 hour expiration
+	if granularData, err := json.Marshal(granular); err == nil {
+		indexCache.Add(cacheKey, granularData, time.Hour)
+	}
+
+	return granular, nil
 }
 
 func computeLineLengthForBlob(ctx context.Context, blob *object.Blob) (*LineLength, error) {
@@ -382,6 +463,16 @@ func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 }
 
 func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+	// Try to load from cache first
+	cacheKey := generateCacheKey("tile", hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
+	if cached, err := indexCache.Get(cacheKey); err == nil {
+		var tile []int64
+		if err := json.Unmarshal(cached, &tile); err == nil {
+			return tile, nil
+		}
+		// If unmarshaling fails, continue with computation
+	}
+
 	tileSize := utils.LodToSize(int(lod))
 	tile := make([]int64, tileSize*tileSize)
 
@@ -456,6 +547,11 @@ func TileLineLength(ctx context.Context, repository *git.Repository, hash plumbi
 				}
 			}
 		}
+	}
+
+	// Cache the result with 30 minutes expiration (tiles are accessed frequently)
+	if tileData, err := json.Marshal(tile); err == nil {
+		indexCache.Add(cacheKey, tileData, 30*time.Minute)
 	}
 
 	return tile, nil
@@ -548,6 +644,9 @@ func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter
 }
 
 func init() {
+	// Initialize with in-memory cache - can be replaced with other implementations
+	indexCache = cache.NewMemoryCache()
+
 	routes.Register(routes.Route{
 		Id:      "index.get",
 		Method:  http.MethodGet,
