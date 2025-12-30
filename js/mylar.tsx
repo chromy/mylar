@@ -1,4 +1,4 @@
-import { useState, useMemo, useReducer } from "react";
+import { type ActionDispatch, useState, useMemo, useReducer } from "react";
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
@@ -7,7 +7,7 @@ import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
 import { CommandMenu } from "./command_menu.js";
 import { GlassPanel } from "./glass_panel.js";
 import { ModalPanel } from "./modal_panel.js";
-import { mylarReducer, initialMylarState, type MylarState } from "./state.js";
+import { type MylarAction, settings, mylarReducer, initialMylarState, type MylarState } from "./state.js";
 
 interface IndexPanelProps {
   repo: string;
@@ -93,12 +93,6 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           >
             Settings
           </button>
-          <button
-            className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
-            onClick={() => dispatch({ type: "TOGGLE_HELP" })}
-          >
-            Help
-          </button>
         </div>
       </GlassPanel>
       <GlassPanel>
@@ -129,61 +123,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
         </table>
       </GlassPanel>
 
-      <ModalPanel
-        isOpen={state.showSettings}
-        onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
-        title="Settings"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block mb-2">Theme</label>
-            <select className="w-full p-2 rounded bg-white/10 border border-white/20">
-              <option>Light</option>
-              <option>Dark</option>
-              <option>Auto</option>
-            </select>
-          </div>
-          <div>
-            <label className="block mb-2">Zoom Level</label>
-            <input
-              type="range"
-              min="50"
-              max="200"
-              defaultValue="100"
-              className="w-full"
-            />
-          </div>
-        </div>
-      </ModalPanel>
-
-      <ModalPanel
-        isOpen={state.showHelp}
-        onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
-        title="Help"
-      >
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-medium mb-2">Navigation</h3>
-            <ul className="space-y-1 text-sm">
-              <li>• Pan: Click and drag</li>
-              <li>• Zoom: Mouse wheel</li>
-              <li>• Reset: Double click</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium mb-2">Keyboard Shortcuts</h3>
-            <ul className="space-y-1 text-sm">
-              <li>
-                • <kbd className="bg-white/20 px-1 rounded">?</kbd> - Show help
-              </li>
-              <li>
-                • <kbd className="bg-white/20 px-1 rounded">Esc</kbd> - Close
-                panels
-              </li>
-            </ul>
-          </div>
-        </div>
-      </ModalPanel>
+      <SettingsPanel dispatch={dispatch} state={state} />
     </div>
   );
 };
@@ -216,3 +156,30 @@ export const Mylar = ({ repo, committish }: MylarProps) => {
     </>
   );
 };
+
+interface SettingsPanelProps {
+  dispatch: ActionDispatch<[action: MylarAction]>;
+  state: MylarState;
+}
+
+const SettingsPanel = ({dispatch, state}: SettingsPanelProps) => {
+  return (
+    <ModalPanel
+        isOpen={(state as any).showSettings}
+        onClose={() => dispatch({ type: "CLOSE_ALL_PANELS" })}
+        title="Settings"
+      >
+        <div className="space-y-4">
+        {
+          settings.items.map(s => (
+            <div>
+              <label className="block mb-2">{s.id}</label>
+            </div>
+          ))
+        }
+        </div>
+      </ModalPanel>
+  );
+}
+
+
