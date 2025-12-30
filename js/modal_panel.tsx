@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { GlassPanel } from "./glass-panel.js";
+import { GlassPanel } from "./glass_panel.js";
 
 interface ModalPanelProps {
   isOpen: boolean;
@@ -9,11 +9,13 @@ interface ModalPanelProps {
 }
 
 export const ModalPanel = ({ isOpen, onClose, title, children }: ModalPanelProps) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
+      <div
         className="absolute inset-0 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />

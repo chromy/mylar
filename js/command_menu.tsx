@@ -1,7 +1,13 @@
-import { useState, useEffect} from "react";
+import { type MylarAction, type MylarState } from "./state.js"
+import { type ActionDispatch, useState, useEffect} from "react";
 import { Command } from "cmdk";
 
-export const CommandMenu = () => {
+export interface CommandMenuProps {
+  dispatch: ActionDispatch<[action: MylarAction]>;
+  state: MylarState;
+}
+
+export const CommandMenu = ({dispatch, state}: CommandMenuProps) => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

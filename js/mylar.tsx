@@ -4,9 +4,10 @@ import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { DecryptLoader } from "./loader.js";
 import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
-import { CommandMenu } from "./menu.js";
-import { GlassPanel } from "./glass-panel.js";
+import { CommandMenu } from "./command_menu.js";
+import { GlassPanel } from "./glass_panel.js";
 import { ModalPanel } from "./modal_panel.js";
+import { mylarReducer, initialMylarState, type MylarState } from "./state.js"
 
 interface IndexPanelProps {
   repo: string;
@@ -54,34 +55,6 @@ function toTileLayout(index: Index): TileLayout {
   };
 }
 
-interface MylarState {
-  showSettings: boolean;
-  showHelp: boolean;
-}
-
-type MylarAction =
-  | { type: 'TOGGLE_SETTINGS' }
-  | { type: 'TOGGLE_HELP' }
-  | { type: 'CLOSE_ALL_PANELS' };
-
-const mylarReducer = (state: MylarState, action: MylarAction): MylarState => {
-  switch (action.type) {
-    case 'TOGGLE_SETTINGS':
-      return { ...state, showSettings: !state.showSettings, showHelp: false };
-    case 'TOGGLE_HELP':
-      return { ...state, showHelp: !state.showHelp, showSettings: false };
-    case 'CLOSE_ALL_PANELS':
-      return { ...state, showSettings: false, showHelp: false };
-    default:
-      return state;
-  }
-};
-
-const initialMylarState: MylarState = {
-  showSettings: false,
-  showHelp: false,
-};
-
 export interface MylarContentProps {
   repo: string;
   committish: string;
@@ -103,7 +76,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
-      <CommandMenu/>
+      <CommandMenu dispatch={dispatch} state={state} />
       <div className="fixed bottom-0 left-0 top-0 right-0">
         <Viewer
           repo={repo}
@@ -114,13 +87,13 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
       </div>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
-          <button 
+          <button
             className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
             onClick={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
           >
             Settings
           </button>
-          <button 
+          <button
             className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
             onClick={() => dispatch({ type: 'TOGGLE_HELP' })}
           >
