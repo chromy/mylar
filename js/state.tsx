@@ -5,7 +5,7 @@ export interface ChangeSettingMylarAction {
   type: "CHANGE_SETTING";
   id: string;
   value: unknown;
-};
+}
 
 export type MylarAction = ChangeSettingMylarAction;
 
@@ -50,7 +50,7 @@ export class SettingsStore {
         return schema.parse(state[this.id]);
       },
       set(state: MylarState, rawValue: unknown): MylarState {
-        const next = {...state};
+        const next = { ...state };
         next[args.id] = schema.parse(rawValue);
         return next;
       },

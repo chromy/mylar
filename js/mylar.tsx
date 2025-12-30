@@ -1,4 +1,10 @@
-import { type ActionDispatch, useState, useMemo, useReducer, type ReactNode } from "react";
+import {
+  type ActionDispatch,
+  useState,
+  useMemo,
+  useReducer,
+  type ReactNode,
+} from "react";
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
@@ -195,14 +201,13 @@ const SettingsPanel = ({ dispatch, state }: SettingsPanelProps) => {
 interface ButtonProps {
   onClick: () => void;
   children: ReactNode;
-
 }
 
-const Button = ({onClick, children}: ButtonProps) => (
+const Button = ({ onClick, children }: ButtonProps) => (
   <button
     className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
     onClick={onClick}
-    >
+  >
     {children}
   </button>
 );

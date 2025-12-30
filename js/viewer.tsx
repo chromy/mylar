@@ -1,5 +1,11 @@
 import { vec2, vec3 } from "gl-matrix";
-import { type ActionDispatch, useState, useEffect, useCallback, useRef } from "react";
+import {
+  type ActionDispatch,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
@@ -13,7 +19,6 @@ import {
   type MylarState,
   fpsSetting,
 } from "./state.js";
-
 
 function boxToTileRequest(
   box: aabb,
@@ -224,7 +229,6 @@ class Renderer {
 
       if (fpsSetting.get(state)) {
         debugItems.push(["Frame duration", this.lastFrameMs.toFixed(2) + "ms"]);
-
       }
       debugItems.push(["World bbox", `(${x}, ${y}) (${w}, ${h})`]);
       debugItems.push(["Screen mouse", `(${screenMouseX}, ${screenMouseY})`]);
@@ -431,9 +435,16 @@ export interface ViewerProps {
 }
 
 // Rename Viewer -> RendererHost
-export const Viewer = ({ dispatch, state, repo, committish, layout, setDebug }: ViewerProps) => {
+export const Viewer = ({
+  dispatch,
+  state,
+  repo,
+  committish,
+  layout,
+  setDebug,
+}: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef<MylarState>(initialMylarState);;
+  const stateRef = useRef<MylarState>(initialMylarState);
 
   const [frameHistory, setFrameHistory] = useState<number[]>([]);
 
