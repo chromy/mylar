@@ -142,13 +142,13 @@ var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
-	
+
 	for i := 0; i < n; i++ {
 		if buffer[i] == 0 {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 })
 
@@ -192,12 +192,12 @@ var Lines = core.RegisterBlobComputation("lines", func(ctx context.Context, repo
 	if err != nil {
 		return nil, err
 	}
-	
+
 	contentStr := content.(string)
 	if contentStr == "" {
 		return []string{}, nil
 	}
-	
+
 	lines := strings.Split(contentStr, "\n")
 	return lines, nil
 })

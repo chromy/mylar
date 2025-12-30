@@ -27,7 +27,6 @@ func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	}
 	hash := plumbing.NewHash(rawHash)
 
-
 	result, err := computation.Execute(r.Context(), repoId, hash)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -48,4 +47,3 @@ func init() {
 		Handler: ComputeHandler,
 	})
 }
-

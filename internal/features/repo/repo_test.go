@@ -573,3 +573,66 @@ func TestIsBinaryComputationNonExistentRepo(t *testing.T) {
 		t.Errorf("Expected error for non-existent repo")
 	}
 }
+
+func TestGetTreeEntriesComputation(t *testing.T) {
+	repo, err := createBinaryTestRepo()
+	if err != nil {
+		t.Fatalf("Failed to create test repo: %v", err)
+	}
+
+	setupState()
+	state.Repos["test-repo"] = repo
+
+	head, err := repo.Head()
+	if err != nil {
+		t.Fatalf("Failed to get HEAD: %v", err)
+	}
+
+	commit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		t.Fatalf("Failed to get commit: %v", err)
+	}
+
+	result, err := GetTreeEntries(context.Background(), "test-repo", commit.TreeHash)
+	if err != nil {
+		t.Fatalf("GetTreeEntries failed: %v", err)
+	}
+
+	treeEntries, ok := result.(TreeEntries)
+	if !ok {
+		t.Fatalf("Expected TreeEntries result, got %T", result)
+	}
+
+	if len(treeEntries.Entries) != 2 {
+		t.Errorf("Expected 2 entries, got %d", len(treeEntries.Entries))
+	}
+
+	entryNames := make(map[string]bool)
+	for _, entry := range treeEntries.Entries {
+		entryNames[entry.Name] = true
+		if entry.Hash.IsZero() {
+			t.Errorf("Entry %s has zero hash", entry.Name)
+		}
+		if entry.Mode == "" {
+			t.Errorf("Entry %s has empty mode", entry.Name)
+		}
+	}
+
+	if !entryNames["binary.bin"] {
+		t.Errorf("Expected binary.bin in tree entries")
+	}
+	if !entryNames["text.txt"] {
+		t.Errorf("Expected text.txt in tree entries")
+	}
+}
+
+func TestGetTreeEntriesComputationNonExistentRepo(t *testing.T) {
+	setupState()
+
+	hash := plumbing.NewHash("0000000000000000000000000000000000000000")
+
+	_, err := GetTreeEntries(context.Background(), "non-existent-repo", hash)
+	if err == nil {
+		t.Errorf("Expected error for non-existent repo")
+	}
+}

@@ -25,34 +25,6 @@ export const LineLengthSchema = z.object({
 });
 export type LineLength = z.infer<typeof LineLengthSchema>;
 
-export type FileSystemEntry = {
-  name: string;
-  path: string;
-  type: string;
-  size?: number | undefined;
-  hash?: string | undefined;
-  children?: FileSystemEntry[] | undefined;
-};
-const FileSystemEntrySchemaShape = {
-  name: z.string(),
-  path: z.string(),
-  type: z.string(),
-  size: z.number().optional(),
-  hash: z.string().optional(),
-  children: z
-    .lazy(() => FileSystemEntrySchema)
-    .array()
-    .optional(),
-};
-export const FileSystemEntrySchema: z.ZodType<FileSystemEntry> = z.object(
-  FileSystemEntrySchemaShape,
-);
-
-export const InfoResponseSchema = z.object({
-  entry: FileSystemEntrySchema,
-});
-export type InfoResponse = z.infer<typeof InfoResponseSchema>;
-
 export const RepoInfoSchema = z.object({
   name: z.string(),
 });
@@ -62,6 +34,18 @@ export const RepoListResponseSchema = z.object({
   repos: RepoInfoSchema.array().nullable(),
 });
 export type RepoListResponse = z.infer<typeof RepoListResponseSchema>;
+
+export const TreeEntrySchema = z.object({
+  name: z.string(),
+  mode: z.string(),
+  hash: z.number().array().length(20),
+});
+export type TreeEntry = z.infer<typeof TreeEntrySchema>;
+
+export const TreeEntriesSchema = z.object({
+  entries: TreeEntrySchema.array().nullable(),
+});
+export type TreeEntries = z.infer<typeof TreeEntriesSchema>;
 
 export const TileMetadataSchema = z.object({
   y: z.number(),
