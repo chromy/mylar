@@ -17,7 +17,6 @@ import {
   settings,
   initialMylarState,
   type MylarState,
-  fpsSetting,
 } from "./state.js";
 
 function boxToTileRequest(
@@ -55,6 +54,21 @@ interface RendererHostCallbacks {
   setFrameHistory: (history: number[]) => void;
   getState(): MylarState;
 }
+
+const displayOrigin = settings.addBoolean({
+  id: "setting.displayOrigin",
+  name: "Display origin",
+});
+
+const displayFps = settings.addBoolean({
+  id: "setting.displayFps",
+  name: "Display FPS",
+});
+
+const displayTileBorders = settings.addBoolean({
+  id: "setting.displayTileBorders",
+  name: "Display tile borders",
+});
 
 class Renderer {
   private repo: string;
@@ -227,7 +241,7 @@ class Renderer {
 
       const debugItems: DebugInfo = [];
 
-      if (fpsSetting.get(state)) {
+      if (displayFps.get(state)) {
         debugItems.push(["Frame duration", this.lastFrameMs.toFixed(2) + "ms"]);
       }
       debugItems.push(["World bbox", `(${x}, ${y}) (${w}, ${h})`]);
@@ -303,6 +317,7 @@ class Renderer {
     ctx: CanvasRenderingContext2D,
     requiredTileRequests: TileRequest[],
   ): void {
+    const state = this.callbacks.getState();
     const width = this.camera.screenWidthPx;
     const height = this.camera.screenHeightPx;
 
@@ -374,31 +389,33 @@ class Renderer {
       }
     }
 
-    // Draw black circle at world coordinates (0,0)
-    const worldCenter = vec2.fromValues(0, 0);
-    const screenCenter = vec2.create();
-    this.camera.toScreen(screenCenter, worldCenter);
-    const radius = 10; // Circle radius in pixels
-    ctx.fillStyle = "black";
-    ctx.beginPath();
-    ctx.arc(screenCenter[0], screenCenter[1], radius, 0, 2 * Math.PI);
-    ctx.fill();
+    if (displayOrigin.get(state)) {
+      // Draw black circle at world coordinates (0,0)
+      const worldCenter = vec2.fromValues(0, 0);
+      const screenCenter = vec2.create();
+      this.camera.toScreen(screenCenter, worldCenter);
+      const radius = 10; // Circle radius in pixels
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.arc(screenCenter[0], screenCenter[1], radius, 0, 2 * Math.PI);
+      ctx.fill();
+    }
 
-    this.camera.toScreen(screenCenter, worldCenter);
-
-    let count = 0;
-    for (const r of requiredTileRequests) {
-      const hue = ((count * 360) / requiredTileRequests.length) % 360;
-      ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
-      const size = lodToSize(r.lod);
-      const box = aabb.fromValues(
-        r.x * size,
-        r.y * size,
-        (r.x + 1) * size,
-        (r.y + 1) * size,
-      );
-      this.renderAABB(ctx, box);
-      count++;
+    if (displayTileBorders.get(state)) {
+      let count = 0;
+      for (const r of requiredTileRequests) {
+        const hue = ((count * 360) / requiredTileRequests.length) % 360;
+        ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
+        const size = lodToSize(r.lod);
+        const box = aabb.fromValues(
+          r.x * size,
+          r.y * size,
+          (r.x + 1) * size,
+          (r.y + 1) * size,
+        );
+        this.renderAABB(ctx, box);
+        count++;
+      }
     }
   }
 

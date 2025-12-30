@@ -84,14 +84,9 @@ export class SettingsStore {
 
 export const settings = new SettingsStore();
 
-export const fpsSetting = settings.addBoolean({
-  id: "setting.fps",
-  name: "Show FPS",
-});
-
 export const settingsPanelSetting = settings.addBoolean({
   id: "setting.settingsPanel",
-  name: "Show settings panel",
+  name: "Display settings panel",
 });
 
 export const mylarReducer = (
@@ -106,8 +101,4 @@ export const mylarReducer = (
   }
 };
 
-export const initialMylarState: MylarState = {
-  showSettings: false,
-  showHelp: false,
-  showFpsCounter: false,
-};
+export const initialMylarState: MylarState = {};

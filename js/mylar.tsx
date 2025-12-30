@@ -102,12 +102,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
       </div>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
-          <button
-            className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
-            onClick={() => dispatch(settingsPanelSetting.enable)}
-          >
-            Settings
-          </button>
+          <Button onClick={() => dispatch(settingsPanelSetting.enable)}>Settings</Button>
         </div>
       </GlassPanel>
       <GlassPanel>
@@ -205,7 +200,7 @@ interface ButtonProps {
 
 const Button = ({ onClick, children }: ButtonProps) => (
   <button
-    className="px-3 py-1 rounded hover:bg-white/10 transition-colors"
+    className="px-3 py-1 rounded-xs hover:bg-white/10 transition-colors border border-solid rounded-xs border-black/5"
     onClick={onClick}
   >
     {children}
