@@ -1,21 +1,21 @@
 import o from "ospec";
-import { 
-  lodToSize, 
-  initialSize, 
-  lineToWorld, 
-  worldToTile, 
-  tileToWorld, 
+import {
+  lodToSize,
+  initialSize,
+  lineToWorld,
+  worldToTile,
+  tileToWorld,
   worldToLine,
   mortonEncode,
   mortonDecode,
   spreadBits,
-  compactBits
+  compactBits,
 } from "./utils.js";
-import type { 
+import type {
   TileLayout,
   WorldPosition,
   TilePosition,
-  LinePosition
+  LinePosition,
 } from "./utils.js";
 
 o.spec("utils", () => {
@@ -57,8 +57,13 @@ o.spec("utils", () => {
     });
 
     o("mortonEncode/mortonDecode round trip", () => {
-      const testCases: [number, number][] = [[0, 0], [1, 1], [2, 3], [10, 20]];
-      
+      const testCases: [number, number][] = [
+        [0, 0],
+        [1, 1],
+        [2, 3],
+        [10, 20],
+      ];
+
       testCases.forEach(([x, y]) => {
         const encoded = mortonEncode(x, y);
         const [decodedX, decodedY] = mortonDecode(encoded);
@@ -73,7 +78,7 @@ o.spec("utils", () => {
 
     o("lineToWorld/worldToLine round trip", () => {
       const testLines = [0, 1, 10, 100];
-      
+
       testLines.forEach(line => {
         const world = lineToWorld(line, layout);
         const backToLine = worldToLine(world, layout);
@@ -84,7 +89,7 @@ o.spec("utils", () => {
     o("worldToTile converts correctly", () => {
       const world: WorldPosition = { X: 130, Y: 200 };
       const tile = worldToTile(world, layout);
-      
+
       o(tile.Lod).equals(0);
       o(tile.TileX).equals(2); // 130 / 64 = 2.03... -> 2
       o(tile.TileY).equals(3); // 200 / 64 = 3.125 -> 3
@@ -98,10 +103,10 @@ o.spec("utils", () => {
         TileX: 2,
         TileY: 3,
         OffsetX: 2,
-        OffsetY: 8
+        OffsetY: 8,
       };
       const world = tileToWorld(tile, layout);
-      
+
       o(world.X).equals(130); // 2 * 64 + 2 = 130
       o(world.Y).equals(200); // 3 * 64 + 8 = 200
     });

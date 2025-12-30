@@ -47,7 +47,7 @@ func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
 
 // BlobComputation defines a computation that can be performed on a Git blob
 type BlobComputation struct {
-	Id          string
+	Id      string
 	Execute ObjectFunc
 }
 
@@ -62,7 +62,7 @@ func RegisterBlobComputation(id string, execute ObjectFunc) ObjectFunc {
 	wrapped := wrapObjectFuncWithCaching(id, execute)
 
 	blobComputations[id] = BlobComputation{
-		Id: id,
+		Id:      id,
 		Execute: wrapped,
 	}
 

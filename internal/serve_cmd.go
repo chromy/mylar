@@ -2,8 +2,8 @@ package viz
 
 import (
 	"context"
-	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/core"
+	"github.com/chromy/viz/internal/features/repo"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"

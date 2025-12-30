@@ -42,7 +42,6 @@ func RegisterRoute(route Route) {
 	routes[route.Id] = route
 }
 
-
 func GetRoute(id string) (Route, bool) {
 	mu.RLock()
 	defer mu.RUnlock()

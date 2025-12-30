@@ -3,14 +3,14 @@ package core
 import (
 	"context"
 	"github.com/go-git/go-git/v5/plumbing"
-//	"github.com/go-git/go-git/v5/plumbing/object"
-//	"fmt"
+	//	"github.com/go-git/go-git/v5/plumbing/object"
+	//	"fmt"
 	"testing"
 )
 
 func TestGetBlobComputation(t *testing.T) {
-	RegisterBlobComputation("TestGetBlobComputation",  func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
-			return "result", nil
+	RegisterBlobComputation("TestGetBlobComputation", func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+		return "result", nil
 	})
 
 	c, found := GetBlobComputation("TestGetBlobComputation")
@@ -25,8 +25,8 @@ func TestGetBlobComputation(t *testing.T) {
 }
 
 func TestExecuteBlobComputation(t *testing.T) {
-	RegisterBlobComputation("TestExecuteBlobComputation",  func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
-			return "result", nil
+	RegisterBlobComputation("TestExecuteBlobComputation", func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+		return "result", nil
 	})
 
 	c, _ := GetBlobComputation("TestExecuteBlobComputation")
@@ -45,7 +45,7 @@ func TestExecuteBlobComputation(t *testing.T) {
 func TestBlobComputationCachesResults(t *testing.T) {
 	callCount := 0
 
-	f := RegisterBlobComputation("test2",  func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
+	f := RegisterBlobComputation("test2", func(ctx context.Context, hash plumbing.Hash) (interface{}, error) {
 		callCount += 1
 		return hash.String(), nil
 	})

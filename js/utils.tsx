@@ -46,12 +46,18 @@ export interface TilePosition {
 
 export type LinePosition = number;
 
-export function lineToWorld(line: LinePosition, layout: TileLayout): WorldPosition {
+export function lineToWorld(
+  line: LinePosition,
+  layout: TileLayout,
+): WorldPosition {
   const [x, y] = mortonDecode(line);
   return { X: x, Y: y };
 }
 
-export function worldToTile(world: WorldPosition, layout: TileLayout): TilePosition {
+export function worldToTile(
+  world: WorldPosition,
+  layout: TileLayout,
+): TilePosition {
   const tileX = Math.floor(world.X / TILE_SIZE);
   const tileY = Math.floor(world.Y / TILE_SIZE);
   const offsetX = world.X % TILE_SIZE;
@@ -66,7 +72,10 @@ export function worldToTile(world: WorldPosition, layout: TileLayout): TilePosit
   };
 }
 
-export function tileToWorld(tile: TilePosition, layout: TileLayout): WorldPosition {
+export function tileToWorld(
+  tile: TilePosition,
+  layout: TileLayout,
+): WorldPosition {
   const tileSize = lodToSize(tile.Lod);
   const worldX = tile.TileX * tileSize + tile.OffsetX;
   const worldY = tile.TileY * tileSize + tile.OffsetY;
@@ -74,7 +83,10 @@ export function tileToWorld(tile: TilePosition, layout: TileLayout): WorldPositi
   return { X: worldX, Y: worldY };
 }
 
-export function worldToLine(world: WorldPosition, layout: TileLayout): LinePosition {
+export function worldToLine(
+  world: WorldPosition,
+  layout: TileLayout,
+): LinePosition {
   const encoded = mortonEncode(world.X, world.Y);
   return encoded;
 }
@@ -93,8 +105,8 @@ export function mortonDecode(code: number): [number, number] {
 
 // spreadBits spreads the bits of a 16-bit number across 32 bits
 export function spreadBits(x: number): number {
-  x = (x | (x << 8)) & 0x00FF00FF;
-  x = (x | (x << 4)) & 0x0F0F0F0F;
+  x = (x | (x << 8)) & 0x00ff00ff;
+  x = (x | (x << 4)) & 0x0f0f0f0f;
   x = (x | (x << 2)) & 0x33333333;
   x = (x | (x << 1)) & 0x55555555;
   return x >>> 0; // Convert to unsigned 32-bit
@@ -104,8 +116,8 @@ export function spreadBits(x: number): number {
 export function compactBits(x: number): number {
   x = x & 0x55555555;
   x = (x ^ (x >> 1)) & 0x33333333;
-  x = (x ^ (x >> 2)) & 0x0F0F0F0F;
-  x = (x ^ (x >> 4)) & 0x00FF00FF;
-  x = (x ^ (x >> 8)) & 0x0000FFFF;
+  x = (x ^ (x >> 2)) & 0x0f0f0f0f;
+  x = (x ^ (x >> 4)) & 0x00ff00ff;
+  x = (x ^ (x >> 8)) & 0x0000ffff;
   return x >>> 0; // Convert to unsigned 32-bit
 }

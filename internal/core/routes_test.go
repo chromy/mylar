@@ -142,4 +142,3 @@ func createTestBlob(content string) *object.Blob {
 	obj, _ := repo.Object(plumbing.BlobObject, entry.Hash)
 	return obj.(*object.Blob)
 }
-
