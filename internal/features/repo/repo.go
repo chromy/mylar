@@ -295,6 +295,45 @@ func InfoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 }
 
+var content = core.RegisterBlobComputation("content", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	return "hello, world!", nil
+})
+
+func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoId := ps.ByName("repoId")
+	rawHash := ps.ByName("hash")
+	computationId := ps.ByName("computationId")
+
+	computation, found := core.GetBlobComputation(computationId)
+	if !found {
+		http.Error(w, fmt.Sprintf("Computation '%s' unknown", computationId), http.StatusNotFound)
+		return
+	}
+
+	if !plumbing.IsHash(rawHash) {
+		http.Error(w, fmt.Sprintf("Could not parse hash '%s'", rawHash), http.StatusNotFound)
+		return
+	}
+	hash := plumbing.NewHash(rawHash)
+
+
+	result, err := computation.Execute(r.Context(), repoId, hash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 func init() {
 	mu.Lock()
 	defer mu.Unlock()
@@ -320,6 +359,13 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/info/*path",
 		Handler: InfoHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "repo.compute",
+		Method:  http.MethodGet,
+		Path:    "/api/compute/:computationId/:repoId/:hash",
+		Handler: ComputeHandler,
 	})
 
 	schemas.Register("repo.RepoInfo", RepoInfo{})
