@@ -1,6 +1,12 @@
 # TODO:
+- Rename viz -> Mylar
+- Rename Viewer -> Renderer
+- Loading center and not green
+- memcached
+- bump tile size?
+
+
 - Singleton TileStore?
-- JS tests
 - Handle: org/repo
 - Load arbitery github repos.
 

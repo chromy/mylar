@@ -70,20 +70,18 @@ export function* quadtreeAABBs(
 export function* requiredTiles(
   bounds: aabb,
   lineCount: number,
+  pixelsPerWorldUnit: number,
 ): Generator<aabb> {
-  const limit = 100;
-  let count = 0;
-
   const inScope = (box: aabb) => aabb.overlaps(box, bounds);
 
   for (const quadAABB of quadtreeAABBs(lineCount, inScope)) {
-    if (count >= limit) {
+    const width = aabb.width(quadAABB);
+    if (width * pixelsPerWorldUnit < 100) {
       break;
     }
     if (toLod(quadAABB) < 0) {
       break;
     }
     yield quadAABB;
-    count += 1;
   }
 }

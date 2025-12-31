@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strconv"
 	"time"
-	"log"
 )
 
 type IndexEntry struct {
@@ -243,17 +242,16 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 		OffsetY: 0,
 	}
 
-
 	// Get the world position for the top-left corner of this tile
 	tileWorldPos := utils.TileToWorld(tilePos, *layout)
 
-	cornerWorldPosition := utils.WorldPosition{
-		X: tileWorldPos.X,
-		Y: tileWorldPos.Y,
-	}
-	cornerLinePosition := utils.WorldToLine(cornerWorldPosition, *layout)
-	cornerEntry := index.FindFileByLine(int64(cornerLinePosition))
-	log.Printf("%d %d %d %v %v %v %v %v %v", lod, x, y, *layout, tilePos, tileWorldPos, cornerWorldPosition, cornerLinePosition, cornerEntry)
+	//cornerWorldPosition := utils.WorldPosition{
+	//	X: tileWorldPos.X,
+	//	Y: tileWorldPos.Y,
+	//}
+	//cornerLinePosition := utils.WorldToLine(cornerWorldPosition, *layout)
+	//cornerEntry := index.FindFileByLine(int64(cornerLinePosition))
+	//log.Printf("%d %d %d %v %v %v %v %v %v", lod, x, y, *layout, tilePos, tileWorldPos, cornerWorldPosition, cornerLinePosition, cornerEntry)
 
 	// For each position in the tile, find the corresponding line and get its length
 	for tileY := 0; tileY < tileSize; tileY++ {
