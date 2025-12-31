@@ -1,12 +1,26 @@
 # TODO:
-- Globby not actually working at all
 
+- TileCompistor
+- Support many layers
+- Abstrct tile handlers
+- Support macro-tiles
+- Wire up persistent storage for git repos
+- Wire up memcached
+- Show pointer to home
+- Hide actions which are useless
+- Text box with gh search on home page
+- Show repo icon?
+- Home reset button
+- Globby not actually working at all
 - Rename viz -> Mylar
 - Rename Viewer -> Renderer
-- Loading center and not green
 - memcached
 - bump tile size?
-
+- fix bug with position of tiles
+- use hamilton path?
+- Keyboard shortcut list / help
+- Make Sentry work
+- more fancy outline
 
 - Singleton TileStore?
 - Handle: org/repo
@@ -16,17 +30,14 @@
 - Remove bbox notes
 - Commas in debug notes
 
-- Home reset button
 - Zoom to mouse
 - Middle mouse button to pan
 - Make pinch feel better
 - Camera limits
-- Length
+
 - File type / extension
-- Roll over file with mouse
 - Investigate rgba-float16
 - aabb quad tree bit regions?
-- once every n seconds update state
 - Show fps counter
 - Show fps state
 
@@ -37,4 +48,8 @@
 - Support multiple repos.
 - Spit repo handlers vs api?
 - Support SHA in repo endpoints
+- Loading center and not green
+- Length
+- Roll over file with mouse
+- once every n seconds update state
 
