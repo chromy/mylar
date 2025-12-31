@@ -1,4 +1,6 @@
 # TODO:
+- Globby not actually working at all
+
 - Rename viz -> Mylar
 - Rename Viewer -> Renderer
 - Loading center and not green
