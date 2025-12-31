@@ -10,20 +10,21 @@ import (
 	"time"
 )
 
-type ObjectFunc func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error)
+type ObjectFunc[T any] func(ctx context.Context, repoId string, hash plumbing.Hash) (T, error)
 
-func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
-	return func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+func wrapObjectFuncWithCaching[T any](id string, execute ObjectFunc[T]) ObjectFunc[T] {
+	return func(ctx context.Context, repoId string, hash plumbing.Hash) (T, error) {
 		c := GetCache()
 		key := GenerateCacheKey(id, hash.String())
 
 		if cached, err := c.Get(key); err == nil {
-			var result interface{}
+			var result T
 			err := json.Unmarshal(cached, &result)
 
 			if err != nil {
 				// TODO: delete key
-				return nil, err
+				var zero T
+				return zero, err
 			}
 
 			return result, nil
@@ -31,12 +32,14 @@ func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
 
 		result, err := execute(ctx, repoId, hash)
 		if err != nil {
-			return nil, err
+			var zero T
+			return zero, err
 		}
 
 		serialized, err := json.Marshal(result)
 		if err != nil {
-			return nil, err
+			var zero T
+			return zero, err
 		}
 
 		c.Add(key, serialized, time.Hour)
@@ -48,10 +51,10 @@ func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
 // BlobComputation defines a computation that can be performed on a Git blob
 type BlobComputation struct {
 	Id      string
-	Execute ObjectFunc
+	Execute ObjectFunc[interface{}]
 }
 
-func RegisterBlobComputation(id string, execute ObjectFunc) ObjectFunc {
+func RegisterBlobComputation[T any](id string, execute ObjectFunc[T]) ObjectFunc[T] {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -61,9 +64,14 @@ func RegisterBlobComputation(id string, execute ObjectFunc) ObjectFunc {
 
 	wrapped := wrapObjectFuncWithCaching(id, execute)
 
+	// Store as interface{} type for backward compatibility
+	interfaceWrapped := func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+		return wrapped(ctx, repoId, hash)
+	}
+
 	blobComputations[id] = BlobComputation{
 		Id:      id,
-		Execute: wrapped,
+		Execute: interfaceWrapped,
 	}
 
 	return wrapped

@@ -8,6 +8,7 @@ import (
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
@@ -28,14 +29,14 @@ type RepoInfo struct {
 	Name string `json:"name"`
 }
 
-type RepoListResponse struct {
-	Repos []RepoInfo `json:"repos"`
+type TreeEntry struct {
+	Name string          `json:"name"`
+	Hash string          `json:"hash"`
+	Mode filemode.FileMode `json:"mode"`
 }
 
-type TreeEntry struct {
-	Name string        `json:"name"`
-	Mode string        `json:"mode"`
-	Hash plumbing.Hash `json:"hash"`
+type RepoListResponse struct {
+	Repos []RepoInfo `json:"repos"`
 }
 
 type TreeEntries struct {
@@ -120,27 +121,27 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
-var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context, repoId string, hash plumbing.Hash) (bool, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	blob, err := repo.BlobObject(hash)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	reader, err := blob.Reader()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	defer reader.Close()
 
 	buffer := make([]byte, 8000)
 	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
-		return nil, err
+		return false, err
 	}
 
 	for i := 0; i < n; i++ {
@@ -152,95 +153,94 @@ var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context
 	return false, nil
 })
 
-var Content = core.RegisterBlobComputation("content", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var Content = core.RegisterBlobComputation("content", func(ctx context.Context, repoId string, hash plumbing.Hash) (string, error) {
 
 	isBinary, err := IsBinary(ctx, repoId, hash)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	if isBinary.(bool) {
+	if isBinary {
 		return "", nil
 	}
 
 	repo, err := Get(ctx, repoId)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	blob, err := repo.BlobObject(hash)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	reader, err := blob.Reader()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer reader.Close()
 
 	buffer := make([]byte, blob.Size)
 	_, err = reader.Read(buffer)
 	if err != nil && err != io.EOF {
-		return nil, err
+		return "", err
 	}
 
 	return string(buffer), nil
 })
 
-var Lines = core.RegisterBlobComputation("lines", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var Lines = core.RegisterBlobComputation("lines", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]string, error) {
 	content, err := Content(ctx, repoId, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	contentStr := content.(string)
-	if contentStr == "" {
+	if content == "" {
 		return []string{}, nil
 	}
 
-	lines := strings.Split(contentStr, "\n")
+	lines := strings.Split(content, "\n")
 	return lines, nil
 })
 
-var LineCount = core.RegisterBlobComputation("lineCount", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var LineCount = core.RegisterBlobComputation("lineCount", func(ctx context.Context, repoId string, hash plumbing.Hash) (int64, error) {
 	isBinary, err := IsBinary(ctx, repoId, hash)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	repo, err := Get(ctx, repoId)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	blob, err := repo.BlobObject(hash)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	reader, err := blob.Reader()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	defer reader.Close()
 
-	if isBinary.(bool) {
+	if isBinary {
 		content, err := io.ReadAll(reader)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		return int64(len(content)), nil
 	}
 
 	lines, err := Lines(ctx, repoId, hash)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return int64(len(lines.([]string))), nil
+	return int64(len(lines)), nil
 })
 
-var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]TreeEntry, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {
 		return nil, err
@@ -255,23 +255,23 @@ var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx contex
 	for _, entry := range treeObj.Entries {
 		entries = append(entries, TreeEntry{
 			Name: entry.Name,
-			Mode: entry.Mode.String(),
-			Hash: entry.Hash,
+			Hash: entry.Hash.String(),
+			Mode: entry.Mode,
 		})
 	}
 
-	return TreeEntries{Entries: entries}, nil
+	return entries, nil
 })
 
-var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.Context, repoId string, hash plumbing.Hash) (string, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	obj, err := repo.Storer.EncodedObject(plumbing.AnyObject, hash)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return obj.Type().String(), nil

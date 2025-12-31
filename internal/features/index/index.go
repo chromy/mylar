@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strconv"
 	"time"
-	"log"
 )
 
 type IndexEntry struct {
@@ -36,38 +35,38 @@ var (
 	indexCache cache.Cache
 )
 
-var GetBlobIndex = core.RegisterBlobComputation("blobIndex", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var GetBlobIndex = core.RegisterBlobComputation("blobIndex", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
 	lineCount, err := repo.LineCount(ctx, repoId, hash)
 	if err != nil {
-		return nil, err
+		return Index{}, err
 	}
 
 	entry := IndexEntry{
 		Path:       ".",
 		LineOffset: 0,
-		LineCount:  lineCount.(int64),
+		LineCount:  lineCount,
 		Hash:       hash,
 	}
 
 	return Index{Entries: []IndexEntry{entry}}, nil
 })
 
-var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
 
 	getIndex, found := core.GetBlobComputation("index")
 	if !found {
-		return nil, fmt.Errorf("index blob computation not found")
+		return Index{}, fmt.Errorf("index blob computation not found")
 	}
 
 
 	repository, err := repo.Get(ctx, repoId)
 	if err != nil {
-		return nil, err
+		return Index{}, err
 	}
 
 	treeObj, err := repository.TreeObject(hash)
 	if err != nil {
-		return nil, err
+		return Index{}, err
 	}
 
 	var allEntries []IndexEntry
@@ -83,7 +82,7 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 	for _, entry := range entries {
 		childIndex, err := getIndex.Execute(ctx, repoId, entry.Hash)
 		if err != nil {
-			return nil, err
+			return Index{}, err
 		}
 
 		for _, childEntry := range childIndex.(Index).Entries {
@@ -107,13 +106,11 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 })
 
 
-var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
-	rawObjectType, err := repo.GetObjectType(ctx, repoId, hash)
+var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
+	objectType, err := repo.GetObjectType(ctx, repoId, hash)
 	if err != nil {
-		return nil, err
+		return Index{}, err
 	}
-
-	objectType := rawObjectType.(string)
 
 	switch objectType {
 	case "blob":
@@ -121,7 +118,7 @@ var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, r
   case "tree":
 		return GetTreeIndex(ctx, repoId, hash)
 	default:
-		return nil, fmt.Errorf("index can't handle object type %s", objectType)
+		return Index{}, fmt.Errorf("index can't handle object type %s", objectType)
 	}
 })
 	
@@ -167,14 +164,14 @@ type LineLength struct {
 	Maximum int64 `json:"maximum"`
 }
 
-var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]int, error) {
 	lines, err := repo.Lines(ctx, repoId, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	var lengths = make([]int, 0, len(lines.([]string)))
-	for _, line := range lines.([]string) {
+	var lengths = make([]int, 0, len(lines))
+	for _, line := range lines {
 		lengths = append(lengths, len(line))
 	}
 
@@ -234,14 +231,10 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 	tile := make([]int64, tileSize*tileSize)
 
 	// Get the index for the repository
-	rawIndex, err := GetIndex(ctx, repoId, hash)
+	index, err := GetIndex(ctx, repoId, hash)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("%v", rawIndex)
-
-	index := rawIndex.(Index)
 
 	// Create layout from index
 	var lastLine utils.LinePosition = 0
@@ -291,17 +284,16 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 
 					// Only process blobs (files)
 					if blob, ok := obj.(*object.Blob); ok {
-						rawLineLengths, err := GetBlobLineLengths(ctx, repoId, blob.Hash)
+						lineLengths, err := GetBlobLineLengths(ctx, repoId, blob.Hash)
 						if err != nil {
 							continue // Skip files we can't process
 						}
-						lineLengths := rawLineLengths.([]int64)
 
 						// Get the line index within this file
 						lineIdxInFile := int64(linePos) - entryStartLine
 						if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
 							tileIdx := tileY*tileSize + tileX
-							tile[tileIdx] = lineLengths[lineIdxInFile]
+							tile[tileIdx] = int64(lineLengths[lineIdxInFile])
 						}
 					}
 					break // Found the file containing this line

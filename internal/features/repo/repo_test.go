@@ -475,13 +475,8 @@ func TestIsBinaryComputation(t *testing.T) {
 				t.Fatalf("IsBinary failed: %v", err)
 			}
 
-			isBinary, ok := result.(bool)
-			if !ok {
-				t.Fatalf("Expected bool result, got %T", result)
-			}
-
-			if isBinary != tt.expectedBinary {
-				t.Errorf("Expected binary=%v for %s, got %v", tt.expectedBinary, tt.fileName, isBinary)
+			if result != tt.expectedBinary {
+				t.Errorf("Expected binary=%v for %s, got %v", tt.expectedBinary, tt.fileName, result)
 			}
 		})
 	}
@@ -540,13 +535,8 @@ func TestContentComputation(t *testing.T) {
 				t.Fatalf("Content failed: %v", err)
 			}
 
-			content, ok := result.(string)
-			if !ok {
-				t.Fatalf("Expected string result, got %T", result)
-			}
-
-			if content != tt.expectedContent {
-				t.Errorf("Expected content '%s' for %s, got '%s'", tt.expectedContent, tt.fileName, content)
+			if result != tt.expectedContent {
+				t.Errorf("Expected content '%s' for %s, got '%s'", tt.expectedContent, tt.fileName, result)
 			}
 		})
 	}
@@ -598,22 +588,17 @@ func TestGetTreeEntriesComputation(t *testing.T) {
 		t.Fatalf("GetTreeEntries failed: %v", err)
 	}
 
-	treeEntries, ok := result.(TreeEntries)
-	if !ok {
-		t.Fatalf("Expected TreeEntries result, got %T", result)
-	}
-
-	if len(treeEntries.Entries) != 2 {
-		t.Errorf("Expected 2 entries, got %d", len(treeEntries.Entries))
+	if len(result) != 2 {
+		t.Errorf("Expected 2 entries, got %d", len(result))
 	}
 
 	entryNames := make(map[string]bool)
-	for _, entry := range treeEntries.Entries {
+	for _, entry := range result {
 		entryNames[entry.Name] = true
-		if entry.Hash.IsZero() {
-			t.Errorf("Entry %s has zero hash", entry.Name)
+		if entry.Hash == "" {
+			t.Errorf("Entry %s has empty hash", entry.Name)
 		}
-		if entry.Mode == "" {
+		if entry.Mode == 0 {
 			t.Errorf("Entry %s has empty mode", entry.Name)
 		}
 	}

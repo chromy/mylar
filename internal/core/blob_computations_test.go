@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetBlobComputation(t *testing.T) {
-	RegisterBlobComputation("TestGetBlobComputation", func(ctx context.Context, _ string, hash plumbing.Hash) (interface{}, error) {
+	RegisterBlobComputation("TestGetBlobComputation", func(ctx context.Context, _ string, hash plumbing.Hash) (string, error) {
 		return "result", nil
 	})
 
@@ -25,7 +25,7 @@ func TestGetBlobComputation(t *testing.T) {
 }
 
 func TestExecuteBlobComputation(t *testing.T) {
-	RegisterBlobComputation("TestExecuteBlobComputation", func(ctx context.Context, _ string, hash plumbing.Hash) (interface{}, error) {
+	RegisterBlobComputation("TestExecuteBlobComputation", func(ctx context.Context, _ string, hash plumbing.Hash) (string, error) {
 		return "result", nil
 	})
 
@@ -45,7 +45,7 @@ func TestExecuteBlobComputation(t *testing.T) {
 func TestBlobComputationCachesResults(t *testing.T) {
 	callCount := 0
 
-	f := RegisterBlobComputation("TestBlobComputationCachesResults", func(ctx context.Context, _ string, hash plumbing.Hash) (interface{}, error) {
+	f := RegisterBlobComputation("TestBlobComputationCachesResults", func(ctx context.Context, _ string, hash plumbing.Hash) (string, error) {
 		callCount += 1
 		return hash.String(), nil
 	})
@@ -70,5 +70,93 @@ func TestBlobComputationCachesResults(t *testing.T) {
 
 	if callCount != 1 {
 		t.Errorf("Expected single call")
+	}
+}
+
+type CustomStruct struct {
+	Field1 string
+	Field2 int
+	Field3 []string
+}
+
+func TestBlobComputationPreservesTypeAfterCaching(t *testing.T) {
+	ResetBlobComputationsForTesting()
+	callCount := 0
+
+	f := RegisterBlobComputation("TestBlobComputationPreservesType", func(ctx context.Context, _ string, hash plumbing.Hash) (CustomStruct, error) {
+		callCount += 1
+		return CustomStruct{
+			Field1: "test",
+			Field2: 42,
+			Field3: []string{"a", "b", "c"},
+		}, nil
+	})
+
+	hash := plumbing.NewHash("abc4fcc2e78479e60133c9dcb3460c45a1c0efa9")
+
+	// First call - direct from function
+	firstResult, err := f(context.Background(), "", hash)
+	if err != nil {
+		t.Fatalf("First call failed: %v", err)
+	}
+
+	// Second call - should come from cache
+	secondResult, err := f(context.Background(), "", hash)
+	if err != nil {
+		t.Fatalf("Second call failed: %v", err)
+	}
+
+	// Verify only called once
+	if callCount != 1 {
+		t.Errorf("Expected function to be called once, got %d calls", callCount)
+	}
+
+	// Check that first result has correct type and values
+	if firstResult.Field1 != "test" || firstResult.Field2 != 42 || len(firstResult.Field3) != 3 {
+		t.Errorf("First result has incorrect values: %+v", firstResult)
+	}
+
+	// Check that cached result also has correct type and values
+	if secondResult.Field1 != "test" || secondResult.Field2 != 42 || len(secondResult.Field3) != 3 {
+		t.Errorf("Second result has incorrect values: %+v", secondResult)
+	}
+}
+
+func TestBlobComputationPreservesSliceTypeAfterCaching(t *testing.T) {
+	ResetBlobComputationsForTesting()
+	callCount := 0
+
+	f := RegisterBlobComputation("TestBlobComputationPreservesSliceType", func(ctx context.Context, _ string, hash plumbing.Hash) ([]string, error) {
+		callCount += 1
+		return []string{"line1", "line2", "line3"}, nil
+	})
+
+	hash := plumbing.NewHash("def4fcc2e78479e60133c9dcb3460c45a1c0efa9")
+
+	// First call - direct from function
+	firstResult, err := f(context.Background(), "", hash)
+	if err != nil {
+		t.Fatalf("First call failed: %v", err)
+	}
+
+	// Second call - should come from cache
+	secondResult, err := f(context.Background(), "", hash)
+	if err != nil {
+		t.Fatalf("Second call failed: %v", err)
+	}
+
+	// Verify only called once
+	if callCount != 1 {
+		t.Errorf("Expected function to be called once, got %d calls", callCount)
+	}
+
+	// Check that first result has correct type and values
+	if len(firstResult) != 3 || firstResult[0] != "line1" {
+		t.Errorf("First result has incorrect values: %+v", firstResult)
+	}
+
+	// Check that cached result also has correct type and values
+	if len(secondResult) != 3 || secondResult[0] != "line1" {
+		t.Errorf("Second result has incorrect values: %+v", secondResult)
 	}
 }
