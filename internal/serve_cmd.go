@@ -31,12 +31,12 @@ func DoServe(ctx context.Context, port uint) {
 	if err := repo.AddFromPath(ctx, "path:perfetto", "/Users/chromy/src/perfetto"); err != nil {
 		panic(err)
 	}
-	if err := repo.AddFromGithub(ctx, "go-git", "go-billy"); err != nil {
-		panic(err)
-	}
-	if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
-		panic(err)
-	}
+	//if err := repo.AddFromGithub(ctx, "go-git", "go-billy"); err != nil {
+	//	panic(err)
+	//}
+	//if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
+	//	panic(err)
+	//}
 
 	router.Handler(http.MethodGet, "/debug/pprof/*item", http.DefaultServeMux)
 

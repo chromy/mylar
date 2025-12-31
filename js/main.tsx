@@ -29,6 +29,7 @@ const HomePage = () => {
         {data?.repos &&
           data.repos.map(r => (
             <MylarLink
+              key={r.id}
               href={`/app/repo/${r.id}/HEAD`}
             >{`${r.owner ?? "?"}/${r.name ?? "?"} (${r.id})`}</MylarLink>
           ))}

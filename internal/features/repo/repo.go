@@ -13,6 +13,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -154,6 +155,10 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 			Owner: repo.Owner,
 		})
 	}
+
+	sort.Slice(response.Repos, func(i, j int) bool {
+		return response.Repos[i].Id < response.Repos[j].Id
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
