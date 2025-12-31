@@ -65,7 +65,8 @@ jobs:
           --image ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }} \
           --region ${{ env.REGION }} \
           --platform managed \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --set-env-vars SENTRY_DSN=${{ secrets.SENTRY_DSN }}
 
     - name: Show Output
       run: |-
