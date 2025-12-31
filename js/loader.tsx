@@ -30,8 +30,16 @@ export const DecryptLoader = () => {
   }, []);
 
   return (
-    <div className="text-center m-2 font-mono text-green-500 text-xl font-bold">
+    <div className="text-center m-2 font-mono text-xl font-bold">
       {text}
+    </div>
+  );
+};
+
+export const FullScreenDecryptLoader = () => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center">
+      <DecryptLoader />
     </div>
   );
 };

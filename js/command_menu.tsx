@@ -1,4 +1,4 @@
-import { type MylarAction, type MylarState } from "./state.js";
+import { type MylarAction, type MylarState, settings } from "./state.js";
 import { type ActionDispatch, useState, useEffect } from "react";
 import { Command } from "cmdk";
 
@@ -32,14 +32,30 @@ export const CommandMenu = ({ dispatch, state }: CommandMenuProps) => {
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
 
-        <Command.Group heading="Letters">
-          <Command.Item>a</Command.Item>
-          <Command.Item>b</Command.Item>
-          <Command.Separator />
-          <Command.Item>c</Command.Item>
+        <Command.Group heading="Toggle Settings">
+          {settings.items.map((setting) => (
+            <Command.Item
+              key={`enable-${setting.id}`}
+              onSelect={() => {
+                dispatch(setting.enable);
+                setOpen(false);
+              }}
+            >
+              Enable {setting.name}
+            </Command.Item>
+          ))}
+          {settings.items.map((setting) => (
+            <Command.Item
+              key={`disable-${setting.id}`}
+              onSelect={() => {
+                dispatch(setting.disable);
+                setOpen(false);
+              }}
+            >
+              Disable {setting.name}
+            </Command.Item>
+          ))}
         </Command.Group>
-
-        <Command.Item>Apple</Command.Item>
       </Command.List>
     </Command.Dialog>
   );

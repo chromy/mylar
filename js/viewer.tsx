@@ -23,6 +23,7 @@ function boxToTileRequest(
   box: aabb,
   repo: string,
   committish: string,
+  kind: string,
 ): TileRequest {
   const width = aabb.width(box);
   return {
@@ -31,6 +32,7 @@ function boxToTileRequest(
     lod: toLod(box),
     repo,
     committish,
+    kind,
   };
 }
 
@@ -90,6 +92,7 @@ class Renderer {
   private screenWorldAabb: aabb;
   private screenMouse: vec2;
   private worldMouse: vec2;
+  private visualizationBounds: aabb;
 
   constructor(
     repo: string,
@@ -108,6 +111,7 @@ class Renderer {
     this.callbacks = callbacks;
     this.screenWorldAabb = aabb.create();
     this.tileStore = new TileStore();
+    this.visualizationBounds = quadtreeBoundingBox(this.layout.lineCount);
 
     this.boundFrame = this.frame.bind(this);
     this.boundHandleWheel = this.handleWheel.bind(this);
@@ -184,9 +188,8 @@ class Renderer {
     canvas.height = height;
     this.camera.setScreenSize(vec2.fromValues(width, height));
 
-    const vizBox = quadtreeBoundingBox(this.layout.lineCount);
     const expandedBox = aabb.create();
-    aabb.scale(expandedBox, vizBox, 1.1);
+    aabb.scale(expandedBox, this.visualizationBounds, 1.1);
     this.camera.snapToBox(expandedBox);
 
     canvas.addEventListener("wheel", this.boundHandleWheel);
@@ -221,7 +224,7 @@ class Renderer {
       this.layout.lineCount,
       pixelsPerWorldUnit,
     )) {
-      reqs.push(boxToTileRequest(box, this.repo, this.committish));
+      reqs.push(boxToTileRequest(box, this.repo, this.committish, "length"));
     }
 
     // Update tile store with required tiles
@@ -447,6 +450,10 @@ class Renderer {
       );
       window.removeEventListener("resize", this.boundHandleResize);
     }
+  }
+
+  get boundingBox(): aabb {
+    return this.visualizationBounds;
   }
 }
 

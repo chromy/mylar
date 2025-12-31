@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { Link, Route, Switch, useParams } from "wouter";
 import { z } from "zod";
-import { DecryptLoader } from "./loader.js";
+import { FullScreenDecryptLoader } from "./loader.js";
 import { useJsonQuery } from "./query.js";
 import { Mylar } from "./mylar.js";
 
@@ -43,7 +43,7 @@ const HomePage = () => {
   return (
     <div className="grid place-content-center">
       <div className="max-w-xl mx-auto w-100 my-4 p-3 border rounded-xs border-black shadow-sm">
-        {isLoading && <DecryptLoader />}
+        {isLoading && <FullScreenDecryptLoader />}
 
         {data &&
           data.repos.map(r => (

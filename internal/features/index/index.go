@@ -208,6 +208,68 @@ var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ct
 	return lengths, nil
 })
 
+func TileLineOffset(ctx context.Context, repoId string, repository *git.Repository, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+	// Try to load from cache first
+	cacheKey := core.GenerateCacheKey("tile-offset", hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
+	if cached, err := indexCache.Get(cacheKey); err == nil {
+		var tile []int64
+		if err := json.Unmarshal(cached, &tile); err == nil {
+			return tile, nil
+		}
+		// If unmarshaling fails, continue with computation
+	}
+
+	if lod != 0 {
+		return make([]int64, constants.TileSize*constants.TileSize), nil
+	}
+
+	tileSize := utils.LodToSize(int(lod))
+	tile := make([]int64, tileSize*tileSize)
+
+	// Get the index for the repository
+	index, err := GetIndex(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	layout := index.ToTileLayout()
+
+	tilePos := utils.TilePosition{
+		Lod:     lod,
+		TileX:   x,
+		TileY:   y,
+		OffsetX: 0,
+		OffsetY: 0,
+	}
+
+	// Get the world position for the top-left corner of this tile
+	tileWorldPos := utils.TileToWorld(tilePos, *layout)
+
+	// For each position in the tile, calculate the corresponding line offset
+	for tileY := 0; tileY < tileSize; tileY++ {
+		for tileX := 0; tileX < tileSize; tileX++ {
+			// Calculate world position for this pixel in the tile
+			worldPos := utils.WorldPosition{
+				X: tileWorldPos.X + int64(tileX),
+				Y: tileWorldPos.Y + int64(tileY),
+			}
+
+			linePos := utils.WorldToLine(worldPos, *layout)
+			if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+				tileIdx := tileY*tileSize + tileX
+				tile[tileIdx] = int64(linePos) - entry.LineOffset
+			}
+		}
+	}
+
+	// Cache the result with 30 minutes expiration (tiles are accessed frequently)
+	if tileData, err := json.Marshal(tile); err == nil {
+		indexCache.Add(cacheKey, tileData, 30*time.Minute)
+	}
+
+	return tile, nil
+}
+
 func TileLineLength(ctx context.Context, repoId string, repository *git.Repository, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
 	// Try to load from cache first
 	cacheKey := core.GenerateCacheKey("tile", hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
@@ -267,25 +329,14 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 
 			// Find the file entry that contains this line using binary search
 			if entry := index.FindFileByLine(int64(linePos)); entry != nil {
-				// Get the object directly using the hash from the index entry
-				obj, err := repository.Object(plumbing.AnyObject, entry.Hash)
+				lineLengths, err := GetBlobLineLengths(ctx, repoId, entry.Hash)
 				if err != nil {
-					continue // Skip files we can't read
+					return nil, err
 				}
-
-				// Only process blobs (files)
-				if blob, ok := obj.(*object.Blob); ok {
-					lineLengths, err := GetBlobLineLengths(ctx, repoId, blob.Hash)
-					if err != nil {
-						continue // Skip files we can't process
-					}
-
-					// Get the line index within this file
-					lineIdxInFile := int64(linePos) - entry.LineOffset
-					if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
-						tileIdx := tileY*tileSize + tileX
-						tile[tileIdx] = int64(lineLengths[lineIdxInFile])
-					}
+				lineIdxInFile := int64(linePos) - entry.LineOffset
+				if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
+					tileIdx := tileY*tileSize + tileX
+					tile[tileIdx] = int64(lineLengths[lineIdxInFile])
 				}
 			}
 		}
@@ -303,6 +354,86 @@ type TileMetadata struct {
 	X   int64 `json:"y"`
 	Y   int64 `json:"x"`
 	Lod int64 `json:"lod"`
+}
+
+func TileLineOffsetHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	repoName := ps.ByName("repo")
+	if repoName == "" {
+		http.Error(w, "repo must be set", http.StatusBadRequest)
+		return
+	}
+
+	committish := ps.ByName("committish")
+	if committish == "" {
+		http.Error(w, "committish must be set", http.StatusBadRequest)
+		return
+	}
+
+	rawX := ps.ByName("x")
+	if rawX == "" {
+		http.Error(w, "x must be set", http.StatusBadRequest)
+		return
+	}
+	x, err := strconv.ParseInt(rawX, 10, 64)
+	if err != nil {
+		http.Error(w, "x must be number", http.StatusBadRequest)
+		return
+	}
+
+	rawY := ps.ByName("y")
+	if rawY == "" {
+		http.Error(w, "y must be set", http.StatusBadRequest)
+		return
+	}
+	y, err := strconv.ParseInt(rawY, 10, 64)
+	if err != nil {
+		http.Error(w, "y must be number", http.StatusBadRequest)
+		return
+	}
+
+	rawLod := ps.ByName("lod")
+	if rawLod == "" {
+		http.Error(w, "lod must be set", http.StatusBadRequest)
+		return
+	}
+	lod, err := strconv.ParseInt(rawLod, 10, 64)
+	if err != nil {
+		http.Error(w, "lod must be number", http.StatusBadRequest)
+		return
+	}
+
+	repository, err := repo.Get(r.Context(), repoName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	hash, err := repo.ResolveCommittishToTreeish(repository, committish)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	tile, err := TileLineOffset(r.Context(), repoName, repository, hash, lod, x, y)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	metadata := TileMetadata{
+		X:   x,
+		Y:   y,
+		Lod: lod,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(metadata); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+	if err := json.NewEncoder(w).Encode(tile); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func TileLineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -408,6 +539,13 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/repo/:repo/:committish/tile/:lod/:x/:y/length",
 		Handler: TileLineLengthHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "tile.line_offset",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/:committish/tile/:lod/:x/:y/offset",
+		Handler: TileLineOffsetHandler,
 	})
 
 	schemas.Register("index.IndexEntry", IndexEntry{})

@@ -8,7 +8,7 @@ import {
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
-import { DecryptLoader } from "./loader.js";
+import { FullScreenDecryptLoader } from "./loader.js";
 import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
 import { CommandMenu } from "./command_menu.js";
 import { GlassPanel } from "./glass_panel.js";
@@ -39,7 +39,7 @@ const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
 
   return (
     <div>
-      {isLoading && <DecryptLoader />}
+      {isLoading && <FullScreenDecryptLoader />}
       <ul>
         {data &&
           (data.entries ?? []).map(e => (
@@ -141,7 +141,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 };
 
 const MylarLoading = () => {
-  return <DecryptLoader />;
+  return <FullScreenDecryptLoader />;
 };
 
 export interface MylarProps {
@@ -161,7 +161,7 @@ export const Mylar = ({ repo, committish }: MylarProps) => {
 
   return (
     <>
-      {isLoading && <DecryptLoader />}
+      {isLoading && <FullScreenDecryptLoader />}
       {data && (
         <MylarContent repo={repo} committish={committish} index={data} />
       )}

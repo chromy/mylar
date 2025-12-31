@@ -5,6 +5,7 @@ export interface TileRequest {
   y: number;
   lod: number;
   repo: string;
+  kind: string;
   committish: string;
 }
 
@@ -15,7 +16,7 @@ interface TileData {
 }
 
 async function fetchTile(request: TileRequest): Promise<TileData> {
-  const url = `/api/repo/${request.repo}/${request.committish}/tile/${request.lod}/${request.x}/${request.y}/length`;
+  const url = `/api/repo/${request.repo}/${request.committish}/tile/${request.lod}/${request.x}/${request.y}/${request.kind}`;
   const response = await fetch(url);
 
   if (!response.ok) {
