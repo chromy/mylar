@@ -17,17 +17,15 @@ import (
 	"sync"
 )
 
-
 type Repo struct {
-	Id string
-	Owner string
-	Name string
+	Id         string
+	Owner      string
+	Name       string
 	Repository *git.Repository
 }
 
-var mu    sync.RWMutex
+var mu sync.RWMutex
 var repos map[string]Repo = make(map[string]Repo)
-
 
 type TreeEntry struct {
 	Name string            `json:"name"`
@@ -40,9 +38,9 @@ type TreeEntries struct {
 }
 
 type RepoInfo struct {
-	Id string `json:"id"`
+	Id    string `json:"id"`
 	Owner string `json:"owner,omitempty"`
-	Name string `json:"name,omitempty"`
+	Name  string `json:"name,omitempty"`
 }
 
 type RepoListResponse struct {
@@ -63,9 +61,9 @@ func AddFromPath(_ context.Context, id string, path string) error {
 	}
 
 	repos[id] = Repo{
-		Id: id,
-		Name: "",
-		Owner: "",
+		Id:         id,
+		Name:       "",
+		Owner:      "",
 		Repository: repository,
 	}
 
@@ -85,22 +83,21 @@ func AddFromGithub(_ context.Context, owner string, name string) error {
 	url := fmt.Sprintf("https://github.com/%s/%s", owner, name)
 
 	repository, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-    URL: url,
+		URL: url,
 	})
 	if err != nil {
 		return err
 	}
 
 	repos[id] = Repo{
-		Id: id,
-		Name: name,
-		Owner: owner,
+		Id:         id,
+		Name:       name,
+		Owner:      owner,
 		Repository: repository,
 	}
 
 	return nil
 }
-
 
 func Get(_ context.Context, id string) (*git.Repository, error) {
 	mu.RLock()
@@ -152,8 +149,8 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	for _, repo := range repos {
 		response.Repos = append(response.Repos, RepoInfo{
-			Id: repo.Id,
-			Name: repo.Name,
+			Id:    repo.Id,
+			Name:  repo.Name,
 			Owner: repo.Owner,
 		})
 	}

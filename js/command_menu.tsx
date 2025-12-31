@@ -33,7 +33,7 @@ export const CommandMenu = ({ dispatch, state }: CommandMenuProps) => {
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.Group heading="Toggle Settings">
-          {settings.items.map((setting) => (
+          {settings.items.map(setting => (
             <Command.Item
               key={`enable-${setting.id}`}
               onSelect={() => {
@@ -44,7 +44,7 @@ export const CommandMenu = ({ dispatch, state }: CommandMenuProps) => {
               Enable {setting.name}
             </Command.Item>
           ))}
-          {settings.items.map((setting) => (
+          {settings.items.map(setting => (
             <Command.Item
               key={`disable-${setting.id}`}
               onSelect={() => {

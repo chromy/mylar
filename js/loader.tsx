@@ -30,9 +30,7 @@ export const DecryptLoader = () => {
   }, []);
 
   return (
-    <div className="text-center m-2 font-mono text-xl font-bold">
-      {text}
-    </div>
+    <div className="text-center m-2 font-mono text-xl font-bold">{text}</div>
   );
 };
 

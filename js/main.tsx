@@ -4,7 +4,7 @@ import { z } from "zod";
 import { FullScreenDecryptLoader } from "./loader.js";
 import { useJsonQuery } from "./query.js";
 import { Mylar } from "./mylar.js";
-import {RepoListResponseSchema} from "./schemas.js"
+import { RepoListResponseSchema } from "./schemas.js";
 import { MylarLink } from "./mylar_link.js";
 
 async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
@@ -27,12 +27,11 @@ const HomePage = () => {
         {isLoading && <FullScreenDecryptLoader />}
 
         {data?.repos &&
-          (
-            data.repos.map(r => (
-              <MylarLink href={`/app/repo/${r.id}/HEAD`}>{`${r.owner ?? "?"}/${r.name ?? "?"} (${r.id})`}</MylarLink>
-            )
-                          )
-          )}
+          data.repos.map(r => (
+            <MylarLink
+              href={`/app/repo/${r.id}/HEAD`}
+            >{`${r.owner ?? "?"}/${r.name ?? "?"} (${r.id})`}</MylarLink>
+          ))}
       </div>
     </div>
   );
