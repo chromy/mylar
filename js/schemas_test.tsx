@@ -1,7 +1,6 @@
 import o from "ospec";
 import {
   TILE_SIZE,
-  GranularLineLengthSchema,
   IndexEntrySchema,
   IndexSchema,
   LineLengthSchema,
@@ -16,25 +15,6 @@ o.spec("schemas", () => {
     });
   });
 
-  o.spec("GranularLineLengthSchema", () => {
-    o("validates correct structure", () => {
-      const valid = { LinesLengths: [10, 20, 30] };
-      const result = GranularLineLengthSchema.safeParse(valid);
-      o(result.success).equals(true);
-    });
-
-    o("accepts null LinesLengths", () => {
-      const valid = { LinesLengths: null };
-      const result = GranularLineLengthSchema.safeParse(valid);
-      o(result.success).equals(true);
-    });
-
-    o("rejects invalid structure", () => {
-      const invalid = { LinesLengths: "not an array" };
-      const result = GranularLineLengthSchema.safeParse(invalid);
-      o(result.success).equals(false);
-    });
-  });
 
   o.spec("IndexEntrySchema", () => {
     o("validates correct entry", () => {

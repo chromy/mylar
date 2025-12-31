@@ -92,6 +92,13 @@ export class TileStore {
   private requestedTiles: Set<string> = new Set();
   private tileCache: Map<string, TileData> = new Map();
   private pendingRequests: Set<string> = new Set();
+  private requestQueue: TileRequest[] = [];
+  private liveRequests: Set<string> = new Set();
+  private readonly maxLiveRequests: number;
+
+  constructor(maxLiveRequests: number = 6) {
+    this.maxLiveRequests = maxLiveRequests;
+  }
 
   private tileKey(request: TileRequest): string {
     return `${request.repo}_${request.committish}_${request.x}_${request.y}_${request.lod}`;
@@ -100,12 +107,26 @@ export class TileStore {
   update(requests: TileRequest[]): void {
     this.requestedTiles.clear();
 
+    // Remove canceled requests from queue
+    this.requestQueue = this.requestQueue.filter(request => {
+      const key = this.tileKey(request);
+      return requests.some(r => this.tileKey(r) === key);
+    });
+
     for (const request of requests) {
       const key = this.tileKey(request);
       this.requestedTiles.add(key);
 
       if (!this.tileCache.has(key) && !this.pendingRequests.has(key)) {
-        this.requestTile(request);
+        if (this.liveRequests.size < this.maxLiveRequests) {
+          this.requestTile(request);
+        } else {
+          // Add to queue if not already there
+          const alreadyQueued = this.requestQueue.some(r => this.tileKey(r) === key);
+          if (!alreadyQueued) {
+            this.requestQueue.push(request);
+          }
+        }
       }
     }
   }
@@ -119,6 +140,7 @@ export class TileStore {
   private async requestTile(request: TileRequest): Promise<void> {
     const key = this.tileKey(request);
     this.pendingRequests.add(key);
+    this.liveRequests.add(key);
 
     try {
       const tile = await fetchTile(request);
@@ -127,6 +149,20 @@ export class TileStore {
       console.error("Failed to fetch tile:", error);
     } finally {
       this.pendingRequests.delete(key);
+      this.liveRequests.delete(key);
+      this.processQueue();
+    }
+  }
+
+  private processQueue(): void {
+    while (this.requestQueue.length > 0 && this.liveRequests.size < this.maxLiveRequests) {
+      const request = this.requestQueue.shift()!;
+      const key = this.tileKey(request);
+      
+      // Only process if still requested and not already cached or pending
+      if (this.requestedTiles.has(key) && !this.tileCache.has(key) && !this.pendingRequests.has(key)) {
+        this.requestTile(request);
+      }
     }
   }
 }

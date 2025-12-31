@@ -203,35 +203,6 @@ var Lines = core.RegisterBlobComputation("lines", func(ctx context.Context, repo
 })
 
 var LineCount = core.RegisterBlobComputation("lineCount", func(ctx context.Context, repoId string, hash plumbing.Hash) (int64, error) {
-	isBinary, err := IsBinary(ctx, repoId, hash)
-	if err != nil {
-		return 0, err
-	}
-
-	repo, err := Get(ctx, repoId)
-	if err != nil {
-		return 0, err
-	}
-
-	blob, err := repo.BlobObject(hash)
-	if err != nil {
-		return 0, err
-	}
-
-	reader, err := blob.Reader()
-	if err != nil {
-		return 0, err
-	}
-	defer reader.Close()
-
-	if isBinary {
-		content, err := io.ReadAll(reader)
-		if err != nil {
-			return 0, err
-		}
-		return int64(len(content)), nil
-	}
-
 	lines, err := Lines(ctx, repoId, hash)
 	if err != nil {
 		return 0, err

@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	"log"
 )
 
 type IndexEntry struct {
@@ -208,44 +209,6 @@ var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ct
 	return lengths, nil
 })
 
-//func LineLengthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-//	repoName := ps.ByName("repo")
-//	committish := ps.ByName("committish")
-//
-//	if repoName == "" {
-//		http.Error(w, "repo must be set", http.StatusBadRequest)
-//		return
-//	}
-//
-//	if committish == "" {
-//		http.Error(w, "committish must be set", http.StatusBadRequest)
-//		return
-//	}
-//
-//	repository, err := repo.Get(r.Context(), repoName)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusBadRequest)
-//		return
-//	}
-//
-//	hash, err := repo.ResolveCommittishToTreeish(repository, committish)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusBadRequest)
-//		return
-//	}
-//
-//	index, err := ComputeLineLength(r.Context(), repository, hash)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	if err := json.NewEncoder(w).Encode(index); err != nil {
-//		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-//	}
-//}
-
 func TileLineLength(ctx context.Context, repoId string, repository *git.Repository, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
 	// Try to load from cache first
 	cacheKey := core.GenerateCacheKey("tile", hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
@@ -280,8 +243,17 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 		OffsetY: 0,
 	}
 
+
 	// Get the world position for the top-left corner of this tile
 	tileWorldPos := utils.TileToWorld(tilePos, *layout)
+
+	cornerWorldPosition := utils.WorldPosition{
+		X: tileWorldPos.X,
+		Y: tileWorldPos.Y,
+	}
+	cornerLinePosition := utils.WorldToLine(cornerWorldPosition, *layout)
+	cornerEntry := index.FindFileByLine(int64(cornerLinePosition))
+	log.Printf("%d %d %d %v %v %v %v %v %v", lod, x, y, *layout, tilePos, tileWorldPos, cornerWorldPosition, cornerLinePosition, cornerEntry)
 
 	// For each position in the tile, find the corresponding line and get its length
 	for tileY := 0; tileY < tileSize; tileY++ {
