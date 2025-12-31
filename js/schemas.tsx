@@ -10,6 +10,30 @@ export const IndexEntrySchema = z.object({
 });
 export type IndexEntry = z.infer<typeof IndexEntrySchema>;
 
+export const WorldPositionSchema = z.object({
+  X: z.number(),
+  Y: z.number(),
+});
+export type WorldPosition = z.infer<typeof WorldPositionSchema>;
+
+export const TilePositionSchema = z.object({
+  Lod: z.number(),
+  TileX: z.number(),
+  TileY: z.number(),
+  OffsetX: z.number(),
+  OffsetY: z.number(),
+});
+export type TilePosition = z.infer<typeof TilePositionSchema>;
+
+export const FileByLineResponseSchema = z.object({
+  entry: IndexEntrySchema,
+  content: z.string(),
+  lineOffset: z.number(),
+  worldPosition: WorldPositionSchema,
+  tilePosition: TilePositionSchema,
+});
+export type FileByLineResponse = z.infer<typeof FileByLineResponseSchema>;
+
 export const IndexSchema = z.object({
   entries: IndexEntrySchema.array().nullable(),
 });

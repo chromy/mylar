@@ -356,6 +356,87 @@ type TileMetadata struct {
 	Lod int64 `json:"lod"`
 }
 
+type FileByLineResponse struct {
+	Entry         IndexEntry           `json:"entry"`
+	Content       string               `json:"content"`
+	LineOffset    int64                `json:"lineOffset"`
+	WorldPosition utils.WorldPosition  `json:"worldPosition"`
+	TilePosition  utils.TilePosition   `json:"tilePosition"`
+}
+
+func FileByLineHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoName := ps.ByName("repo")
+	if repoName == "" {
+		http.Error(w, "repo must be set", http.StatusBadRequest)
+		return
+	}
+
+	committish := ps.ByName("committish")
+	if committish == "" {
+		http.Error(w, "committish must be set", http.StatusBadRequest)
+		return
+	}
+
+	rawLine := ps.ByName("line")
+	if rawLine == "" {
+		http.Error(w, "line must be set", http.StatusBadRequest)
+		return
+	}
+	lineNumber, err := strconv.ParseInt(rawLine, 10, 64)
+	if err != nil {
+		http.Error(w, "line must be a number", http.StatusBadRequest)
+		return
+	}
+
+	repository, err := repo.Get(r.Context(), repoName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	treeHash, err := repo.ResolveCommittishToTreeish(repository, committish)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	index, err := GetTreeIndex(r.Context(), repoName, treeHash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	entry := index.FindFileByLine(lineNumber)
+	if entry == nil {
+		http.Error(w, fmt.Sprintf("line %d not found in any file", lineNumber), http.StatusNotFound)
+		return
+	}
+
+	content, err := repo.Content(r.Context(), repoName, entry.Hash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	layout := index.ToTileLayout()
+	linePos := utils.LinePosition(lineNumber)
+	worldPos := utils.LineToWorld(linePos, *layout)
+	tilePos := utils.WorldToTile(worldPos, *layout)
+
+	response := FileByLineResponse{
+		Entry:         *entry,
+		Content:       content,
+		LineOffset:    lineNumber - entry.LineOffset,
+		WorldPosition: worldPos,
+		TilePosition:  tilePos,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 func TileLineOffsetHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	repoName := ps.ByName("repo")
@@ -527,6 +608,13 @@ func init() {
 		Handler: IndexHandler,
 	})
 
+	core.RegisterRoute(core.Route{
+		Id:      "index.file_by_line",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/:repo/:committish/index/line/:line",
+		Handler: FileByLineHandler,
+	})
+
 	//core.RegisterRoute(core.Route{
 	//	Id:      "index.line_length",
 	//	Method:  http.MethodGet,
@@ -551,5 +639,6 @@ func init() {
 	schemas.Register("index.IndexEntry", IndexEntry{})
 	schemas.Register("index.Index", Index{})
 	schemas.Register("index.LineLength", LineLength{})
+	schemas.Register("index.FileByLineResponse", FileByLineResponse{})
 	schemas.Register("tile.TileMetadata", TileMetadata{})
 }

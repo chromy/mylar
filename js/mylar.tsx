@@ -10,7 +10,10 @@ import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { FullScreenDecryptLoader } from "./loader.js";
-import { type Index, IndexSchema, TILE_SIZE } from "./schemas.js";
+import { type Index, IndexSchema, TILE_SIZE, type IndexEntry } from "./schemas.js";
+
+const FileLinesSchema = z.string().array();
+type FileLines = z.infer<typeof FileLinesSchema>;
 import { CommandMenu } from "./command_menu.js";
 import { GlassPanel } from "./glass_panel.js";
 import { ModalPanel } from "./modal_panel.js";
@@ -69,11 +72,48 @@ function toTileLayout(index: Index): TileLayout {
   };
 }
 
+function findIndexEntryByLine(entries: IndexEntry[], lineNumber: number): IndexEntry | undefined {
+  if (entries.length === 0 || lineNumber < 0) {
+    return undefined;
+  }
+
+  let left = 0;
+  let right = entries.length - 1;
+  let result: IndexEntry | undefined = undefined;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const entry = entries[mid];
+
+    if (entry === undefined) {
+      break;
+    }
+
+    const entryStart = entry.lineOffset;
+    const entryEnd = entry.lineOffset + entry.lineCount - 1;
+
+    if (lineNumber >= entryStart && lineNumber <= entryEnd) {
+      return entry;
+    } else if (lineNumber < entryStart) {
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+
+  return result;
+}
+
 export interface MylarContentProps {
   repo: string;
   committish: string;
   index: Index;
 }
+
+const displayFileContext = settings.addBoolean({
+  id: "setting.displayFileContext",
+  name: "file context",
+});
 
 const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   const fileCount = (index.entries ?? []).length;
@@ -83,10 +123,43 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 
   const [debug, setDebug] = useState<DebugInfo>([]);
   const [state, dispatch] = useReducer(mylarReducer, initialMylarState);
+  const [hoveredLineNumber, setHoveredLineNumber] = useState<number>(-1);
 
   const layout = useMemo(() => {
     return toTileLayout(index);
   }, [index]);
+
+  const hoveredEntry = useMemo(() => {
+    if (hoveredLineNumber < 0) {
+      return undefined;
+    }
+    return findIndexEntryByLine(index.entries ?? [], hoveredLineNumber);
+  }, [index.entries, hoveredLineNumber]);
+
+  const hashString = hoveredEntry?.hash ? hoveredEntry.hash.map(b => b.toString(16).padStart(2, '0')).join('') : '';
+
+  const { data: fileLines } = useJsonQuery({
+    path: `/api/compute/lines/${repo}/${hashString}`,
+    schema: FileLinesSchema,
+    enabled: !!hoveredEntry && hashString.length > 0,
+  }, [repo, hashString]);
+
+  const contextLines = useMemo(() => {
+    if (!fileLines || !hoveredEntry || hoveredLineNumber < 0) {
+      return null;
+    }
+
+    const fileLineNumber = hoveredLineNumber - hoveredEntry.lineOffset;
+    const contextSize = 5;
+    const startLine = Math.max(0, fileLineNumber - contextSize);
+    const endLine = Math.min(fileLines.length - 1, fileLineNumber + contextSize);
+
+    return {
+      lines: fileLines.slice(startLine, endLine + 1),
+      startLineNumber: startLine + 1,
+      hoveredFileLineNumber: fileLineNumber + 1,
+    };
+  }, [fileLines, hoveredEntry, hoveredLineNumber]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -110,6 +183,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           setDebug={setDebug}
           dispatch={dispatch}
           state={state}
+          setHoveredLineNumber={setHoveredLineNumber}
         />
       </div>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
@@ -119,7 +193,7 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           </Button>
         </div>
       </GlassPanel>
-      <GlassPanel>
+      <GlassPanel area="mylar-content-info self-end text-xxs">
         <table className="table-auto w-full">
           <thead></thead>
           <tbody>
@@ -147,10 +221,53 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
         </table>
       </GlassPanel>
 
+      {hoveredEntry && (
+        <GlassPanel area="mylar-content-line self-end">
+          <div className="font-mono text-xxs space-y-1">
+            {contextLines && displayFileContext.get(state) && contextLines.lines.map((line, index) => {
+              const lineNum = contextLines.startLineNumber + index;
+              const isHovered = lineNum === contextLines.hoveredFileLineNumber;
+              return (
+                <div 
+                  key={lineNum}
+                  className={`flex ${isHovered ? 'bg-yellow-500/20' : ''}`}
+                >
+                  <span className="text-gray-500 text-right w-8 mr-2 select-none">
+                    {lineNum}
+                  </span>
+                  <span className="whitespace-pre">{line || ' '}</span>
+                </div>
+              );
+            })}
+            <div className="text-xxs text-gray-400 mt-2">
+              {hoveredEntry.path}
+              {" "}
+              { contextLines && (<span>(lines {contextLines.startLineNumber}-{contextLines.startLineNumber + contextLines.lines.length - 1})</span>) }
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
       <SettingsPanel dispatch={dispatch} state={state} />
     </div>
   );
 };
+
+//      {hoveredEntry && (
+//        <GlassPanel area="mylar-content-line self-end grid grid-cols-[auto_1fr] gap-x-5">
+//          <div className="text-left pb-2">Line {hoveredLineNumber}</div>
+//          <div></div>
+//          <div>File</div>
+//          <div className="font-mono text-sm">{hoveredEntry.path}</div>
+//          <div>Line Range</div>
+//          <div>{hoveredEntry.lineOffset} - {hoveredEntry.lineOffset + hoveredEntry.lineCount - 1}</div>
+//          <div>File Lines</div>
+//          <div>{hoveredEntry.lineCount}</div>
+//          <div>File Line</div>
+//          <div>{hoveredLineNumber - hoveredEntry.lineOffset + 1}</div>
+//        </GlassPanel>
+//      )}
+
 
 const MylarLoading = () => {
   return <FullScreenDecryptLoader />;

@@ -11,12 +11,16 @@ html, body {
   grid:
     "a     b     c" 1fr
     "d     e     f" 1fr
-    "g     h     info" auto
-    / 1fr 1fr minmax(auto, 1fr);
+    "line     line     info" auto
+    / 3fr 1fr minmax(auto, 1fr);
 }
 
 .mylar-content-info {
   grid-area: info;
+}
+
+.mylar-content-line {
+  grid-area: line;
 }
 
 canvas {

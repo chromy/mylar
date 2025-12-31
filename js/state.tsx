@@ -87,7 +87,7 @@ export const settings = new SettingsStore();
 
 export const settingsPanelSetting = settings.addBoolean({
   id: "setting.settingsPanel",
-  name: "Display settings panel",
+  name: "settings panel",
 });
 
 export const mylarReducer = (

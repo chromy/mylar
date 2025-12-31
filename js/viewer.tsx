@@ -10,7 +10,7 @@ import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
 import { quadtreeBoundingBox, requiredTiles, toLod } from "./math.js";
-import { lodToSize } from "./utils.js";
+import { lodToSize, lineToWorld, worldToTile, worldToLine, type WorldPosition, type TilePosition, type LinePosition } from "./utils.js";
 import { type TileRequest, TileStore } from "./store.js";
 import {
   type MylarAction,
@@ -54,28 +54,37 @@ interface RendererHostCallbacks {
   getCanvas: () => HTMLCanvasElement | undefined;
   setDebug: (info: DebugInfo) => void;
   setFrameHistory: (history: number[]) => void;
+  setHoveredLineNumber: (line: number) => void;
   getState(): MylarState;
 }
 
 const displayOrigin = settings.addBoolean({
   id: "setting.displayOrigin",
-  name: "Display origin",
+  name: "origin",
 });
 
 const displayFps = settings.addBoolean({
   id: "setting.displayFps",
-  name: "Display FPS",
+  name: "FPS",
 });
 
 const displayTileBorders = settings.addBoolean({
   id: "setting.displayTileBorders",
-  name: "Display tile borders",
+  name: "tile borders",
 });
 
 const displayBoundingBox = settings.addBoolean({
   id: "setting.displayBoundingBox",
-  name: "Display bounding box",
+  name: "bounding box",
+  defaultValue: true,
 });
+
+const displayMouseDebug = settings.addBoolean({
+  id: "setting.displayMouseDebug",
+  name: "mouse debug",
+  defaultValue: true,
+});
+
 
 class Renderer {
   private repo: string;
@@ -97,6 +106,9 @@ class Renderer {
   private screenWorldAabb: aabb;
   private screenMouse: vec2;
   private worldMouse: vec2;
+  private worldMousePosition: WorldPosition;
+  private tilePosition: TilePosition;
+  private linePosition: LinePosition;
   private visualizationBounds: aabb;
 
   constructor(
@@ -124,6 +136,9 @@ class Renderer {
     this.boundHandleMouseMove = this.handleMouseMove.bind(this);
     this.screenMouse = vec2.create();
     this.worldMouse = vec2.create();
+    this.worldMousePosition = { X: 0, Y: 0 };
+    this.tilePosition = { Lod: 0, TileX: 0, TileY: 0, OffsetX: 0, OffsetY: 0 };
+    this.linePosition = 0;
   }
 
   private handleResize(): void {
@@ -213,6 +228,11 @@ class Renderer {
     this.lastFrameMs = timestamp - this.lastTimestampMs;
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
+    this.worldMousePosition = { X: this.worldMouse[0], Y: this.worldMouse[1] };
+    this.tilePosition = worldToTile(this.worldMousePosition, { LastLine: this.layout.lineCount - 1 });
+    this.linePosition = worldToLine(this.worldMousePosition, { LastLine: this.layout.lineCount - 1 });
+    this.callbacks.setHoveredLineNumber(this.linePosition);
+
     const state = this.callbacks.getState();
     const pixelsPerWorldUnit =
       this.camera.screenWidthPx / aabb.width(this.screenWorldAabb);
@@ -252,17 +272,25 @@ class Renderer {
 
       const debugItems: DebugInfo = [];
 
+      debugItems.push(["# Tile requests", `${reqs.length}`]);
+
       if (displayFps.get(state)) {
         debugItems.push(["Frame duration", this.lastFrameMs.toFixed(2) + "ms"]);
       }
-      debugItems.push(["World bbox", `(${x}, ${y}) (${w}, ${h})`]);
-      debugItems.push(["Screen mouse", `(${screenMouseX}, ${screenMouseY})`]);
-      debugItems.push(["World mouse", `(${worldMouseX}, ${worldMouseY})`]);
-      debugItems.push([
-        "Pixel per world unit",
-        `${pixelsPerWorldUnit.toFixed(2)}`,
-      ]);
-      debugItems.push(["# Tile requests", `${reqs.length}`]);
+      if (displayMouseDebug.get(state)) {
+        debugItems.push(["World bbox", `(${x}, ${y}) (${w}, ${h})`]);
+        debugItems.push(["Screen mouse", `(${screenMouseX}, ${screenMouseY})`]);
+        debugItems.push(["World mouse", `(${worldMouseX}, ${worldMouseY})`]);
+        debugItems.push([
+          "Tile position",
+          `T(${this.tilePosition.TileX}, ${this.tilePosition.TileY}) O(${this.tilePosition.OffsetX.toFixed(0)}, ${this.tilePosition.OffsetY.toFixed(0)})`
+        ]);
+        debugItems.push(["Line position", `${this.linePosition}`]);
+        debugItems.push([
+          "Pixel per world unit",
+          `${pixelsPerWorldUnit.toFixed(2)}`,
+        ]);
+      }
       this.callbacks.setDebug(debugItems);
     }
 
@@ -474,6 +502,7 @@ export interface ViewerProps {
   committish: string;
   layout: TileLayout;
   setDebug: (info: DebugInfo) => void;
+  setHoveredLineNumber: (line: number) => void;
   dispatch: ActionDispatch<[action: MylarAction]>;
   state: MylarState;
 }
@@ -486,6 +515,7 @@ export const Viewer = ({
   committish,
   layout,
   setDebug,
+  setHoveredLineNumber,
 }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<MylarState>(initialMylarState);
@@ -510,13 +540,14 @@ export const Viewer = ({
       setFrameHistory,
       setDebug,
       getState,
+      setHoveredLineNumber,
     });
     renderer.start();
 
     return () => {
       renderer.stop();
     };
-  }, [setFrameHistory, setDebug]);
+  }, [setFrameHistory, setDebug, setHoveredLineNumber]);
 
   return (
     <canvas

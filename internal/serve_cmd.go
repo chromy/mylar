@@ -14,10 +14,19 @@ import (
 import _ "net/http/pprof"
 
 func loadInitialRepos(ctx context.Context) {
-	if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
+	//if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
+	//	panic(err)
+	//}
+	//if err := repo.AddFromGithub(ctx, "getsentry", "sentry"); err != nil {
+	//	panic(err)
+	//}
+	if err := repo.AddFromPath(ctx, "path:self", "."); err != nil {
 		panic(err)
 	}
-	//if err := repo.AddFromGithub(ctx, "getsentry", "sentry"); err != nil {
+	if err := repo.AddFromPath(ctx, "path:perfetto", "/Users/chromy/src/perfetto"); err != nil {
+		panic(err)
+	}
+	//if err := repo.AddFromGithub(ctx, "go-git", "go-billy"); err != nil {
 	//	panic(err)
 	//}
 }
@@ -35,16 +44,6 @@ func DoServe(ctx context.Context, port uint) {
 	}
 
 	go loadInitialRepos(ctx)
-
-	//if err := repo.AddFromPath(ctx, "path:self", "."); err != nil {
-	//	panic(err)
-	//}
-	//if err := repo.AddFromPath(ctx, "path:perfetto", "/Users/chromy/src/perfetto"); err != nil {
-	//	panic(err)
-	//}
-	//if err := repo.AddFromGithub(ctx, "go-git", "go-billy"); err != nil {
-	//	panic(err)
-	//}
 
 	router.Handler(http.MethodGet, "/debug/pprof/*item", http.DefaultServeMux)
 

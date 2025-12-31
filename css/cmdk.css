@@ -4,6 +4,7 @@
 }
 
 @theme {
+  --text-xxs: 0.5rem;
   --app-bg: var(--gray1);
   --cmdk-shadow: 0 16px 70px rgb(0 0 0 / 20%);
   --page-top: calc(var(--spacing) * 2);
