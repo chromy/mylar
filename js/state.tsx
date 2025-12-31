@@ -16,6 +16,7 @@ export interface MylarState {
 export interface SettingArgs {
   id: string;
   name?: string;
+  defaultValue?: boolean;
 }
 
 export interface SettingAction {
@@ -42,7 +43,7 @@ export class SettingsStore {
   }
 
   addBoolean(args: SettingArgs): Setting {
-    const schema = z.boolean().default(false);
+    const schema = z.boolean().default(args.defaultValue ?? false);
     const s: Setting = {
       id: args.id,
       name: args.name ?? args.id,

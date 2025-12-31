@@ -72,6 +72,11 @@ const displayTileBorders = settings.addBoolean({
   name: "Display tile borders",
 });
 
+const displayBoundingBox = settings.addBoolean({
+  id: "setting.displayBoundingBox",
+  name: "Display bounding box",
+});
+
 class Renderer {
   private repo: string;
   private committish: string;
@@ -287,7 +292,6 @@ class Renderer {
     const width = screenBottomRight[0] - screenTopLeft[0];
     const height = screenBottomRight[1] - screenTopLeft[1];
 
-    ctx.lineWidth = 5;
     ctx.strokeRect(screenTopLeft[0], screenTopLeft[1], width, height);
   }
 
@@ -413,6 +417,7 @@ class Renderer {
     }
 
     if (displayTileBorders.get(state)) {
+      ctx.lineWidth = 5;
       let count = 0;
       for (const r of requiredTileRequests) {
         const hue = ((count * 360) / requiredTileRequests.length) % 360;
@@ -427,6 +432,13 @@ class Renderer {
         this.renderAABB(ctx, box);
         count++;
       }
+    }
+
+    if (displayBoundingBox.get(state)) {
+      // Draw visualization bounding box as 1px black line
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 1;
+      this.renderAABB(ctx, this.visualizationBounds);
     }
   }
 
