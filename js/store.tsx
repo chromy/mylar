@@ -122,7 +122,9 @@ export class TileStore {
           this.requestTile(request);
         } else {
           // Add to queue if not already there
-          const alreadyQueued = this.requestQueue.some(r => this.tileKey(r) === key);
+          const alreadyQueued = this.requestQueue.some(
+            r => this.tileKey(r) === key,
+          );
           if (!alreadyQueued) {
             this.requestQueue.push(request);
           }
@@ -155,12 +157,19 @@ export class TileStore {
   }
 
   private processQueue(): void {
-    while (this.requestQueue.length > 0 && this.liveRequests.size < this.maxLiveRequests) {
+    while (
+      this.requestQueue.length > 0 &&
+      this.liveRequests.size < this.maxLiveRequests
+    ) {
       const request = this.requestQueue.shift()!;
       const key = this.tileKey(request);
-      
+
       // Only process if still requested and not already cached or pending
-      if (this.requestedTiles.has(key) && !this.tileCache.has(key) && !this.pendingRequests.has(key)) {
+      if (
+        this.requestedTiles.has(key) &&
+        !this.tileCache.has(key) &&
+        !this.pendingRequests.has(key)
+      ) {
         this.requestTile(request);
       }
     }

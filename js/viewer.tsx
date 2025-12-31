@@ -206,7 +206,8 @@ class Renderer {
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
     const state = this.callbacks.getState();
-    const pixelsPerWorldUnit = this.camera.screenWidthPx / aabb.width(this.screenWorldAabb);
+    const pixelsPerWorldUnit =
+      this.camera.screenWidthPx / aabb.width(this.screenWorldAabb);
 
     // If we haven't yet managed to initialize the canvas do so now:
     if (this.canvasState === undefined) {
@@ -249,7 +250,10 @@ class Renderer {
       debugItems.push(["World bbox", `(${x}, ${y}) (${w}, ${h})`]);
       debugItems.push(["Screen mouse", `(${screenMouseX}, ${screenMouseY})`]);
       debugItems.push(["World mouse", `(${worldMouseX}, ${worldMouseY})`]);
-      debugItems.push(["Pixel per world unit", `${pixelsPerWorldUnit.toFixed(2)}`]);
+      debugItems.push([
+        "Pixel per world unit",
+        `${pixelsPerWorldUnit.toFixed(2)}`,
+      ]);
       debugItems.push(["# Tile requests", `${reqs.length}`]);
       this.callbacks.setDebug(debugItems);
     }

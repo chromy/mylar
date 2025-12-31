@@ -15,7 +15,6 @@ o.spec("schemas", () => {
     });
   });
 
-
   o.spec("IndexEntrySchema", () => {
     o("validates correct entry", () => {
       const valid = {
