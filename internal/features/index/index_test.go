@@ -1,6 +1,8 @@
 package index
 
 import (
+	"testing"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 //func TestCountLines(t *testing.T) {
@@ -424,3 +426,176 @@ import (
 //		t.Errorf("Expected 0 entries for empty tree, got %d", len(index.Entries))
 //	}
 //}
+
+func TestFindFileByLine(t *testing.T) {
+	// Create test index with multiple files
+	// File structure:
+	// file1.txt: lines 0-2 (3 lines)
+	// file2.txt: lines 3-4 (2 lines)
+	// dir/file3.txt: lines 5-9 (5 lines)
+	// file4.txt: lines 10-10 (1 line)
+	
+	hash1 := plumbing.NewHash("1111111111111111111111111111111111111111")
+	hash2 := plumbing.NewHash("2222222222222222222222222222222222222222")
+	hash3 := plumbing.NewHash("3333333333333333333333333333333333333333")
+	hash4 := plumbing.NewHash("4444444444444444444444444444444444444444")
+	
+	index := Index{
+		Entries: []IndexEntry{
+			{Path: "file1.txt", LineOffset: 0, LineCount: 3, Hash: hash1},
+			{Path: "file2.txt", LineOffset: 3, LineCount: 2, Hash: hash2},
+			{Path: "dir/file3.txt", LineOffset: 5, LineCount: 5, Hash: hash3},
+			{Path: "file4.txt", LineOffset: 10, LineCount: 1, Hash: hash4},
+		},
+	}
+	
+	tests := []struct {
+		name         string
+		lineNumber   int64
+		expectedPath string
+		shouldFind   bool
+	}{
+		// Test finding files by line number
+		{"First line of first file", 0, "file1.txt", true},
+		{"Middle line of first file", 1, "file1.txt", true},
+		{"Last line of first file", 2, "file1.txt", true},
+		
+		{"First line of second file", 3, "file2.txt", true},
+		{"Last line of second file", 4, "file2.txt", true},
+		
+		{"First line of third file", 5, "dir/file3.txt", true},
+		{"Middle line of third file", 7, "dir/file3.txt", true},
+		{"Last line of third file", 9, "dir/file3.txt", true},
+		
+		{"Only line of fourth file", 10, "file4.txt", true},
+		
+		// Test edge cases
+		{"Negative line number", -1, "", false},
+		{"Line after all files", 11, "", false},
+		{"Line in gap between files (impossible with valid index)", 100, "", false},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := index.FindFileByLine(tt.lineNumber)
+			
+			if tt.shouldFind {
+				if result == nil {
+					t.Errorf("Expected to find file for line %d, but got nil", tt.lineNumber)
+					return
+				}
+				if result.Path != tt.expectedPath {
+					t.Errorf("Expected path %s for line %d, got %s", tt.expectedPath, tt.lineNumber, result.Path)
+				}
+				// Verify the line is actually within the range
+				if tt.lineNumber < result.LineOffset || tt.lineNumber >= result.LineOffset+result.LineCount {
+					t.Errorf("Line %d is not within entry range [%d, %d)", tt.lineNumber, result.LineOffset, result.LineOffset+result.LineCount)
+				}
+			} else {
+				if result != nil {
+					t.Errorf("Expected nil for line %d, but got entry for path %s", tt.lineNumber, result.Path)
+				}
+			}
+		})
+	}
+}
+
+func TestFindFileByLineEmptyIndex(t *testing.T) {
+	index := Index{Entries: []IndexEntry{}}
+	
+	result := index.FindFileByLine(0)
+	if result != nil {
+		t.Errorf("Expected nil for empty index, got %v", result)
+	}
+	
+	result = index.FindFileByLine(5)
+	if result != nil {
+		t.Errorf("Expected nil for empty index, got %v", result)
+	}
+}
+
+func TestFindFileByLineSingleEntry(t *testing.T) {
+	hash1 := plumbing.NewHash("1111111111111111111111111111111111111111")
+	index := Index{
+		Entries: []IndexEntry{
+			{Path: "single.txt", LineOffset: 0, LineCount: 5, Hash: hash1},
+		},
+	}
+	
+	tests := []struct {
+		name       string
+		lineNumber int64
+		shouldFind bool
+	}{
+		{"Line before file", -1, false},
+		{"First line", 0, true},
+		{"Middle line", 2, true},
+		{"Last line", 4, true},
+		{"Line after file", 5, false},
+		{"Line way after file", 100, false},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := index.FindFileByLine(tt.lineNumber)
+			
+			if tt.shouldFind {
+				if result == nil {
+					t.Errorf("Expected to find file for line %d, but got nil", tt.lineNumber)
+				} else if result.Path != "single.txt" {
+					t.Errorf("Expected path 'single.txt', got %s", result.Path)
+				}
+			} else {
+				if result != nil {
+					t.Errorf("Expected nil for line %d, but got entry for path %s", tt.lineNumber, result.Path)
+				}
+			}
+		})
+	}
+}
+
+func TestFindFileByLineWithZeroLineCountEntries(t *testing.T) {
+	// Test edge case with zero-line files
+	hash1 := plumbing.NewHash("1111111111111111111111111111111111111111")
+	hash2 := plumbing.NewHash("2222222222222222222222222222222222222222")
+	hash3 := plumbing.NewHash("3333333333333333333333333333333333333333")
+	
+	index := Index{
+		Entries: []IndexEntry{
+			{Path: "empty1.txt", LineOffset: 0, LineCount: 0, Hash: hash1},
+			{Path: "normal.txt", LineOffset: 0, LineCount: 3, Hash: hash2},
+			{Path: "empty2.txt", LineOffset: 3, LineCount: 0, Hash: hash3},
+		},
+	}
+	
+	tests := []struct {
+		name         string
+		lineNumber   int64
+		expectedPath string
+		shouldFind   bool
+	}{
+		{"Line 0", 0, "normal.txt", true},
+		{"Line 1", 1, "normal.txt", true},
+		{"Line 2", 2, "normal.txt", true},
+		{"Line 3", 3, "", false}, // After normal.txt, empty2.txt has 0 lines
+		{"Line 4", 4, "", false},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := index.FindFileByLine(tt.lineNumber)
+			
+			if tt.shouldFind {
+				if result == nil {
+					t.Errorf("Expected to find file for line %d, but got nil", tt.lineNumber)
+				} else if result.Path != tt.expectedPath {
+					t.Errorf("Expected path %s for line %d, got %s", tt.expectedPath, tt.lineNumber, result.Path)
+				}
+			} else {
+				if result != nil {
+					t.Errorf("Expected nil for line %d, but got entry for path %s", tt.lineNumber, result.Path)
+				}
+			}
+		})
+	}
+}

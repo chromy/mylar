@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
+	"github.com/chromy/viz/internal/constants"
 	"net/http"
 	"sort"
 	"strconv"
@@ -28,6 +29,37 @@ type IndexEntry struct {
 
 type Index struct {
 	Entries []IndexEntry `json:"entries"`
+}
+
+// FindFileByLine returns the IndexEntry containing the given line number.
+// Uses binary search since entries are sorted by LineOffset.
+// Returns nil if the line number is not found in any file.
+func (idx *Index) FindFileByLine(lineNumber int64) *IndexEntry {
+	if len(idx.Entries) == 0 {
+		return nil
+	}
+	
+	i := sort.Search(len(idx.Entries), func(i int) bool {
+		return idx.Entries[i].LineOffset > lineNumber
+	})
+	
+	if i == 0 {
+		return nil
+	}
+	
+	entry := &idx.Entries[i-1]
+	if lineNumber >= entry.LineOffset && lineNumber < entry.LineOffset+entry.LineCount {
+		return entry
+	}
+	
+	return nil
+}
+
+func (idx *Index) ToTileLayout() *utils.TileLayout {
+	lastEntry := idx.Entries[len(idx.Entries) - 1]
+	lastLine := lastEntry.LineOffset + lastEntry.LineCount
+	layout := utils.TileLayout{LastLine: utils.LinePosition(lastLine)}
+	return &layout
 }
 
 var (
@@ -227,6 +259,10 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 		// If unmarshaling fails, continue with computation
 	}
 
+	if lod != 0 {
+		return make([]int64, constants.TileSize*constants.TileSize), nil
+	}
+
 	tileSize := utils.LodToSize(int(lod))
 	tile := make([]int64, tileSize*tileSize)
 
@@ -236,17 +272,8 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 		return nil, err
 	}
 
-	// Create layout from index
-	var lastLine utils.LinePosition = 0
-	for _, entry := range index.Entries {
-		entryEnd := utils.LinePosition(entry.LineOffset + entry.LineCount)
-		if entryEnd > lastLine {
-			lastLine = entryEnd
-		}
-	}
-	layout := utils.TileLayout{LastLine: lastLine}
+	layout := index.ToTileLayout()
 
-	// Create the tile position representing this tile
 	tilePos := utils.TilePosition{
 		Lod:     lod,
 		TileX:   x,
@@ -256,7 +283,7 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 	}
 
 	// Get the world position for the top-left corner of this tile
-	tileWorldPos := utils.TileToWorld(tilePos, layout)
+	tileWorldPos := utils.TileToWorld(tilePos, *layout)
 
 	// For each position in the tile, find the corresponding line and get its length
 	for tileY := 0; tileY < tileSize; tileY++ {
@@ -268,35 +295,29 @@ func TileLineLength(ctx context.Context, repoId string, repository *git.Reposito
 			}
 
 			// Convert to line position
-			linePos := utils.WorldToLine(worldPos, layout)
+			linePos := utils.WorldToLine(worldPos, *layout)
 
-			// Find the file entry that contains this line
-			for _, entry := range index.Entries {
-				entryStartLine := entry.LineOffset
-				entryEndLine := entry.LineOffset + entry.LineCount
+			// Find the file entry that contains this line using binary search
+			if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+				// Get the object directly using the hash from the index entry
+				obj, err := repository.Object(plumbing.AnyObject, entry.Hash)
+				if err != nil {
+					continue // Skip files we can't read
+				}
 
-				if int64(linePos) >= entryStartLine && int64(linePos) < entryEndLine {
-					// Get the object directly using the hash from the index entry
-					obj, err := repository.Object(plumbing.AnyObject, entry.Hash)
+				// Only process blobs (files)
+				if blob, ok := obj.(*object.Blob); ok {
+					lineLengths, err := GetBlobLineLengths(ctx, repoId, blob.Hash)
 					if err != nil {
-						continue // Skip files we can't read
+						continue // Skip files we can't process
 					}
 
-					// Only process blobs (files)
-					if blob, ok := obj.(*object.Blob); ok {
-						lineLengths, err := GetBlobLineLengths(ctx, repoId, blob.Hash)
-						if err != nil {
-							continue // Skip files we can't process
-						}
-
-						// Get the line index within this file
-						lineIdxInFile := int64(linePos) - entryStartLine
-						if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
-							tileIdx := tileY*tileSize + tileX
-							tile[tileIdx] = int64(lineLengths[lineIdxInFile])
-						}
+					// Get the line index within this file
+					lineIdxInFile := int64(linePos) - entry.LineOffset
+					if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
+						tileIdx := tileY*tileSize + tileX
+						tile[tileIdx] = int64(lineLengths[lineIdxInFile])
 					}
-					break // Found the file containing this line
 				}
 			}
 		}
