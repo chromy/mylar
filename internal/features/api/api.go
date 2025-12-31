@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/chromy/viz/internal/schemas"
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/features/repo"
+	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/julienschmidt/httprouter"
 )
@@ -135,7 +135,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		return
 	}
-	
+
 }
 
 func init() {

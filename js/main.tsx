@@ -21,7 +21,7 @@ const HomePage = () => {
     path: "/api/repo",
     schema: RepoListResponseSchema,
   });
-  
+
   const [, setLocation] = useLocation();
   const [githubRepo, setGithubRepo] = useState("");
 
@@ -40,12 +40,12 @@ const HomePage = () => {
           <input
             type="text"
             value={githubRepo}
-            onChange={(e) => setGithubRepo(e.target.value)}
+            onChange={e => setGithubRepo(e.target.value)}
             placeholder="Enter GitHub repo (e.g., google/perfetto)"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </form>
-        
+
         {isLoading && <FullScreenDecryptLoader />}
 
         {data?.repos &&

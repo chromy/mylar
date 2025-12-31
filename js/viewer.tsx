@@ -10,7 +10,15 @@ import { Camera } from "./camera.js";
 import { TILE_SIZE } from "./schemas.js";
 import { aabb } from "./aabb.js";
 import { quadtreeBoundingBox, requiredTiles, toLod } from "./math.js";
-import { lodToSize, lineToWorld, worldToTile, worldToLine, type WorldPosition, type TilePosition, type LinePosition } from "./utils.js";
+import {
+  lodToSize,
+  lineToWorld,
+  worldToTile,
+  worldToLine,
+  type WorldPosition,
+  type TilePosition,
+  type LinePosition,
+} from "./utils.js";
 import { type TileRequest, TileStore } from "./store.js";
 import {
   type MylarAction,
@@ -84,7 +92,6 @@ const displayMouseDebug = settings.addBoolean({
   name: "mouse debug",
   defaultValue: true,
 });
-
 
 class Renderer {
   private repo: string;
@@ -229,8 +236,12 @@ class Renderer {
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
     this.worldMousePosition = { X: this.worldMouse[0], Y: this.worldMouse[1] };
-    this.tilePosition = worldToTile(this.worldMousePosition, { LastLine: this.layout.lineCount - 1 });
-    this.linePosition = worldToLine(this.worldMousePosition, { LastLine: this.layout.lineCount - 1 });
+    this.tilePosition = worldToTile(this.worldMousePosition, {
+      LastLine: this.layout.lineCount - 1,
+    });
+    this.linePosition = worldToLine(this.worldMousePosition, {
+      LastLine: this.layout.lineCount - 1,
+    });
     this.callbacks.setHoveredLineNumber(this.linePosition);
 
     const state = this.callbacks.getState();
@@ -283,7 +294,7 @@ class Renderer {
         debugItems.push(["World mouse", `(${worldMouseX}, ${worldMouseY})`]);
         debugItems.push([
           "Tile position",
-          `T(${this.tilePosition.TileX}, ${this.tilePosition.TileY}) O(${this.tilePosition.OffsetX.toFixed(0)}, ${this.tilePosition.OffsetY.toFixed(0)})`
+          `T(${this.tilePosition.TileX}, ${this.tilePosition.TileY}) O(${this.tilePosition.OffsetX.toFixed(0)}, ${this.tilePosition.OffsetY.toFixed(0)})`,
         ]);
         debugItems.push(["Line position", `${this.linePosition}`]);
         debugItems.push([

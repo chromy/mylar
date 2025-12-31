@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const TILE_SIZE = 64;
 
+export const TileMetadataSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  lod: z.number(),
+});
+export type TileMetadata = z.infer<typeof TileMetadataSchema>;
+
 export const IndexEntrySchema = z.object({
   path: z.string(),
   lineOffset: z.number(),
@@ -67,10 +74,3 @@ export const TreeEntriesSchema = z.object({
   entries: TreeEntrySchema.array().nullable(),
 });
 export type TreeEntries = z.infer<typeof TreeEntriesSchema>;
-
-export const TileMetadataSchema = z.object({
-  y: z.number(),
-  x: z.number(),
-  lod: z.number(),
-});
-export type TileMetadata = z.infer<typeof TileMetadataSchema>;

@@ -20,7 +20,7 @@ var tileComputations map[string]TileComputation = make(map[string]TileComputatio
 func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
 	return func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
 		cacheKey := GenerateCacheKey(id, hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
-		
+
 		if cached, err := theCache.Get(cacheKey); err == nil {
 			var tile []int64
 			if err := json.Unmarshal(cached, &tile); err == nil {
@@ -72,5 +72,3 @@ func ResetTileComputationsForTesting() {
 	defer mu.Unlock()
 	tileComputations = make(map[string]TileComputation)
 }
-
-

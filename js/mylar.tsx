@@ -10,7 +10,12 @@ import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { FullScreenDecryptLoader } from "./loader.js";
-import { type Index, IndexSchema, TILE_SIZE, type IndexEntry } from "./schemas.js";
+import {
+  type Index,
+  IndexSchema,
+  TILE_SIZE,
+  type IndexEntry,
+} from "./schemas.js";
 
 const FileLinesSchema = z.string().array();
 type FileLines = z.infer<typeof FileLinesSchema>;
@@ -72,7 +77,10 @@ function toTileLayout(index: Index): TileLayout {
   };
 }
 
-function findIndexEntryByLine(entries: IndexEntry[], lineNumber: number): IndexEntry | undefined {
+function findIndexEntryByLine(
+  entries: IndexEntry[],
+  lineNumber: number,
+): IndexEntry | undefined {
   if (entries.length === 0 || lineNumber < 0) {
     return undefined;
   }
@@ -136,13 +144,18 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
     return findIndexEntryByLine(index.entries ?? [], hoveredLineNumber);
   }, [index.entries, hoveredLineNumber]);
 
-  const hashString = hoveredEntry?.hash ? hoveredEntry.hash.map(b => b.toString(16).padStart(2, '0')).join('') : '';
+  const hashString = hoveredEntry?.hash
+    ? hoveredEntry.hash.map(b => b.toString(16).padStart(2, "0")).join("")
+    : "";
 
-  const { data: fileLines } = useJsonQuery({
-    path: `/api/compute/lines/${repo}/${hashString}`,
-    schema: FileLinesSchema,
-    enabled: !!hoveredEntry && hashString.length > 0,
-  }, [repo, hashString]);
+  const { data: fileLines } = useJsonQuery(
+    {
+      path: `/api/compute/lines/${repo}/${hashString}`,
+      schema: FileLinesSchema,
+      enabled: !!hoveredEntry && hashString.length > 0,
+    },
+    [repo, hashString],
+  );
 
   const contextLines = useMemo(() => {
     if (!fileLines || !hoveredEntry || hoveredLineNumber < 0) {
@@ -152,7 +165,10 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
     const fileLineNumber = hoveredLineNumber - hoveredEntry.lineOffset;
     const contextSize = 5;
     const startLine = Math.max(0, fileLineNumber - contextSize);
-    const endLine = Math.min(fileLines.length - 1, fileLineNumber + contextSize);
+    const endLine = Math.min(
+      fileLines.length - 1,
+      fileLineNumber + contextSize,
+    );
 
     return {
       lines: fileLines.slice(startLine, endLine + 1),
@@ -224,25 +240,33 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
       {hoveredEntry && (
         <GlassPanel area="mylar-content-line self-end">
           <div className="font-mono text-xxs space-y-1">
-            {contextLines && displayFileContext.get(state) && contextLines.lines.map((line, index) => {
-              const lineNum = contextLines.startLineNumber + index;
-              const isHovered = lineNum === contextLines.hoveredFileLineNumber;
-              return (
-                <div 
-                  key={lineNum}
-                  className={`flex ${isHovered ? 'bg-yellow-500/20' : ''}`}
-                >
-                  <span className="text-gray-500 text-right w-8 mr-2 select-none">
-                    {lineNum}
-                  </span>
-                  <span className="whitespace-pre">{line || ' '}</span>
-                </div>
-              );
-            })}
+            {contextLines &&
+              displayFileContext.get(state) &&
+              contextLines.lines.map((line, index) => {
+                const lineNum = contextLines.startLineNumber + index;
+                const isHovered =
+                  lineNum === contextLines.hoveredFileLineNumber;
+                return (
+                  <div
+                    key={lineNum}
+                    className={`flex ${isHovered ? "bg-yellow-500/20" : ""}`}
+                  >
+                    <span className="text-gray-500 text-right w-8 mr-2 select-none">
+                      {lineNum}
+                    </span>
+                    <span className="whitespace-pre">{line || " "}</span>
+                  </div>
+                );
+              })}
             <div className="text-xxs text-gray-400 mt-2">
-              {hoveredEntry.path}
-              {" "}
-              { contextLines && (<span>(lines {contextLines.startLineNumber}-{contextLines.startLineNumber + contextLines.lines.length - 1})</span>) }
+              {hoveredEntry.path}{" "}
+              {contextLines && (
+                <span>
+                  (lines {contextLines.startLineNumber}-
+                  {contextLines.startLineNumber + contextLines.lines.length - 1}
+                  )
+                </span>
+              )}
             </div>
           </div>
         </GlassPanel>
@@ -267,7 +291,6 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
 //          <div>{hoveredLineNumber - hoveredEntry.lineOffset + 1}</div>
 //        </GlassPanel>
 //      )}
-
 
 const MylarLoading = () => {
   return <FullScreenDecryptLoader />;

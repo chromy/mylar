@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
-	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/utils"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -271,13 +271,12 @@ var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.
 	})
 })
 
-
 type FileByLineResponse struct {
-	Entry         IndexEntry           `json:"entry"`
-	Content       string               `json:"content"`
-	LineOffset    int64                `json:"lineOffset"`
-	WorldPosition utils.WorldPosition  `json:"worldPosition"`
-	TilePosition  utils.TilePosition   `json:"tilePosition"`
+	Entry         IndexEntry          `json:"entry"`
+	Content       string              `json:"content"`
+	LineOffset    int64               `json:"lineOffset"`
+	WorldPosition utils.WorldPosition `json:"worldPosition"`
+	TilePosition  utils.TilePosition  `json:"tilePosition"`
 }
 
 func FileByLineHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -352,7 +351,6 @@ func FileByLineHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
-
 
 func init() {
 	core.RegisterRoute(core.Route{
