@@ -1,0 +1,76 @@
+package core
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/go-git/go-git/v5/plumbing"
+	"time"
+)
+
+type TileFunc func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error)
+
+type TileComputation struct {
+	Id      string
+	Execute TileFunc
+}
+
+var tileComputations map[string]TileComputation = make(map[string]TileComputation)
+
+func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
+	return func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+		cacheKey := GenerateCacheKey(id, hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
+		
+		if cached, err := theCache.Get(cacheKey); err == nil {
+			var tile []int64
+			if err := json.Unmarshal(cached, &tile); err == nil {
+				return tile, nil
+			}
+		}
+
+		result, err := execute(ctx, repoId, hash, lod, x, y)
+		if err != nil {
+			return nil, err
+		}
+
+		if tileData, err := json.Marshal(result); err == nil {
+			theCache.Add(cacheKey, tileData, 30*time.Minute)
+		}
+
+		return result, nil
+	}
+}
+
+func RegisterTileComputation(id string, execute TileFunc) TileFunc {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if _, found := tileComputations[id]; found {
+		panic(fmt.Sprintf("tile computation already registered %s", id))
+	}
+
+	wrapped := wrapTileFuncWithCaching(id, execute)
+
+	tileComputations[id] = TileComputation{
+		Id:      id,
+		Execute: wrapped,
+	}
+
+	return wrapped
+}
+
+func GetTileComputation(id string) (TileComputation, bool) {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	c, found := tileComputations[id]
+	return c, found
+}
+
+func ResetTileComputationsForTesting() {
+	mu.Lock()
+	defer mu.Unlock()
+	tileComputations = make(map[string]TileComputation)
+}
+
+

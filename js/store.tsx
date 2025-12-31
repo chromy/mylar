@@ -16,7 +16,7 @@ interface TileData {
 }
 
 async function fetchTile(request: TileRequest): Promise<TileData> {
-  const url = `/api/repo/${request.repo}/${request.committish}/tile/${request.lod}/${request.x}/${request.y}/${request.kind}`;
+  const url = `/api/tile/${request.kind}/${request.repo}/${request.committish}/${request.lod}/${request.x}/${request.y}`;
   const response = await fetch(url);
 
   if (!response.ok) {
