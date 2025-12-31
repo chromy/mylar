@@ -2,11 +2,6 @@ import { z } from "zod";
 
 export const TILE_SIZE = 64;
 
-export const GranularLineLengthSchema = z.object({
-  LinesLengths: z.number().array().nullable(),
-});
-export type GranularLineLength = z.infer<typeof GranularLineLengthSchema>;
-
 export const IndexEntrySchema = z.object({
   path: z.string(),
   lineOffset: z.number(),
@@ -37,8 +32,8 @@ export type RepoListResponse = z.infer<typeof RepoListResponseSchema>;
 
 export const TreeEntrySchema = z.object({
   name: z.string(),
-  mode: z.string(),
-  hash: z.number().array().length(20),
+  hash: z.string(),
+  mode: z.number(),
 });
 export type TreeEntry = z.infer<typeof TreeEntrySchema>;
 

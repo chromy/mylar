@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/chromy/viz/internal/cache"
+	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
@@ -13,7 +14,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
-	"github.com/chromy/viz/internal/constants"
 	"net/http"
 	"sort"
 	"strconv"
@@ -38,25 +38,25 @@ func (idx *Index) FindFileByLine(lineNumber int64) *IndexEntry {
 	if len(idx.Entries) == 0 {
 		return nil
 	}
-	
+
 	i := sort.Search(len(idx.Entries), func(i int) bool {
 		return idx.Entries[i].LineOffset > lineNumber
 	})
-	
+
 	if i == 0 {
 		return nil
 	}
-	
+
 	entry := &idx.Entries[i-1]
 	if lineNumber >= entry.LineOffset && lineNumber < entry.LineOffset+entry.LineCount {
 		return entry
 	}
-	
+
 	return nil
 }
 
 func (idx *Index) ToTileLayout() *utils.TileLayout {
-	lastEntry := idx.Entries[len(idx.Entries) - 1]
+	lastEntry := idx.Entries[len(idx.Entries)-1]
 	lastLine := lastEntry.LineOffset + lastEntry.LineCount
 	layout := utils.TileLayout{LastLine: utils.LinePosition(lastLine)}
 	return &layout
@@ -89,7 +89,6 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 	if !found {
 		return Index{}, fmt.Errorf("index blob computation not found")
 	}
-
 
 	repository, err := repo.Get(ctx, repoId)
 	if err != nil {
@@ -137,7 +136,6 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 	return Index{Entries: allEntries}, nil
 })
 
-
 var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
 	objectType, err := repo.GetObjectType(ctx, repoId, hash)
 	if err != nil {
@@ -147,13 +145,13 @@ var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, r
 	switch objectType {
 	case "blob":
 		return GetBlobIndex(ctx, repoId, hash)
-  case "tree":
+	case "tree":
 		return GetTreeIndex(ctx, repoId, hash)
 	default:
 		return Index{}, fmt.Errorf("index can't handle object type %s", objectType)
 	}
 })
-	
+
 func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	repoName := ps.ByName("repo")
 	committish := ps.ByName("committish")

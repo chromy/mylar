@@ -30,8 +30,8 @@ type RepoInfo struct {
 }
 
 type TreeEntry struct {
-	Name string          `json:"name"`
-	Hash string          `json:"hash"`
+	Name string            `json:"name"`
+	Hash string            `json:"hash"`
 	Mode filemode.FileMode `json:"mode"`
 }
 

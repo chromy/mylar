@@ -1,8 +1,8 @@
 package index
 
 import (
-	"testing"
 	"github.com/go-git/go-git/v5/plumbing"
+	"testing"
 )
 
 //func TestCountLines(t *testing.T) {
@@ -434,12 +434,12 @@ func TestFindFileByLine(t *testing.T) {
 	// file2.txt: lines 3-4 (2 lines)
 	// dir/file3.txt: lines 5-9 (5 lines)
 	// file4.txt: lines 10-10 (1 line)
-	
+
 	hash1 := plumbing.NewHash("1111111111111111111111111111111111111111")
 	hash2 := plumbing.NewHash("2222222222222222222222222222222222222222")
 	hash3 := plumbing.NewHash("3333333333333333333333333333333333333333")
 	hash4 := plumbing.NewHash("4444444444444444444444444444444444444444")
-	
+
 	index := Index{
 		Entries: []IndexEntry{
 			{Path: "file1.txt", LineOffset: 0, LineCount: 3, Hash: hash1},
@@ -448,7 +448,7 @@ func TestFindFileByLine(t *testing.T) {
 			{Path: "file4.txt", LineOffset: 10, LineCount: 1, Hash: hash4},
 		},
 	}
-	
+
 	tests := []struct {
 		name         string
 		lineNumber   int64
@@ -459,26 +459,26 @@ func TestFindFileByLine(t *testing.T) {
 		{"First line of first file", 0, "file1.txt", true},
 		{"Middle line of first file", 1, "file1.txt", true},
 		{"Last line of first file", 2, "file1.txt", true},
-		
+
 		{"First line of second file", 3, "file2.txt", true},
 		{"Last line of second file", 4, "file2.txt", true},
-		
+
 		{"First line of third file", 5, "dir/file3.txt", true},
 		{"Middle line of third file", 7, "dir/file3.txt", true},
 		{"Last line of third file", 9, "dir/file3.txt", true},
-		
+
 		{"Only line of fourth file", 10, "file4.txt", true},
-		
+
 		// Test edge cases
 		{"Negative line number", -1, "", false},
 		{"Line after all files", 11, "", false},
 		{"Line in gap between files (impossible with valid index)", 100, "", false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := index.FindFileByLine(tt.lineNumber)
-			
+
 			if tt.shouldFind {
 				if result == nil {
 					t.Errorf("Expected to find file for line %d, but got nil", tt.lineNumber)
@@ -502,12 +502,12 @@ func TestFindFileByLine(t *testing.T) {
 
 func TestFindFileByLineEmptyIndex(t *testing.T) {
 	index := Index{Entries: []IndexEntry{}}
-	
+
 	result := index.FindFileByLine(0)
 	if result != nil {
 		t.Errorf("Expected nil for empty index, got %v", result)
 	}
-	
+
 	result = index.FindFileByLine(5)
 	if result != nil {
 		t.Errorf("Expected nil for empty index, got %v", result)
@@ -521,7 +521,7 @@ func TestFindFileByLineSingleEntry(t *testing.T) {
 			{Path: "single.txt", LineOffset: 0, LineCount: 5, Hash: hash1},
 		},
 	}
-	
+
 	tests := []struct {
 		name       string
 		lineNumber int64
@@ -534,11 +534,11 @@ func TestFindFileByLineSingleEntry(t *testing.T) {
 		{"Line after file", 5, false},
 		{"Line way after file", 100, false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := index.FindFileByLine(tt.lineNumber)
-			
+
 			if tt.shouldFind {
 				if result == nil {
 					t.Errorf("Expected to find file for line %d, but got nil", tt.lineNumber)
@@ -559,7 +559,7 @@ func TestFindFileByLineWithZeroLineCountEntries(t *testing.T) {
 	hash1 := plumbing.NewHash("1111111111111111111111111111111111111111")
 	hash2 := plumbing.NewHash("2222222222222222222222222222222222222222")
 	hash3 := plumbing.NewHash("3333333333333333333333333333333333333333")
-	
+
 	index := Index{
 		Entries: []IndexEntry{
 			{Path: "empty1.txt", LineOffset: 0, LineCount: 0, Hash: hash1},
@@ -567,7 +567,7 @@ func TestFindFileByLineWithZeroLineCountEntries(t *testing.T) {
 			{Path: "empty2.txt", LineOffset: 3, LineCount: 0, Hash: hash3},
 		},
 	}
-	
+
 	tests := []struct {
 		name         string
 		lineNumber   int64
@@ -580,11 +580,11 @@ func TestFindFileByLineWithZeroLineCountEntries(t *testing.T) {
 		{"Line 3", 3, "", false}, // After normal.txt, empty2.txt has 0 lines
 		{"Line 4", 4, "", false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := index.FindFileByLine(tt.lineNumber)
-			
+
 			if tt.shouldFind {
 				if result == nil {
 					t.Errorf("Expected to find file for line %d, but got nil", tt.lineNumber)
