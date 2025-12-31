@@ -15,7 +15,7 @@ type ObjectFunc func(ctx context.Context, repoId string, hash plumbing.Hash) (in
 func wrapObjectFuncWithCaching(id string, execute ObjectFunc) ObjectFunc {
 	return func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
 		c := GetCache()
-		key := generateCacheKey(id, hash.String())
+		key := GenerateCacheKey(id, hash.String())
 
 		if cached, err := c.Get(key); err == nil {
 			var result interface{}
@@ -83,7 +83,7 @@ func ResetBlobComputationsForTesting() {
 	blobComputations = make(map[string]BlobComputation)
 }
 
-func generateCacheKey(parts ...string) string {
+func GenerateCacheKey(parts ...string) string {
 	combined := strings.Join(parts, ":")
 	h := sha256.Sum256([]byte(combined))
 	return fmt.Sprintf("%x", h)

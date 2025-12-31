@@ -263,6 +263,20 @@ var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx contex
 	return TreeEntries{Entries: entries}, nil
 })
 
+var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.Context, repoId string, hash plumbing.Hash) (interface{}, error) {
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := repo.Storer.EncodedObject(plumbing.AnyObject, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj.Type().String(), nil
+})
+
 func init() {
 	mu.Lock()
 	defer mu.Unlock()

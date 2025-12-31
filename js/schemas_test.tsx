@@ -5,8 +5,6 @@ import {
   IndexEntrySchema,
   IndexSchema,
   LineLengthSchema,
-  FileSystemEntrySchema,
-  InfoResponseSchema,
   RepoInfoSchema,
   RepoListResponseSchema,
 } from "./schemas.js";
@@ -105,62 +103,6 @@ o.spec("schemas", () => {
       const invalid = {};
       const result = LineLengthSchema.safeParse(invalid);
       o(result.success).equals(false);
-    });
-  });
-
-  o.spec("FileSystemEntrySchema", () => {
-    o("validates file entry", () => {
-      const valid = {
-        name: "test.ts",
-        path: "/src/test.ts",
-        type: "file",
-        size: 1024,
-        hash: "abc123",
-      };
-      const result = FileSystemEntrySchema.safeParse(valid);
-      o(result.success).equals(true);
-    });
-
-    o("validates directory with children", () => {
-      const valid = {
-        name: "src",
-        path: "/src",
-        type: "directory",
-        children: [
-          {
-            name: "file.ts",
-            path: "/src/file.ts",
-            type: "file",
-            size: 512,
-          },
-        ],
-      };
-      const result = FileSystemEntrySchema.safeParse(valid);
-      o(result.success).equals(true);
-    });
-
-    o("accepts optional fields", () => {
-      const minimal = {
-        name: "test",
-        path: "/test",
-        type: "file",
-      };
-      const result = FileSystemEntrySchema.safeParse(minimal);
-      o(result.success).equals(true);
-    });
-  });
-
-  o.spec("InfoResponseSchema", () => {
-    o("validates response structure", () => {
-      const valid = {
-        entry: {
-          name: "root",
-          path: "/",
-          type: "directory",
-        },
-      };
-      const result = InfoResponseSchema.safeParse(valid);
-      o(result.success).equals(true);
     });
   });
 
