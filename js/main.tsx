@@ -1,9 +1,11 @@
 import { createRoot } from "react-dom/client";
-import { Link, Route, Switch, useParams } from "wouter";
+import { Route, Switch, useParams } from "wouter";
 import { z } from "zod";
 import { FullScreenDecryptLoader } from "./loader.js";
 import { useJsonQuery } from "./query.js";
 import { Mylar } from "./mylar.js";
+import {RepoListResponseSchema} from "./schemas.js"
+import { MylarLink } from "./mylar_link.js";
 
 async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
   const response = await fetch("/api/fs/get", { signal });
@@ -13,27 +15,6 @@ async function fetchJsonQueryFn(signal: AbortSignal): Promise<unknown> {
   return await response.json();
 }
 
-//const FileMetadataReponseSchema = z.object({
-//  path: z.string(),
-//  name: z.string(),
-//  size: z.number(),
-//  isDir: z.boolean(),
-//  children: z.optional(z.array(z.string())),
-//});
-
-const RepoInfoSchema = z.object({
-  name: z.string(),
-});
-
-const RepoListResponseSchema = z.object({
-  repos: z.array(RepoInfoSchema),
-});
-
-const IndexStatusResponseSchema = z.object({
-  message: z.string(),
-  fileCount: z.number(),
-});
-
 const HomePage = () => {
   const { data, isLoading, isError, error } = useJsonQuery({
     path: "/api/repo",
@@ -42,13 +23,16 @@ const HomePage = () => {
 
   return (
     <div className="grid place-content-center">
-      <div className="max-w-xl mx-auto w-100 my-4 p-3 border rounded-xs border-black shadow-sm">
+      <div className="max-w-xl mx-auto w-100 my-4 p-3 border rounded-xs border-black shadow-sm flex flex-col">
         {isLoading && <FullScreenDecryptLoader />}
 
-        {data &&
-          data.repos.map(r => (
-            <Link href={`/app/repo/${r.name}/HEAD`}>{r.name}</Link>
-          ))}
+        {data?.repos &&
+          (
+            data.repos.map(r => (
+              <MylarLink href={`/app/repo/${r.id}/HEAD`}>{`${r.owner ?? "?"}/${r.name ?? "?"} (${r.id})`}</MylarLink>
+            )
+                          )
+          )}
       </div>
     </div>
   );

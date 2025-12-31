@@ -21,7 +21,9 @@ export const LineLengthSchema = z.object({
 export type LineLength = z.infer<typeof LineLengthSchema>;
 
 export const RepoInfoSchema = z.object({
-  name: z.string(),
+  id: z.string(),
+  owner: z.string().optional(),
+  name: z.string().optional(),
 });
 export type RepoInfo = z.infer<typeof RepoInfoSchema>;
 

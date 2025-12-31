@@ -25,8 +25,18 @@ func DoServe(ctx context.Context, port uint) {
 		}
 	}
 
-	repo.AddFromPath(ctx, "self", ".")
-	repo.AddFromPath(ctx, "perfetto", "/Users/chromy/src/perfetto")
+	if err := repo.AddFromPath(ctx, "path:self", "."); err != nil {
+		panic(err)
+	}
+	if err := repo.AddFromPath(ctx, "path:perfetto", "/Users/chromy/src/perfetto"); err != nil {
+		panic(err)
+	}
+	if err := repo.AddFromGithub(ctx, "go-git", "go-billy"); err != nil {
+		panic(err)
+	}
+	if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
+		panic(err)
+	}
 
 	router.Handler(http.MethodGet, "/debug/pprof/*item", http.DefaultServeMux)
 

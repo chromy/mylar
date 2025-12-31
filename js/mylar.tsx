@@ -3,6 +3,7 @@ import {
   useState,
   useMemo,
   useReducer,
+  useEffect,
   type ReactNode,
 } from "react";
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
@@ -86,6 +87,17 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   const layout = useMemo(() => {
     return toTileLayout(index);
   }, [index]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && settingsPanelSetting.get(state)) {
+        dispatch(settingsPanelSetting.disable);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [dispatch, state]);
 
   return (
     <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">

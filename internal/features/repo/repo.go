@@ -9,6 +9,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
@@ -16,18 +17,17 @@ import (
 	"sync"
 )
 
-type State struct {
-	Repos map[string]*git.Repository
+
+type Repo struct {
+	Id string
+	Owner string
+	Name string
+	Repository *git.Repository
 }
 
-var (
-	mu    sync.RWMutex
-	state State
-)
+var mu    sync.RWMutex
+var repos map[string]Repo = make(map[string]Repo)
 
-type RepoInfo struct {
-	Name string `json:"name"`
-}
 
 type TreeEntry struct {
 	Name string            `json:"name"`
@@ -35,20 +35,26 @@ type TreeEntry struct {
 	Mode filemode.FileMode `json:"mode"`
 }
 
-type RepoListResponse struct {
-	Repos []RepoInfo `json:"repos"`
-}
-
 type TreeEntries struct {
 	Entries []TreeEntry `json:"entries"`
 }
 
-func AddFromPath(_ context.Context, name string, path string) error {
+type RepoInfo struct {
+	Id string `json:"id"`
+	Owner string `json:"owner,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type RepoListResponse struct {
+	Repos []RepoInfo `json:"repos"`
+}
+
+func AddFromPath(_ context.Context, id string, path string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if _, found := state.Repos[name]; found {
-		return fmt.Errorf("existing repo with name %s", name)
+	if _, found := repos[id]; found {
+		return fmt.Errorf("existing repo with id %s", id)
 	}
 
 	repository, err := git.PlainOpen(path)
@@ -56,21 +62,56 @@ func AddFromPath(_ context.Context, name string, path string) error {
 		return err
 	}
 
-	state.Repos[name] = repository
+	repos[id] = Repo{
+		Id: id,
+		Name: "",
+		Owner: "",
+		Repository: repository,
+	}
 
 	return nil
 }
 
-func Get(_ context.Context, name string) (*git.Repository, error) {
+func AddFromGithub(_ context.Context, owner string, name string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	id := fmt.Sprintf("gh:%s:%s", owner, name)
+
+	if _, found := repos[id]; found {
+		return fmt.Errorf("existing repo with id %s", id)
+	}
+
+	url := fmt.Sprintf("https://github.com/%s/%s", owner, name)
+
+	repository, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+    URL: url,
+	})
+	if err != nil {
+		return err
+	}
+
+	repos[id] = Repo{
+		Id: id,
+		Name: name,
+		Owner: owner,
+		Repository: repository,
+	}
+
+	return nil
+}
+
+
+func Get(_ context.Context, id string) (*git.Repository, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	repo, found := state.Repos[name]
+	repo, found := repos[id]
 
 	if found {
-		return repo, nil
+		return repo.Repository, nil
 	} else {
-		return nil, fmt.Errorf("no repo with name %s", name)
+		return nil, fmt.Errorf("no repo with id %s", id)
 	}
 }
 
@@ -107,11 +148,13 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer mu.RUnlock()
 
 	response := RepoListResponse{}
-	response.Repos = make([]RepoInfo, 0, len(state.Repos))
+	response.Repos = make([]RepoInfo, 0, len(repos))
 
-	for name, _ := range state.Repos {
+	for _, repo := range repos {
 		response.Repos = append(response.Repos, RepoInfo{
-			Name: name,
+			Id: repo.Id,
+			Name: repo.Name,
+			Owner: repo.Owner,
 		})
 	}
 
@@ -249,11 +292,6 @@ var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.
 })
 
 func init() {
-	mu.Lock()
-	defer mu.Unlock()
-	state = State{}
-	state.Repos = make(map[string]*git.Repository)
-
 	core.RegisterRoute(core.Route{
 		Id:      "repo.list",
 		Method:  http.MethodGet,
