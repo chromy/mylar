@@ -7,7 +7,11 @@ interface MylarLinkProps {
   className?: string;
 }
 
-export const MylarLink = ({ className = "", children, href }: MylarLinkProps) => {
+export const MylarLink = ({
+  className = "",
+  children,
+  href,
+}: MylarLinkProps) => {
   return (
     <Link
       href={href}
