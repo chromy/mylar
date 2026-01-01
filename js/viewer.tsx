@@ -25,6 +25,8 @@ import {
   settings,
   initialMylarState,
   type MylarState,
+  type LayerType,
+  getCurrentLayer,
 } from "./state.js";
 
 function boxToTileRequest(
@@ -245,6 +247,7 @@ class Renderer {
     this.callbacks.setHoveredLineNumber(this.linePosition);
 
     const state = this.callbacks.getState();
+    const currentLayer = getCurrentLayer(state);
     const pixelsPerWorldUnit =
       this.camera.screenWidthPx / aabb.width(this.screenWorldAabb);
 
@@ -260,10 +263,7 @@ class Renderer {
       this.layout.lineCount,
       pixelsPerWorldUnit,
     )) {
-      //const kind = "fileHash";
-      //const kind = "offset";
-      //const kind = "length";
-      const kind = "fileExtension";
+      const kind = currentLayer;
       reqs.push(boxToTileRequest(box, this.repo, this.committish, kind));
     }
 

@@ -29,6 +29,9 @@ import {
   initialMylarState,
   type MylarState,
   settingsPanelSetting,
+  type LayerType,
+  getCurrentLayer,
+  createChangeLayerAction,
 } from "./state.js";
 
 interface IndexPanelProps {
@@ -202,6 +205,9 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
           setHoveredLineNumber={setHoveredLineNumber}
         />
       </div>
+      <GlassPanel area="mylar-layers fixed top-0 left-0">
+        <LayersMenu dispatch={dispatch} state={state} />
+      </GlassPanel>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
           <Button onClick={() => dispatch(settingsPanelSetting.enable)}>
@@ -318,6 +324,43 @@ export const Mylar = ({ repo, committish }: MylarProps) => {
         <MylarContent repo={repo} committish={committish} index={data} />
       )}
     </>
+  );
+};
+
+interface LayersMenuProps {
+  dispatch: ActionDispatch<[action: MylarAction]>;
+  state: MylarState;
+}
+
+const LAYER_LABELS: Record<LayerType, string> = {
+  offset: "Line Offset",
+  length: "Line Length", 
+  fileHash: "File Hash",
+  fileExtension: "File Type",
+};
+
+const LayersMenu = ({ dispatch, state }: LayersMenuProps) => {
+  const currentLayer = getCurrentLayer(state);
+  
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium mb-2">Layers</div>
+      <div className="space-y-1">
+        {(["offset", "length", "fileHash", "fileExtension"] as LayerType[]).map(layer => (
+          <button
+            key={layer}
+            onClick={() => dispatch(createChangeLayerAction(layer))}
+            className={`block w-full text-left px-2 py-1 text-xs rounded-xs transition-colors ${
+              currentLayer === layer
+                ? "bg-blue-500/20 text-blue-700"
+                : "hover:bg-white/10"
+            }`}
+          >
+            {LAYER_LABELS[layer]}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 };
 

@@ -109,7 +109,7 @@ export class TileStore {
   }
 
   private tileKey(request: TileRequest): string {
-    return `${request.repo}_${request.committish}_${request.x}_${request.y}_${request.lod}`;
+    return `${request.repo}_${request.committish}_${request.kind}_${request.x}_${request.y}_${request.lod}`;
   }
 
   update(requests: TileRequest[]): void {
