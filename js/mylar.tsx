@@ -218,7 +218,20 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
             </tr>
             <tr>
               <td>Commit</td>
-              <td className="font-mono">{commit.slice(0, 6)}</td>
+              <td className="font-mono">
+                {repo.startsWith("gh:") ? (
+                  <a
+                    href={`https://github.com/${repo.slice(3).replace(":", "/")}/commit/${commit}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {commit.slice(0, 6)}
+                  </a>
+                ) : (
+                  commit.slice(0, 6)
+                )}
+              </td>
             </tr>
             <tr>
               <td>Tree</td>

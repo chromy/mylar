@@ -13,6 +13,7 @@
 - Remove tiles from tile cache
 - Move index reoute
 - display-p3
+- Render at least one tile when zoomed out
 
 - Get working on:
 - Sentry

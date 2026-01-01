@@ -1,5 +1,5 @@
 import { vec3 } from "gl-matrix";
-import { convert, OKLCH, sRGB } from "@texel/color";
+import { floatToByte, convert, OKLCH, sRGB } from "@texel/color";
 import { TILE_SIZE, type TileMetadata, TileMetadataSchema } from "./schemas.js";
 
 export interface TileRequest {
@@ -11,7 +11,7 @@ export interface TileRequest {
   commit: string;
 }
 
-export interface CompositeRequest {
+export interface CompositeTileRequest {
   x: number;
   y: number;
   lod: number;
@@ -91,9 +91,9 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     oklch[2] = d % 360;
     convert(oklch, OKLCH, sRGB, rgb);
 
-    buffer[pixelIndex] = rgb[0]! * 256; // R
-    buffer[pixelIndex + 1] = rgb[1]! * 256; // G
-    buffer[pixelIndex + 2] = rgb[2]! * 256; // B
+    buffer[pixelIndex] = floatToByte(rgb[0]!); // R
+    buffer[pixelIndex + 1] = floatToByte(rgb[1]!); // G
+    buffer[pixelIndex + 2] = floatToByte(rgb[2]!); // B
     buffer[pixelIndex + 3] = 255; // A
   }
 
