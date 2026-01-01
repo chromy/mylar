@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type TileFunc func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error)
+type TileFunc func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error)
 
 type TileComputation struct {
 	Id      string
@@ -18,8 +18,8 @@ type TileComputation struct {
 var tileComputations map[string]TileComputation = make(map[string]TileComputation)
 
 func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
-	return func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
-		cacheKey := GenerateCacheKey(id, hash.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
+	return func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+		cacheKey := GenerateCacheKey(id, commit.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
 
 		if cached, err := theCache.Get(cacheKey); err == nil {
 			var tile []int64
@@ -28,7 +28,7 @@ func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
 			}
 		}
 
-		result, err := execute(ctx, repoId, hash, lod, x, y)
+		result, err := execute(ctx, repoId, commit, lod, x, y)
 		if err != nil {
 			return nil, err
 		}

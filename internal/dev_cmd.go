@@ -15,32 +15,34 @@ import (
 )
 
 type DevServer struct {
-	port         uint
-	servePort    uint
-	serveUrl     string
-	memcached    string
-	latestError  []byte
-	cmd          *exec.Cmd
-	memcachedCmd *exec.Cmd
-	mu           sync.Mutex
-	lastModTime  map[string]time.Time
+	port           uint
+	servePort      uint
+	serveUrl       string
+	enableMemcached bool
+	latestError    []byte
+	cmd            *exec.Cmd
+	memcachedCmd   *exec.Cmd
+	mu             sync.Mutex
+	lastModTime    map[string]time.Time
 }
 
-func DoDev(ctx context.Context, port uint) {
+const memcachedAddr = "localhost:8082"
+
+func DoDev(ctx context.Context, port uint, enableMemcached bool) {
 	servePort := port + 1
 	serveUrl := "http://localhost:" + strconv.Itoa(int(servePort))
 
-	memcached := "localhost:8082"
-
 	dev := &DevServer{
-		port:        port,
-		servePort:   servePort,
-		serveUrl:    serveUrl,
-		memcached:   memcached,
-		lastModTime: make(map[string]time.Time),
+		port:           port,
+		servePort:      servePort,
+		serveUrl:       serveUrl,
+		enableMemcached: enableMemcached,
+		lastModTime:    make(map[string]time.Time),
 	}
 
-	dev.startMemcached()
+	if dev.enableMemcached {
+		dev.startMemcached()
+	}
 	dev.rebuildAndStartServe()
 
 	targetUrl, _ := url.Parse(serveUrl)
@@ -82,8 +84,8 @@ func (dev *DevServer) startServeWithLock() {
 
 	executable, _ := os.Executable()
 	args := []string{"serve", "-port", strconv.Itoa(int(dev.servePort))}
-	if dev.memcached != "" {
-		args = append(args, "-memcached", dev.memcached)
+	if dev.enableMemcached {
+		args = append(args, "-memcached", memcachedAddr)
 	}
 	dev.cmd = exec.Command(executable, args...)
 	dev.cmd.Stdout = os.Stdout

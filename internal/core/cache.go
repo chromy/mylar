@@ -4,12 +4,10 @@ import (
 	"github.com/chromy/viz/internal/cache"
 )
 
-func GetCacheLocked() cache.Cache {
-	return theCache
+func InitCache(c cache.Cache) {
+	theCache = c
 }
 
 func GetCache() cache.Cache {
-	mu.RLock()
-	defer mu.RUnlock()
 	return theCache
 }

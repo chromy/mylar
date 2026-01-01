@@ -9,7 +9,8 @@ import (
 var mu sync.RWMutex
 var blobComputations map[string]BlobComputation = make(map[string]BlobComputation)
 var routes map[string]Route = make(map[string]Route)
-var theCache = cache.NewMemoryCache()
+var theCache cache.Cache = cache.NewMemoryCache()
+var cacheOnce sync.Once
 
 var storagePath string
 var storageOnce sync.Once
@@ -30,3 +31,5 @@ func GetStoragePath() string {
 	storageOnce.Do(initStorage)
 	return storagePath
 }
+
+

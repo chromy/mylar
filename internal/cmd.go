@@ -56,12 +56,13 @@ func Cmd() {
 	dev := func(args []string) int {
 		fs := flag.NewFlagSet("dev", flag.ExitOnError)
 		port := fs.Uint("port", 8080, "port to listen on")
+		memcached := fs.Bool("memcached", false, "enable memcached server")
 		if err := fs.Parse(args); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			return 1
 		}
 
-		DoDev(ctx, *port)
+		DoDev(ctx, *port, *memcached)
 		return 0
 	}
 

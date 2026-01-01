@@ -247,7 +247,7 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	tree, err := GetCommitRootTreeHash(r.Context(), repoId, commit)
+	tree, err := CommitToTree(r.Context(), repoId, commit)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get root tree hash: %v", err), http.StatusInternalServerError)
 		return
@@ -255,7 +255,7 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprou
 
 	response := ResolveCommittishResponse{
 		Commit: commit.String(),
-		Tree:   tree,
+		Tree:   tree.String(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -391,19 +391,19 @@ var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.
 	return obj.Type().String(), nil
 })
 
-var GetCommitRootTreeHash = core.RegisterBlobComputation("commitRootTreeHash", func(ctx context.Context, repoId string, hash plumbing.Hash) (string, error) {
+var CommitToTree = core.RegisterBlobComputation("commitRootTreeHash", func(ctx context.Context, repoId string, hash plumbing.Hash) (plumbing.Hash, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {
-		return "", err
+		return plumbing.ZeroHash, err
 	}
 
 	// Verify the hash refers to a commit object
 	commit, err := repo.CommitObject(hash)
 	if err != nil {
-		return "", fmt.Errorf("hash %s is not a valid commit: %w", hash.String(), err)
+		return plumbing.ZeroHash, fmt.Errorf("hash %s is not a valid commit: %w", hash.String(), err)
 	}
 
-	return commit.TreeHash.String(), nil
+	return commit.TreeHash, nil
 })
 
 func init() {

@@ -9,46 +9,39 @@
 - Git history
 - Custom layers
 - Change commitish to commit. Pass commit to tile render functions.
-- zstd cached?
 - Remove tiles from tile cache
 - Move index reoute
-- display-p3
-- Render at least one tile when zoomed out
 
 - Get working on:
 - Sentry
 - Perfetto
 - Linux kernel
+- use hamilton path?
+- bump tile size?
 
 - Fix file type / extension
 - Split tile helper into per-file and per-line version
-- Make it so /api/tile/ does not always need repo
-- TileCompistor
 - Support many layers
 - Support macro-tiles
-- Wire up memcached
 - Show pointer to home
 - Home reset button
 - Rename viz -> Mylar
 - Rename Viewer -> Renderer
-- memcached
-- bump tile size?
-- use hamilton path?
 - Keyboard shortcut list / help
-- Add repo link to debug
-
 - Don't render multiple high lod tiles
+
+- zstd cached?
 
 - more fancy outline
 - aabb quad tree bit regions?
 
-
+- Camera limits
 - Zoom to mouse
 - Middle mouse button to pan
 - Make pinch feel better
-- Camera limits
 
 
+- display-p3
 - Investigate rgba-float16
 - Show fps state
 
@@ -83,4 +76,10 @@
 - Make Sentry work
 - Wire up persistent storage for git repos
 - Hide actions which are useless
+- Render at least one tile when zoomed out
+- Add repo link to debug
+- Make it so /api/tile/ does not always need repo
+- TileCompistor
+- Wire up memcached
+- memcached
 

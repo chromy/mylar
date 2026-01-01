@@ -2,6 +2,7 @@ package viz
 
 import (
 	"context"
+	"github.com/chromy/viz/internal/cache"
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/getsentry/sentry-go"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 import _ "net/http/pprof"
@@ -38,12 +40,20 @@ func loadInitialRepos(ctx context.Context) {
 	//}
 }
 
-func DoServe(ctx context.Context, port uint, memcachedUrl string) {
+func DoServe(ctx context.Context, port uint, memcached string) {
 	initSentry()
 
-	if memcachedUrl != "" {
-		log.Printf("using memcached at %s", memcachedUrl)
+	// Initialize cache
+	var cacheImpl cache.Cache
+	if memcached != "" {
+		log.Printf("using memcached at %s", memcached)
+		servers := strings.Split(memcached, ",")
+		cacheImpl = cache.NewMemcachedCache(servers...)
+	} else {
+		log.Printf("using in-memory cache")
+		cacheImpl = cache.NewMemoryCache()
 	}
+	core.InitCache(cacheImpl)
 
 	router := httprouter.New()
 

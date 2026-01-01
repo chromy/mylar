@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/chromy/viz/internal/core"
-	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/julienschmidt/httprouter"
@@ -54,9 +53,9 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	committish := ps.ByName("committish")
-	if committish == "" {
-		http.Error(w, "committish must be set", http.StatusBadRequest)
+	commit := ps.ByName("commit")
+	if commit == "" {
+		http.Error(w, "commit must be set", http.StatusBadRequest)
 		return
 	}
 
@@ -101,19 +100,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	repository, err := repo.ResolveRepo(r.Context(), repoName)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	hash, err := repo.ResolveCommittishToTreeish(repository, committish)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	tile, err := tileComputation.Execute(r.Context(), repoName, hash, lod, x, y)
+	tile, err := tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), lod, x, y)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -160,7 +147,7 @@ func init() {
 	core.RegisterRoute(core.Route{
 		Id:      "api.tile",
 		Method:  http.MethodGet,
-		Path:    "/api/tile/:tileComputationId/:repoId/:committish/:lod/:x/:y",
+		Path:    "/api/tile/:tileComputationId/:repoId/:commit/:lod/:x/:y",
 		Handler: TileHandler,
 	})
 
