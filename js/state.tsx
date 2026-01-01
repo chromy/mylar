@@ -115,7 +115,7 @@ export const mylarReducer = (
 };
 
 export const initialMylarState: MylarState = {
-  layer: { kind: "fileExtension", composite: "direct" } as LayerType,
+  layer: { kind: "length", composite: "direct" } as LayerType,
 };
 
 export const getCurrentLayer = (state: MylarState): LayerType => {

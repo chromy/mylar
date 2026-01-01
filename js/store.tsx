@@ -11,6 +11,11 @@ export interface TileRequest {
   commit: string;
 }
 
+interface TileData {
+  metadata: TileMetadata;
+  tileData: number[];
+}
+
 export interface CompositeTileRequest {
   x: number;
   y: number;
@@ -22,10 +27,51 @@ export interface CompositeTileRequest {
   composite: string;
 }
 
-interface TileData {
-  metadata: TileMetadata;
-  tileData: number[];
-  imageBitmap: ImageBitmap;
+async function createTileBitmap(composite: string, tileData: number[]): Promise<ImageBitmap> {
+  const oklch = [0, 0, 0];
+  const rgb = [0, 0, 0];
+
+  const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
+  for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
+    const pixelIndex = i * 4;
+    const d = tileData[i]!;
+
+    if (composite === "direct") {
+      oklch[0] = 1.0 - (Math.min(Math.max(d, 0), 255) / 256.0);
+      oklch[1] = 0;
+      oklch[2] = 0;
+    } else if (composite === "hash") {
+      oklch[0] = 1.0;
+      oklch[1] = 1.0;
+      oklch[2] = d % 360;
+    } else {
+    }
+
+    convert(oklch, OKLCH, sRGB, rgb);
+
+    buffer[pixelIndex] = floatToByte(rgb[0]!); // R
+    buffer[pixelIndex + 1] = floatToByte(rgb[1]!); // G
+    buffer[pixelIndex + 2] = floatToByte(rgb[2]!); // B
+    buffer[pixelIndex + 3] = 255; // A
+  }
+
+  const imageData = new ImageData(buffer, TILE_SIZE);
+
+  return await createImageBitmap(
+    imageData,
+    0,
+    0,
+    TILE_SIZE,
+    TILE_SIZE,
+    {
+      resizeWidth: TILE_SIZE * 16,
+      resizeHeight: TILE_SIZE * 16,
+      premultiplyAlpha: "none",
+      colorSpaceConversion: "none",
+      imageOrientation: "none",
+      resizeQuality: "pixelated",
+    },
+  );
 }
 
 async function fetchTile(request: TileRequest): Promise<TileData> {
@@ -66,59 +112,9 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     throw new Error(`Failed to parse tile data: ${error}`);
   }
 
-  const oklch = [0, 0, 0];
-  const rgb = [0, 0, 0];
-
-  const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
-  for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
-    const pixelIndex = i * 4;
-    const d = tileData[i]!;
-
-    //const value = 255 - Math.min(255, Math.max(0, d));
-    //buffer[pixelIndex] = value; // R
-    //buffer[pixelIndex + 1] = value; // G
-    //buffer[pixelIndex + 2] = value; // B
-    //buffer[pixelIndex + 3] = 255; // A
-
-    //const value = d === 0 ? 255 : d % 256;
-    //buffer[pixelIndex] = value; // R
-    //buffer[pixelIndex + 1] = value; // G
-    //buffer[pixelIndex + 2] = value; // B
-    //buffer[pixelIndex + 3] = 255; // A
-
-    oklch[0] = 1.0;
-    oklch[1] = 1.0;
-    oklch[2] = d % 360;
-    convert(oklch, OKLCH, sRGB, rgb);
-
-    buffer[pixelIndex] = floatToByte(rgb[0]!); // R
-    buffer[pixelIndex + 1] = floatToByte(rgb[1]!); // G
-    buffer[pixelIndex + 2] = floatToByte(rgb[2]!); // B
-    buffer[pixelIndex + 3] = 255; // A
-  }
-
-  const imageData = new ImageData(buffer, TILE_SIZE);
-
-  const imageBitmap = await createImageBitmap(
-    imageData,
-    0,
-    0,
-    TILE_SIZE,
-    TILE_SIZE,
-    {
-      resizeWidth: TILE_SIZE * 16,
-      resizeHeight: TILE_SIZE * 16,
-      premultiplyAlpha: "none",
-      colorSpaceConversion: "none",
-      imageOrientation: "none",
-      resizeQuality: "pixelated",
-    },
-  );
-
   return {
     metadata,
     tileData,
-    imageBitmap,
   };
 }
 
@@ -167,10 +163,9 @@ export class TileStore {
     }
   }
 
-  get(request: TileRequest): ImageBitmap | undefined {
+  get(request: TileRequest): TileData | undefined {
     const key = this.tileKey(request);
-    const tileData = this.tileCache.get(key);
-    return tileData?.imageBitmap;
+    return this.tileCache.get(key);
   }
 
   private async requestTile(request: TileRequest): Promise<void> {
@@ -205,6 +200,80 @@ export class TileStore {
         !this.pendingRequests.has(key)
       ) {
         this.requestTile(request);
+      }
+    }
+  }
+}
+
+export class TileCompositor {
+  private tileStore: TileStore;
+  private requestedComposites: Set<string> = new Set();
+  private compositeCache: Map<string, ImageBitmap> = new Map();
+  private pendingComposites: Set<string> = new Set();
+
+  constructor(maxLiveRequests: number = 6) {
+    this.tileStore = new TileStore(maxLiveRequests);
+  }
+
+  private compositeKey(request: CompositeTileRequest): string {
+    return `${request.repo}_${request.commit}_${request.kind}_${request.composite}_${request.x}_${request.y}_${request.lod}`;
+  }
+
+  private tileRequestFromComposite(request: CompositeTileRequest): TileRequest {
+    return {
+      x: request.x,
+      y: request.y,
+      lod: request.lod,
+      repo: request.repo,
+      commit: request.commit,
+      kind: request.kind,
+    };
+  }
+
+  update(requests: CompositeTileRequest[]): void {
+    this.requestedComposites.clear();
+
+    const tileRequests: TileRequest[] = [];
+
+    for (const request of requests) {
+      const key = this.compositeKey(request);
+      this.requestedComposites.add(key);
+
+      if (!this.compositeCache.has(key) && !this.pendingComposites.has(key)) {
+        tileRequests.push(this.tileRequestFromComposite(request));
+        this.pendingComposites.add(key);
+      }
+    }
+
+    this.tileStore.update(tileRequests);
+
+    // Process any ready tiles into composites
+    this.processReadyTiles(requests);
+  }
+
+  get(request: CompositeTileRequest): ImageBitmap | undefined {
+    const key = this.compositeKey(request);
+    return this.compositeCache.get(key);
+  }
+
+  private async processReadyTiles(requests: CompositeTileRequest[]): Promise<void> {
+    for (const request of requests) {
+      const key = this.compositeKey(request);
+
+      if (this.pendingComposites.has(key) && !this.compositeCache.has(key)) {
+        const tileRequest = this.tileRequestFromComposite(request);
+        const tileData = this.tileStore.get(tileRequest);
+
+        if (tileData) {
+          try {
+            const bitmap = await createTileBitmap(request.composite,  tileData.tileData);
+            this.compositeCache.set(key, bitmap);
+          } catch (error) {
+            console.error("Failed to create composite bitmap:", error);
+          } finally {
+            this.pendingComposites.delete(key);
+          }
+        }
       }
     }
   }

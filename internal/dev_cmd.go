@@ -15,26 +15,34 @@ import (
 )
 
 type DevServer struct {
-	port        uint
-	servePort   uint
-	serveUrl    string
-	latestError []byte
-	cmd         *exec.Cmd
-	mu          sync.Mutex
-	lastModTime map[string]time.Time
+	port         uint
+	servePort    uint
+	serveUrl     string
+	memcachedUrl string
+	latestError  []byte
+	cmd          *exec.Cmd
+	memcachedCmd *exec.Cmd
+	mu           sync.Mutex
+	lastModTime  map[string]time.Time
 }
 
-func DoDev(ctx context.Context, port uint) {
+func DoDev(ctx context.Context, port uint, memcachedUrl string) {
 	servePort := port + 1
 	serveUrl := "http://localhost:" + strconv.Itoa(int(servePort))
 
-	dev := &DevServer{
-		port:        port,
-		servePort:   servePort,
-		serveUrl:    serveUrl,
-		lastModTime: make(map[string]time.Time),
+	if memcachedUrl == "" {
+		memcachedUrl = "http://localhost:8082"
 	}
 
+	dev := &DevServer{
+		port:         port,
+		servePort:    servePort,
+		serveUrl:     serveUrl,
+		memcachedUrl: memcachedUrl,
+		lastModTime:  make(map[string]time.Time),
+	}
+
+	dev.startMemcached()
 	dev.rebuildAndStartServe()
 
 	targetUrl, _ := url.Parse(serveUrl)
@@ -75,7 +83,11 @@ func (dev *DevServer) startServeWithLock() {
 	}
 
 	executable, _ := os.Executable()
-	dev.cmd = exec.Command(executable, "serve", "-port", strconv.Itoa(int(dev.servePort)))
+	args := []string{"serve", "-port", strconv.Itoa(int(dev.servePort))}
+	if dev.memcachedUrl != "" {
+		args = append(args, "-memcached", dev.memcachedUrl)
+	}
+	dev.cmd = exec.Command(executable, args...)
 	dev.cmd.Stdout = os.Stdout
 	dev.cmd.Stderr = os.Stderr
 
@@ -86,6 +98,28 @@ func (dev *DevServer) startServeWithLock() {
 	}
 
 	dev.waitForServer()
+}
+
+func (dev *DevServer) startMemcached() {
+	dev.mu.Lock()
+	defer dev.mu.Unlock()
+	
+	if dev.memcachedCmd != nil {
+		dev.memcachedCmd.Process.Kill()
+		dev.memcachedCmd.Wait()
+	}
+
+	dev.memcachedCmd = exec.Command("memcached", "-p", "8082", "-v")
+	dev.memcachedCmd.Stdout = os.Stdout
+	dev.memcachedCmd.Stderr = os.Stderr
+
+	err := dev.memcachedCmd.Start()
+	if err != nil {
+		log.Printf("Failed to start memcached: %v", err)
+		return
+	}
+
+	log.Printf("started memcached on port 8082")
 }
 
 func (dev *DevServer) rebuildWithLock() {

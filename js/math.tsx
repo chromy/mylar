@@ -73,15 +73,17 @@ export function* requiredTiles(
   pixelsPerWorldUnit: number,
 ): Generator<aabb> {
   const inScope = (box: aabb) => aabb.overlaps(box, bounds);
+  let count = 0;
 
   for (const quadAABB of quadtreeAABBs(lineCount, inScope)) {
     const width = aabb.width(quadAABB);
-    if (width * pixelsPerWorldUnit < 100) {
+    if (count > 0 && width * pixelsPerWorldUnit < 100) {
       break;
     }
     if (toLod(quadAABB) < 0) {
       break;
     }
+    count += 1;
     yield quadAABB;
   }
 }

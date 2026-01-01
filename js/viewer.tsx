@@ -19,7 +19,7 @@ import {
   type TilePosition,
   type LinePosition,
 } from "./utils.js";
-import { type TileRequest, TileStore } from "./store.js";
+import { type TileRequest, type CompositeTileRequest, TileStore, TileCompositor } from "./store.js";
 import {
   type MylarAction,
   settings,
@@ -43,6 +43,25 @@ function boxToTileRequest(
     repo,
     commit,
     kind,
+  };
+}
+
+function boxToCompositeTileRequest(
+  box: aabb,
+  repo: string,
+  commit: string,
+  kind: string,
+  composite: string,
+): CompositeTileRequest {
+  const width = aabb.width(box);
+  return {
+    x: box[0] / width,
+    y: box[1] / width,
+    lod: toLod(box),
+    repo,
+    commit,
+    kind,
+    composite,
   };
 }
 
@@ -112,7 +131,7 @@ class Renderer {
   private lastFrameMs: number;
   private canvasState: CanvasState | undefined;
   private callbacks: RendererHostCallbacks;
-  private tileStore: TileStore;
+  private tileCompositor: TileCompositor;
 
   private boundFrame: (timestamp: number) => void;
   private boundHandleWheel: (e: WheelEvent) => void;
@@ -142,7 +161,7 @@ class Renderer {
     this.lastDebugUpdateMs = 0;
     this.callbacks = callbacks;
     this.screenWorldAabb = aabb.create();
-    this.tileStore = new TileStore();
+    this.tileCompositor = new TileCompositor();
     this.visualizationBounds = quadtreeBoundingBox(this.layout.lineCount);
 
     this.boundFrame = this.frame.bind(this);
@@ -263,18 +282,18 @@ class Renderer {
     }
 
     // Figure out what tiles ought to be ready:
-    const reqs: TileRequest[] = [];
+    const reqs: CompositeTileRequest[] = [];
     for (const box of requiredTiles(
       this.screenWorldAabb,
       this.layout.lineCount,
       pixelsPerWorldUnit,
     )) {
-      const kind = currentLayer.kind;
-      reqs.push(boxToTileRequest(box, this.repo, this.commit, kind));
+      const {kind, composite} = currentLayer;
+      reqs.push(boxToCompositeTileRequest(box, this.repo, this.commit, kind, composite));
     }
 
-    // Update tile store with required tiles
-    this.tileStore.update(reqs);
+    // Update tile compositor with required composite tiles
+    this.tileCompositor.update(reqs);
 
     if (timestamp - this.lastDebugUpdateMs > 100) {
       this.lastDebugUpdateMs = timestamp;
@@ -346,7 +365,7 @@ class Renderer {
 
   private renderTile(
     ctx: CanvasRenderingContext2D,
-    request: TileRequest,
+    request: CompositeTileRequest,
     imageBitmap: ImageBitmap,
   ): void {
     const worldSize = lodToSize(request.lod);
@@ -379,7 +398,7 @@ class Renderer {
 
   private renderFrame(
     ctx: CanvasRenderingContext2D,
-    requiredTileRequests: TileRequest[],
+    requiredTileRequests: CompositeTileRequest[],
   ): void {
     const state = this.callbacks.getState();
     const width = this.camera.screenWidthPx;
@@ -447,7 +466,7 @@ class Renderer {
     }
 
     for (const request of requiredTileRequests) {
-      const imageBitmap = this.tileStore.get(request);
+      const imageBitmap = this.tileCompositor.get(request);
       if (imageBitmap) {
         this.renderTile(ctx, request, imageBitmap);
       }

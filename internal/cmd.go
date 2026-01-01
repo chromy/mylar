@@ -32,11 +32,18 @@ func Cmd() {
 	serve := func(args []string) int {
 		fs := flag.NewFlagSet("serve", flag.ExitOnError)
 		port := fs.Uint("port", 8080, "port to listen on")
+		memcached := fs.String("memcached", "", "memcached URL (e.g. http://localhost:8082)")
 		if err := fs.Parse(args); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			return 1
 		}
-		DoServe(ctx, *port)
+		
+		memcachedUrl := *memcached
+		if memcachedUrl == "" {
+			memcachedUrl = os.Getenv("MYLAR_MEMCACHE")
+		}
+		
+		DoServe(ctx, *port, memcachedUrl)
 		return 0
 	}
 
@@ -53,11 +60,18 @@ func Cmd() {
 	dev := func(args []string) int {
 		fs := flag.NewFlagSet("dev", flag.ExitOnError)
 		port := fs.Uint("port", 8080, "port to listen on")
+		memcached := fs.String("memcached", "", "memcached URL (e.g. http://localhost:8082)")
 		if err := fs.Parse(args); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			return 1
 		}
-		DoDev(ctx, *port)
+		
+		memcachedUrl := *memcached
+		if memcachedUrl == "" {
+			memcachedUrl = os.Getenv("MYLAR_MEMCACHE")
+		}
+		
+		DoDev(ctx, *port, memcachedUrl)
 		return 0
 	}
 

@@ -369,8 +369,8 @@ interface LayersMenuProps {
 const LAYER_OPTIONS: LayerType[] = [
   { kind: "offset", composite: "direct" },
   { kind: "length", composite: "direct" },
-  { kind: "fileHash", composite: "direct" },
-  { kind: "fileExtension", composite: "direct" },
+  { kind: "fileHash", composite: "hash" },
+  { kind: "fileExtension", composite: "hash" },
 ];
 
 const LAYER_LABELS: Record<string, string> = {

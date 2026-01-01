@@ -38,8 +38,12 @@ func loadInitialRepos(ctx context.Context) {
 	//}
 }
 
-func DoServe(ctx context.Context, port uint) {
+func DoServe(ctx context.Context, port uint, memcachedUrl string) {
 	initSentry()
+
+	if memcachedUrl != "" {
+		log.Printf("using memcached at %s", memcachedUrl)
+	}
 
 	router := httprouter.New()
 
