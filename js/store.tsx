@@ -64,7 +64,7 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     //buffer[pixelIndex + 2] = value; // B
     //buffer[pixelIndex + 3] = 255; // A
 
-    const value = d === 0 ? 255 : d % 256
+    const value = d === 0 ? 255 : d % 256;
     buffer[pixelIndex] = value; // R
     buffer[pixelIndex + 1] = value; // G
     buffer[pixelIndex + 2] = value; // B

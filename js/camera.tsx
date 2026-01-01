@@ -156,7 +156,7 @@ export class Camera {
     const aspect = this.screenSizePx[0] / this.screenSizePx[1];
     mat4.perspectiveZO(this.perspective, Math.PI / 3, aspect, 0.1, 1000);
 
-    this.perspective[5] *= -1
+    this.perspective[5] *= -1;
 
     const up = vec3.fromValues(0, 1, 0);
     mat4.lookAt(this.view, this._eye, this.focal, up);

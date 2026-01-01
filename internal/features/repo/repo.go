@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"log"
 )
 
 type Repo struct {
@@ -140,28 +139,28 @@ func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
 	if !strings.HasPrefix(repoId, "gh:") {
 		return nil, fmt.Errorf("repo id must be in gh:owner:name format, got: %s", repoId)
 	}
-	
+
 	parts := strings.Split(repoId, ":")
 	if len(parts) != 3 || parts[0] != "gh" || parts[1] == "" || parts[2] == "" {
 		return nil, fmt.Errorf("repo id must be in gh:owner:name format, got: %s", repoId)
 	}
-	
+
 	owner, name := parts[1], parts[2]
-	
+
 	// Check if repo exists in storage at gh/owner/name path
 	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
 	if _, err := os.Stat(repoPath); err == nil {
-		if err := AddFromPath(ctx, repoId, repoPath); err != nil {
+		if err := AddFromPath(ctx, repoId, repoPath, AddFromPathOptions{Name: name, Owner: owner}); err != nil {
 			return nil, fmt.Errorf("failed to add repo from path %s: %w", repoPath, err)
 		}
 		return Get(ctx, repoId)
 	}
-	
+
 	// Repo doesn't exist in storage, clone from GitHub
 	if err := AddFromGithub(ctx, owner, name); err != nil {
 		return nil, fmt.Errorf("failed to add repo from GitHub %s/%s: %w", owner, name, err)
 	}
-	
+
 	return Get(ctx, repoId)
 }
 
@@ -175,8 +174,6 @@ func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.
 	if err == nil {
 		return *hash, nil
 	}
-
-	log.Printf("%v %v %w", repo, committish, err)
 
 	return plumbing.ZeroHash, fmt.Errorf("unable to resolve committish '%s'", committish)
 }

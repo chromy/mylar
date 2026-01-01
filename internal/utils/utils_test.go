@@ -1,15 +1,15 @@
 package utils
 
 import (
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/chromy/viz/internal/constants"
+	"github.com/go-git/go-git/v5/plumbing"
 	"testing"
 )
 
 func TestHashToInt53(t *testing.T) {
 	tests := []struct {
 		hashAsString string
-		want int64
+		want         int64
 	}{
 		{"", 0},
 		{"09030652af16811842314a2c8fa5e344c2bb5c34", 306417227924233},

@@ -1,14 +1,14 @@
 package utils
 
 import (
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/chromy/viz/internal/constants"
-	"math"
 	"encoding/binary"
+	"github.com/chromy/viz/internal/constants"
+	"github.com/go-git/go-git/v5/plumbing"
+	"math"
 )
 
 func HashToInt53(hash plumbing.Hash) int64 {
-	return 0x1FFFFFFFFFFFFF & int64(binary.LittleEndian.Uint64(hash[:]));
+	return 0x1FFFFFFFFFFFFF & int64(binary.LittleEndian.Uint64(hash[:]))
 }
 
 // LodToSize converts a level of detail to the corresponding size
