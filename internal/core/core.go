@@ -31,5 +31,3 @@ func GetStoragePath() string {
 	storageOnce.Do(initStorage)
 	return storagePath
 }
-
-

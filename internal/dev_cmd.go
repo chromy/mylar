@@ -15,15 +15,15 @@ import (
 )
 
 type DevServer struct {
-	port           uint
-	servePort      uint
-	serveUrl       string
+	port            uint
+	servePort       uint
+	serveUrl        string
 	enableMemcached bool
-	latestError    []byte
-	cmd            *exec.Cmd
-	memcachedCmd   *exec.Cmd
-	mu             sync.Mutex
-	lastModTime    map[string]time.Time
+	latestError     []byte
+	cmd             *exec.Cmd
+	memcachedCmd    *exec.Cmd
+	mu              sync.Mutex
+	lastModTime     map[string]time.Time
 }
 
 const memcachedAddr = "localhost:8082"
@@ -33,11 +33,11 @@ func DoDev(ctx context.Context, port uint, enableMemcached bool) {
 	serveUrl := "http://localhost:" + strconv.Itoa(int(servePort))
 
 	dev := &DevServer{
-		port:           port,
-		servePort:      servePort,
-		serveUrl:       serveUrl,
+		port:            port,
+		servePort:       servePort,
+		serveUrl:        serveUrl,
 		enableMemcached: enableMemcached,
-		lastModTime:    make(map[string]time.Time),
+		lastModTime:     make(map[string]time.Time),
 	}
 
 	if dev.enableMemcached {

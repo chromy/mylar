@@ -210,7 +210,6 @@ func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.
 	tileSize := utils.LodToSize(int(lod))
 	tile := make([]int64, tileSize*tileSize)
 
-
 	tree, err := repo.CommitToTree(ctx, repoId, commit)
 	if err != nil {
 		return nil, err
