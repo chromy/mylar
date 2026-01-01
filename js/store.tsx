@@ -9,6 +9,17 @@ export interface TileRequest {
   committish: string;
 }
 
+export interface CompositeRequest {
+  x: number;
+  y: number;
+  lod: number;
+  repo: string;
+  committish: string;
+
+  kind: string;
+  composite: string;
+}
+
 interface TileData {
   metadata: TileMetadata;
   tileData: number[];
@@ -58,17 +69,17 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     const pixelIndex = i * 4;
     const d = tileData[i]!;
 
-    //const value = 255 - Math.min(255, Math.max(0, tileData[i]!));
-    //buffer[pixelIndex] = value; // R
-    //buffer[pixelIndex + 1] = value; // G
-    //buffer[pixelIndex + 2] = value; // B
-    //buffer[pixelIndex + 3] = 255; // A
-
-    const value = d === 0 ? 255 : d % 256;
+    const value = 255 - Math.min(255, Math.max(0, d));
     buffer[pixelIndex] = value; // R
     buffer[pixelIndex + 1] = value; // G
     buffer[pixelIndex + 2] = value; // B
     buffer[pixelIndex + 3] = 255; // A
+
+    //const value = d === 0 ? 255 : d % 256;
+    //buffer[pixelIndex] = value; // R
+    //buffer[pixelIndex + 1] = value; // G
+    //buffer[pixelIndex + 2] = value; // B
+    //buffer[pixelIndex + 3] = 255; // A
   }
 
   const imageData = new ImageData(buffer, TILE_SIZE);
@@ -183,3 +194,5 @@ export class TileStore {
     }
   }
 }
+
+

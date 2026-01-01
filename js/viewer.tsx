@@ -126,7 +126,6 @@ class Renderer {
   private tilePosition: TilePosition;
   private linePosition: LinePosition;
   private visualizationBounds: aabb;
-  private isMouseOverVisualization: boolean;
 
   constructor(
     repo: string,
@@ -271,7 +270,7 @@ class Renderer {
       this.layout.lineCount,
       pixelsPerWorldUnit,
     )) {
-      const kind = currentLayer;
+      const kind = currentLayer.kind;
       reqs.push(boxToTileRequest(box, this.repo, this.committish, kind));
     }
 

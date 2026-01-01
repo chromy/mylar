@@ -9,7 +9,7 @@ export interface ChangeSettingMylarAction {
 
 export interface ChangeLayerMylarAction {
   type: "CHANGE_LAYER";
-  layer: string;
+  layer: LayerType;
 }
 
 export type MylarAction = ChangeSettingMylarAction | ChangeLayerMylarAction;
@@ -95,7 +95,10 @@ export const settingsPanelSetting = settings.addBoolean({
   name: "settings panel",
 });
 
-export type LayerType = "offset" | "length" | "fileHash" | "fileExtension";
+export interface LayerType {
+  kind: string;
+  composite: string;
+}
 
 export const mylarReducer = (
   state: MylarState,
@@ -112,11 +115,11 @@ export const mylarReducer = (
 };
 
 export const initialMylarState: MylarState = {
-  layer: "fileExtension" as LayerType,
+  layer: { kind: "fileExtension", composite: "direct" } as LayerType,
 };
 
 export const getCurrentLayer = (state: MylarState): LayerType => {
-  return (state.layer as LayerType) ?? "fileExtension";
+  return (state.layer as LayerType) ?? { kind: "fileExtension", composite: "direct" };
 };
 
 export const createChangeLayerAction = (

@@ -219,6 +219,21 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
         <table className="table-auto w-full">
           <thead></thead>
           <tbody>
+            {repo.startsWith("gh:") && (
+              <tr>
+                <td>GitHub</td>
+                <td>
+                  <a
+                    href={`https://github.com/${repo.slice(3).replace(":", "/")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {repo.slice(3).replace(":", "/")}
+                  </a>
+                </td>
+              </tr>
+            )}
             <tr>
               <td>Files</td>
               <td>{fileCount}</td>
@@ -332,7 +347,14 @@ interface LayersMenuProps {
   state: MylarState;
 }
 
-const LAYER_LABELS: Record<LayerType, string> = {
+const LAYER_OPTIONS: LayerType[] = [
+  { kind: "offset", composite: "direct" },
+  { kind: "length", composite: "direct" },
+  { kind: "fileHash", composite: "direct" },
+  { kind: "fileExtension", composite: "direct" },
+];
+
+const LAYER_LABELS: Record<string, string> = {
   offset: "Line Offset",
   length: "Line Length",
   fileHash: "File Hash",
@@ -346,21 +368,19 @@ const LayersMenu = ({ dispatch, state }: LayersMenuProps) => {
     <div className="space-y-1">
       <div className="text-xs font-medium mb-2">Layers</div>
       <div className="space-y-1">
-        {(["offset", "length", "fileHash", "fileExtension"] as LayerType[]).map(
-          layer => (
-            <button
-              key={layer}
-              onClick={() => dispatch(createChangeLayerAction(layer))}
-              className={`block w-full text-left px-2 py-1 text-xs rounded-xs transition-colors ${
-                currentLayer === layer
-                  ? "bg-blue-500/20 text-blue-700"
-                  : "hover:bg-white/10"
-              }`}
-            >
-              {LAYER_LABELS[layer]}
-            </button>
-          ),
-        )}
+        {LAYER_OPTIONS.map(layer => (
+          <button
+            key={`${layer.kind}-${layer.composite}`}
+            onClick={() => dispatch(createChangeLayerAction(layer))}
+            className={`block w-full text-left px-2 py-1 text-xs rounded-xs transition-colors ${
+              currentLayer.kind === layer.kind && currentLayer.composite === layer.composite
+                ? "bg-blue-500/20 text-blue-700"
+                : "hover:bg-white/10"
+            }`}
+          >
+            {LAYER_LABELS[layer.kind]}
+          </button>
+        ))}
       </div>
     </div>
   );

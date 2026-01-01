@@ -49,6 +49,11 @@ type RepoListResponse struct {
 	Repos []RepoInfo `json:"repos"`
 }
 
+type ResolveCommittishResponse struct {
+	CommitHash   string `json:"commitHash"`
+	RootTreeHash string `json:"rootTreeHash"`
+}
+
 type AddFromPathOptions struct {
 	Name  string
 	Owner string
@@ -217,6 +222,48 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
+func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	repoId := r.URL.Query().Get("repoId")
+	if repoId == "" {
+		http.Error(w, "repoId parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	committish := r.URL.Query().Get("committish")
+	if committish == "" {
+		http.Error(w, "committish parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := ResolveRepo(r.Context(), repoId)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to resolve repo: %v", err), http.StatusNotFound)
+		return
+	}
+
+	commitHash, err := ResolveCommittishToHash(repo, committish)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to resolve committish: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	rootTreeHash, err := GetCommitRootTreeHash(r.Context(), repoId, commitHash)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get root tree hash: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := ResolveCommittishResponse{
+		CommitHash:   commitHash.String(),
+		RootTreeHash: rootTreeHash,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context, repoId string, hash plumbing.Hash) (bool, error) {
 	repo, err := Get(ctx, repoId)
 	if err != nil {
@@ -344,6 +391,21 @@ var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.
 	return obj.Type().String(), nil
 })
 
+var GetCommitRootTreeHash = core.RegisterBlobComputation("commitRootTreeHash", func(ctx context.Context, repoId string, hash plumbing.Hash) (string, error) {
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return "", err
+	}
+
+	// Verify the hash refers to a commit object
+	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		return "", fmt.Errorf("hash %s is not a valid commit: %w", hash.String(), err)
+	}
+
+	return commit.TreeHash.String(), nil
+})
+
 func init() {
 	core.RegisterRoute(core.Route{
 		Id:      "repo.list",
@@ -352,8 +414,16 @@ func init() {
 		Handler: ListHandler,
 	})
 
+	core.RegisterRoute(core.Route{
+		Id:      "repo.resolveCommittish",
+		Method:  http.MethodGet,
+		Path:    "/api/repo/resolve",
+		Handler: ResolveCommittishHandler,
+	})
+
 	schemas.Register("repo.RepoInfo", RepoInfo{})
 	schemas.Register("repo.RepoListResponse", RepoListResponse{})
+	schemas.Register("repo.ResolveCommittishResponse", ResolveCommittishResponse{})
 	schemas.Register("repo.TreeEntry", TreeEntry{})
 	schemas.Register("repo.TreeEntries", TreeEntries{})
 }

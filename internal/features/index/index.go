@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strconv"
 )
@@ -285,10 +286,16 @@ var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ct
 	return ExecuteTileComputation(ctx, repoId, hash, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
-			path := entry.Path
-			a := int64(path[len(path)-2])
-			b := int64(path[len(path)-1])
-			return (a << 8) | b
+			ext := filepath.Ext(entry.Path)
+			if len(ext) > 1 {
+				ext = ext[1:]
+			}
+			
+			var result int64
+			for i := 0; i < len(ext) && i < 6; i++ {
+				result = (result << 8) | int64(ext[i])
+			}
+			return result
 		}
 		return 0
 	})

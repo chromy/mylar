@@ -1,42 +1,64 @@
 # TODO:
+- Fix odd repo bug
+- Search
+- regex search
+- LLM
+- Crash stack
+- Coverage / Perf
+- Blame
+- Git history
+- Custom layers
+- Change commitish to commit. Pass commit to tile render functions.
+- zstd cached?
+
+- Get working on:
+- Sentry
+- Perfetto
+- Linux kernel
+
 - Fix file type / extension
 - Split tile helper into per-file and per-line version
 - Make it so /api/tile/ does not always need repo
 - TileCompistor
 - Support many layers
 - Support macro-tiles
-- Wire up persistent storage for git repos
 - Wire up memcached
 - Show pointer to home
-- Hide actions which are useless
-- Text box with gh search on home page
-- Show repo icon?
 - Home reset button
-- Globby not actually working at all
 - Rename viz -> Mylar
 - Rename Viewer -> Renderer
 - memcached
 - bump tile size?
 - use hamilton path?
 - Keyboard shortcut list / help
-- Make Sentry work
+- Add repo link to debug
+
+- Don't render multiple high lod tiles
+
 - more fancy outline
+- aabb quad tree bit regions?
 
-- Singleton TileStore?
-
-- Font choice?
-- Remove bbox notes
-- Commas in debug notes
 
 - Zoom to mouse
 - Middle mouse button to pan
 - Make pinch feel better
 - Camera limits
 
+
 - Investigate rgba-float16
-- aabb quad tree bit regions?
-- Show fps counter
 - Show fps state
+
+- Show repo icon?
+- settings default pass
+- persist settings
+- Singleton TileStore?
+
+- Commas in debug notes
+- Show fps counter
+- Font choice?
+- Add gh search on home page
+- Globby not actually working at all
+- Remove bbox notes
 
 
 # TODONE:
@@ -54,4 +76,7 @@
 - File type / extension
 - Handle: org/repo
 - Load arbitery github repos.
+- Make Sentry work
+- Wire up persistent storage for git repos
+- Hide actions which are useless
 
