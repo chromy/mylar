@@ -102,7 +102,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	repository, err := repo.Get(r.Context(), repoName)
+	repository, err := repo.ResolveRepo(r.Context(), repoName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,5 +1,5 @@
 # TODO:
-
+- Split tile helper into per-file and per-line version
 - Make it so /api/tile/ does not always need repo
 - TileCompistor
 - Support many layers
@@ -16,7 +16,6 @@
 - Rename Viewer -> Renderer
 - memcached
 - bump tile size?
-- fix bug with position of tiles
 - use hamilton path?
 - Keyboard shortcut list / help
 - Make Sentry work
@@ -43,6 +42,7 @@
 
 
 # TODONE:
+- fix bug with position of tiles
 - Generate zod schemas from golang structs
 - Make line based rather than char based.
 - Support multiple repos.

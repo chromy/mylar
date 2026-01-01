@@ -82,7 +82,7 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 		return Index{}, fmt.Errorf("index blob computation not found")
 	}
 
-	repository, err := repo.Get(ctx, repoId)
+	repository, err := repo.ResolveRepo(ctx, repoId)
 	if err != nil {
 		return Index{}, err
 	}
@@ -158,7 +158,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 
-	repository, err := repo.Get(r.Context(), repoName)
+	repository, err := repo.ResolveRepo(r.Context(), repoName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -281,6 +281,19 @@ var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.
 	})
 })
 
+var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+	return ExecuteTileComputation(ctx, repoId, hash, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
+		linePos := utils.WorldToLine(worldPos, *layout)
+		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+			path := entry.Path
+			a := int64(path[len(path)-2])
+			b := int64(path[len(path)-1])
+			return (a << 8) | b
+		}
+		return 0
+	})
+})
+
 type FileByLineResponse struct {
 	Entry         IndexEntry          `json:"entry"`
 	Content       string              `json:"content"`
@@ -313,7 +326,7 @@ func FileByLineHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 		return
 	}
 
-	repository, err := repo.Get(r.Context(), repoName)
+	repository, err := repo.ResolveRepo(r.Context(), repoName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

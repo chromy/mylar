@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"log"
 )
 
 type Repo struct {
@@ -49,7 +50,12 @@ type RepoListResponse struct {
 	Repos []RepoInfo `json:"repos"`
 }
 
-func AddFromPath(_ context.Context, id string, path string) error {
+type AddFromPathOptions struct {
+	Name  string
+	Owner string
+}
+
+func AddFromPath(_ context.Context, id string, path string, options ...AddFromPathOptions) error {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -62,10 +68,16 @@ func AddFromPath(_ context.Context, id string, path string) error {
 		return err
 	}
 
+	var name, owner string
+	if len(options) > 0 {
+		name = options[0].Name
+		owner = options[0].Owner
+	}
+
 	repos[id] = Repo{
 		Id:         id,
-		Name:       "",
-		Owner:      "",
+		Name:       name,
+		Owner:      owner,
 		Repository: repository,
 	}
 
@@ -84,7 +96,7 @@ func AddFromGithub(_ context.Context, owner string, name string) error {
 
 	url := fmt.Sprintf("https://github.com/%s/%s", owner, name)
 
-	repoPath := filepath.Join(core.GetStoragePath(), id)
+	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
 	if err := os.MkdirAll(repoPath, 0755); err != nil {
 		return fmt.Errorf("creating repo directory %s: %w", repoPath, err)
 	}
@@ -120,7 +132,6 @@ func Get(_ context.Context, id string) (*git.Repository, error) {
 }
 
 func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
-	// Check if repo is already in memory
 	if repo, err := Get(ctx, repoId); err == nil {
 		return repo, nil
 	}
@@ -140,7 +151,6 @@ func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
 	// Check if repo exists in storage at gh/owner/name path
 	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
 	if _, err := os.Stat(repoPath); err == nil {
-		// Repo exists in storage, add it from path
 		if err := AddFromPath(ctx, repoId, repoPath); err != nil {
 			return nil, fmt.Errorf("failed to add repo from path %s: %w", repoPath, err)
 		}
@@ -165,6 +175,8 @@ func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.
 	if err == nil {
 		return *hash, nil
 	}
+
+	log.Printf("%v %v %w", repo, committish, err)
 
 	return plumbing.ZeroHash, fmt.Errorf("unable to resolve committish '%s'", committish)
 }

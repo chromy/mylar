@@ -55,20 +55,20 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
 
   const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
   for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
-    const value = 255 - Math.min(255, Math.max(0, tileData[i]!));
     const pixelIndex = i * 4;
-    buffer[pixelIndex] = value; // R
-    buffer[pixelIndex + 1] = value; // G
-    buffer[pixelIndex + 2] = value; // B
-    buffer[pixelIndex + 3] = 255; // A
+    const d = tileData[i]!;
 
-    //const d = tileData[i]!;
-    //const value = d === 0 ? 255 : d % 256
-    //const pixelIndex = i * 4;
+    //const value = 255 - Math.min(255, Math.max(0, tileData[i]!));
     //buffer[pixelIndex] = value; // R
     //buffer[pixelIndex + 1] = value; // G
     //buffer[pixelIndex + 2] = value; // B
     //buffer[pixelIndex + 3] = 255; // A
+
+    const value = d === 0 ? 255 : d % 256
+    buffer[pixelIndex] = value; // R
+    buffer[pixelIndex + 1] = value; // G
+    buffer[pixelIndex + 2] = value; // B
+    buffer[pixelIndex + 3] = 255; // A
   }
 
   const imageData = new ImageData(buffer, TILE_SIZE);

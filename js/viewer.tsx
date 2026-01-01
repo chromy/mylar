@@ -251,7 +251,8 @@ class Renderer {
     )) {
       //const kind = "fileHash";
       //const kind = "offset";
-      const kind = "length";
+      //const kind = "length";
+      const kind = "fileExtension";
       reqs.push(boxToTileRequest(box, this.repo, this.committish, kind));
     }
 
