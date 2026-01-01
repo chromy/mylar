@@ -119,6 +119,42 @@ func Get(_ context.Context, id string) (*git.Repository, error) {
 	}
 }
 
+func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
+	// Check if repo is already in memory
+	if repo, err := Get(ctx, repoId); err == nil {
+		return repo, nil
+	}
+
+	// Parse gh:owner:name format
+	if !strings.HasPrefix(repoId, "gh:") {
+		return nil, fmt.Errorf("repo id must be in gh:owner:name format, got: %s", repoId)
+	}
+	
+	parts := strings.Split(repoId, ":")
+	if len(parts) != 3 || parts[0] != "gh" || parts[1] == "" || parts[2] == "" {
+		return nil, fmt.Errorf("repo id must be in gh:owner:name format, got: %s", repoId)
+	}
+	
+	owner, name := parts[1], parts[2]
+	
+	// Check if repo exists in storage at gh/owner/name path
+	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
+	if _, err := os.Stat(repoPath); err == nil {
+		// Repo exists in storage, add it from path
+		if err := AddFromPath(ctx, repoId, repoPath); err != nil {
+			return nil, fmt.Errorf("failed to add repo from path %s: %w", repoPath, err)
+		}
+		return Get(ctx, repoId)
+	}
+	
+	// Repo doesn't exist in storage, clone from GitHub
+	if err := AddFromGithub(ctx, owner, name); err != nil {
+		return nil, fmt.Errorf("failed to add repo from GitHub %s/%s: %w", owner, name, err)
+	}
+	
+	return Get(ctx, repoId)
+}
+
 func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.Hash, error) {
 	if plumbing.IsHash(committish) {
 		hash := plumbing.NewHash(committish)

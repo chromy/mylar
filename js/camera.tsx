@@ -82,7 +82,7 @@ export class Camera {
     const zCompensation = this._eye[2] * 0.1;
     const xyFactor = 0.01;
     const zFactor = 0.01;
-    this._eye[0] -= delta[0] * xyFactor * zCompensation;
+    this._eye[0] -= delta[0] * xyFactor * -1 * zCompensation;
     this._eye[1] -= delta[1] * xyFactor * -1 * zCompensation;
     // TODO: zoom on mouse
     this._eye[2] -= delta[2] * zFactor * -1 * zCompensation;
@@ -92,7 +92,7 @@ export class Camera {
   jog(d: Direction): void {
     switch (d) {
       case Direction.UP:
-        this._eye[1] += this.jogAmplitude;
+        this._eye[1] -= this.jogAmplitude;
         break;
       case Direction.LEFT:
         this._eye[0] -= this.jogAmplitude;
@@ -101,7 +101,7 @@ export class Camera {
         this._eye[0] += this.jogAmplitude;
         break;
       case Direction.DOWN:
-        this._eye[1] -= this.jogAmplitude;
+        this._eye[1] += this.jogAmplitude;
         break;
       case Direction.IN:
         this._eye[2] -= this.jogAmplitude;
@@ -155,6 +155,8 @@ export class Camera {
     this.focal[1] = this._eye[1];
     const aspect = this.screenSizePx[0] / this.screenSizePx[1];
     mat4.perspectiveZO(this.perspective, Math.PI / 3, aspect, 0.1, 1000);
+
+    this.perspective[5] *= -1
 
     const up = vec3.fromValues(0, 1, 0);
     mat4.lookAt(this.view, this._eye, this.focal, up);

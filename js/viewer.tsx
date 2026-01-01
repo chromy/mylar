@@ -249,7 +249,10 @@ class Renderer {
       this.layout.lineCount,
       pixelsPerWorldUnit,
     )) {
-      reqs.push(boxToTileRequest(box, this.repo, this.committish, "fileHash"));
+      //const kind = "fileHash";
+      //const kind = "offset";
+      const kind = "length";
+      reqs.push(boxToTileRequest(box, this.repo, this.committish, kind));
     }
 
     // Update tile store with required tiles
