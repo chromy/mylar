@@ -18,7 +18,7 @@ type DevServer struct {
 	port         uint
 	servePort    uint
 	serveUrl     string
-	memcachedUrl string
+	memcached    string
 	latestError  []byte
 	cmd          *exec.Cmd
 	memcachedCmd *exec.Cmd
@@ -26,19 +26,17 @@ type DevServer struct {
 	lastModTime  map[string]time.Time
 }
 
-func DoDev(ctx context.Context, port uint, memcachedUrl string) {
+func DoDev(ctx context.Context, port uint) {
 	servePort := port + 1
 	serveUrl := "http://localhost:" + strconv.Itoa(int(servePort))
 
-	if memcachedUrl == "" {
-		memcachedUrl = "http://localhost:8082"
-	}
+	memcached := "localhost:8082"
 
 	dev := &DevServer{
 		port:         port,
 		servePort:    servePort,
 		serveUrl:     serveUrl,
-		memcachedUrl: memcachedUrl,
+		memcached: memcached,
 		lastModTime:  make(map[string]time.Time),
 	}
 
@@ -84,8 +82,8 @@ func (dev *DevServer) startServeWithLock() {
 
 	executable, _ := os.Executable()
 	args := []string{"serve", "-port", strconv.Itoa(int(dev.servePort))}
-	if dev.memcachedUrl != "" {
-		args = append(args, "-memcached", dev.memcachedUrl)
+	if dev.memcached != "" {
+		args = append(args, "-memcached", dev.memcached)
 	}
 	dev.cmd = exec.Command(executable, args...)
 	dev.cmd.Stdout = os.Stdout
