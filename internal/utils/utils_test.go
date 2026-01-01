@@ -1,9 +1,38 @@
 package utils
 
 import (
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/chromy/viz/internal/constants"
 	"testing"
 )
+
+func TestHashToInt53(t *testing.T) {
+	tests := []struct {
+		hashAsString string
+		want int64
+	}{
+		{"", 0},
+		{"09030652af16811842314a2c8fa5e344c2bb5c34", 306417227924233},
+		{"c5ff5b84be06c42e15a35a312a7a2bb3760d29d9", 1133315241017285},
+	}
+
+	const maxSafeInteger int64 = 9007199254740991
+	const minSafeInteger int64 = -9007199254740991
+
+	for _, tt := range tests {
+		hash := plumbing.NewHash(tt.hashAsString)
+		got := HashToInt53(hash)
+		if got != tt.want {
+			t.Errorf("HashToInt53(%s) = %d, want %d", hash, got, tt.want)
+		}
+		if got > maxSafeInteger {
+			t.Errorf("HashToInt53(%s) = %d, larger than Number.MAX_SAFE_INTEGER (%d)", hash, got, maxSafeInteger)
+		}
+		if got < minSafeInteger {
+			t.Errorf("HashToInt53(%s) = %d, smaller than Number.MIN_SAFE_INTEGER (%d)", hash, got, minSafeInteger)
+		}
+	}
+}
 
 func TestMortonEncoding(t *testing.T) {
 	tests := []struct {

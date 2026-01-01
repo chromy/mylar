@@ -271,6 +271,16 @@ var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.
 	})
 })
 
+var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.Context, repoId string, hash plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+	return ExecuteTileComputation(ctx, repoId, hash, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
+		linePos := utils.WorldToLine(worldPos, *layout)
+		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+			return utils.HashToInt53(entry.Hash)
+		}
+		return 0
+	})
+})
+
 type FileByLineResponse struct {
 	Entry         IndexEntry          `json:"entry"`
 	Content       string              `json:"content"`
@@ -366,27 +376,6 @@ func init() {
 		Path:    "/api/repo/:repo/:committish/index/line/:line",
 		Handler: FileByLineHandler,
 	})
-
-	//core.RegisterRoute(core.Route{
-	//	Id:      "index.line_length",
-	//	Method:  http.MethodGet,
-	//	Path:    "/api/repo/:repo/:committish/line_length/",
-	//	Handler: LineLengthHandler,
-	//})
-
-	//core.RegisterRoute(core.Route{
-	//	Id:      "tile.line_length",
-	//	Method:  http.MethodGet,
-	//	Path:    "/api/repo/:repo/:committish/tile/:lod/:x/:y/length",
-	//	Handler: api.CreateTileHandler("tile-length"),
-	//})
-
-	//core.RegisterRoute(core.Route{
-	//	Id:      "tile.line_offset",
-	//	Method:  http.MethodGet,
-	//	Path:    "/api/repo/:repo/:committish/tile/:lod/:x/:y/offset",
-	//	Handler: api.CreateTileHandler("tile-offset"),
-	//})
 
 	schemas.Register("index.IndexEntry", IndexEntry{})
 	schemas.Register("index.Index", Index{})

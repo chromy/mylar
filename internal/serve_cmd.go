@@ -15,20 +15,25 @@ import _ "net/http/pprof"
 
 func loadInitialRepos(ctx context.Context) {
 	//if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
-	//	panic(err)
+	//	log.Printf("Failed to add perfetto repo from github: %v", err)
 	//}
 	//if err := repo.AddFromGithub(ctx, "getsentry", "sentry"); err != nil {
-	//	panic(err)
+	//	log.Printf("Failed to add sentry repo from github: %v", err)
 	//}
 	if err := repo.AddFromPath(ctx, "path:self", "."); err != nil {
-		panic(err)
+		log.Printf("Failed to add self repo: %v", err)
 	}
 	if err := repo.AddFromPath(ctx, "path:perfetto", "/Users/chromy/src/perfetto"); err != nil {
-		panic(err)
+		log.Printf("Failed to add perfetto repo from path: %v", err)
 	}
 	//if err := repo.AddFromGithub(ctx, "go-git", "go-billy"); err != nil {
-	//	panic(err)
+	//	log.Printf("Failed to add go-billy repo from github: %v", err)
 	//}
+
+	if err := repo.AddFromGithub(ctx, "githubtraining", "hellogitworld"); err != nil {
+		log.Printf("Failed to add go-billy repo from github: %v", err)
+	}
+
 }
 
 func DoServe(ctx context.Context, port uint) {

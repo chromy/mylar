@@ -9,10 +9,11 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -83,7 +84,12 @@ func AddFromGithub(_ context.Context, owner string, name string) error {
 
 	url := fmt.Sprintf("https://github.com/%s/%s", owner, name)
 
-	repository, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+	repoPath := filepath.Join(core.GetStoragePath(), id)
+	if err := os.MkdirAll(repoPath, 0755); err != nil {
+		return fmt.Errorf("creating repo directory %s: %w", repoPath, err)
+	}
+
+	repository, err := git.PlainClone(repoPath, true, &git.CloneOptions{
 		URL: url,
 	})
 	if err != nil {

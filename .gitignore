@@ -3,3 +3,4 @@ internal/static/*bundle.js
 internal/static/*bundle.js.map
 internal/static/bundle.css
 /node_modules/
+/.storage

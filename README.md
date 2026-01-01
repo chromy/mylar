@@ -1,8 +1,8 @@
 # TODO:
 
+- Make it so /api/tile/ does not always need repo
 - TileCompistor
 - Support many layers
-- Abstrct tile handlers
 - Support macro-tiles
 - Wire up persistent storage for git repos
 - Wire up memcached
@@ -52,4 +52,5 @@
 - Length
 - Roll over file with mouse
 - once every n seconds update state
+- Abstrct tile handlers
 
