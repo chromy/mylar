@@ -95,6 +95,13 @@ const displayMouseDebug = settings.addBoolean({
   defaultValue: true,
 });
 
+const debugCurve = settings.addBoolean({
+  id: "setting.debugCurve",
+  name: "debug curve",
+  defaultValue: false,
+});
+
+
 class Renderer {
   private repo: string;
   private committish: string;
@@ -119,6 +126,7 @@ class Renderer {
   private tilePosition: TilePosition;
   private linePosition: LinePosition;
   private visualizationBounds: aabb;
+  private isMouseOverVisualization: boolean;
 
   constructor(
     repo: string,
@@ -482,6 +490,66 @@ class Renderer {
       ctx.strokeStyle = "black";
       ctx.lineWidth = 1;
       this.renderAABB(ctx, this.visualizationBounds);
+    }
+
+    if (debugCurve.get(state) && aabb.containsPoint(this.visualizationBounds, this.worldMouse)) {
+      this.renderDebugCurve(ctx, state);
+    }
+  }
+
+  private renderDebugCurve(ctx: CanvasRenderingContext2D, state: MylarState): void {
+    const numLines = 30;
+    const startLine = this.linePosition;
+
+    ctx.strokeStyle = "hotpink";
+    ctx.lineWidth = 2;
+    ctx.fillStyle = "hotpink";
+
+    for (let i = 0; i < numLines - 1; i++) {
+      const currentLine = startLine + i;
+      const nextLine = startLine + i + 1;
+
+      // Skip if we exceed the total line count
+      if (nextLine >= this.layout.lineCount) {
+        break;
+      }
+
+      const currentWorld = lineToWorld(currentLine, { LastLine: this.layout.lineCount - 1 });
+      const nextWorld = lineToWorld(nextLine, { LastLine: this.layout.lineCount - 1 });
+
+      // Convert world positions to screen coordinates
+      const currentWorldVec = vec2.fromValues(currentWorld.X+0.5, currentWorld.Y+0.5);
+      const nextWorldVec = vec2.fromValues(nextWorld.X+0.5, nextWorld.Y+0.5);
+
+      const currentScreen = vec2.create();
+      const nextScreen = vec2.create();
+
+      this.camera.toScreen(currentScreen, currentWorldVec);
+      this.camera.toScreen(nextScreen, nextWorldVec);
+
+      // Draw line
+      ctx.beginPath();
+      ctx.moveTo(currentScreen[0], currentScreen[1]);
+      ctx.lineTo(nextScreen[0], nextScreen[1]);
+      ctx.stroke();
+
+      // Draw arrow head
+      const angle = Math.atan2(nextScreen[1] - currentScreen[1], nextScreen[0] - currentScreen[0]);
+      const arrowLength = 10;
+      const arrowAngle = Math.PI / 6; // 30 degrees
+
+      ctx.beginPath();
+      ctx.moveTo(nextScreen[0], nextScreen[1]);
+      ctx.lineTo(
+        nextScreen[0] - arrowLength * Math.cos(angle - arrowAngle),
+        nextScreen[1] - arrowLength * Math.sin(angle - arrowAngle)
+      );
+      ctx.moveTo(nextScreen[0], nextScreen[1]);
+      ctx.lineTo(
+        nextScreen[0] - arrowLength * Math.cos(angle + arrowAngle),
+        nextScreen[1] - arrowLength * Math.sin(angle + arrowAngle)
+      );
+      ctx.stroke();
     }
   }
 
