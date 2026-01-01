@@ -290,7 +290,7 @@ var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ct
 			if len(ext) > 1 {
 				ext = ext[1:]
 			}
-			
+
 			var result int64
 			for i := 0; i < len(ext) && i < 6; i++ {
 				result = (result << 8) | int64(ext[i])

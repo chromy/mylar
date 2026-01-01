@@ -373,7 +373,8 @@ const LayersMenu = ({ dispatch, state }: LayersMenuProps) => {
             key={`${layer.kind}-${layer.composite}`}
             onClick={() => dispatch(createChangeLayerAction(layer))}
             className={`block w-full text-left px-2 py-1 text-xs rounded-xs transition-colors ${
-              currentLayer.kind === layer.kind && currentLayer.composite === layer.composite
+              currentLayer.kind === layer.kind &&
+              currentLayer.composite === layer.composite
                 ? "bg-blue-500/20 text-blue-700"
                 : "hover:bg-white/10"
             }`}

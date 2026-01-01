@@ -119,7 +119,9 @@ export const initialMylarState: MylarState = {
 };
 
 export const getCurrentLayer = (state: MylarState): LayerType => {
-  return (state.layer as LayerType) ?? { kind: "fileExtension", composite: "direct" };
+  return (
+    (state.layer as LayerType) ?? { kind: "fileExtension", composite: "direct" }
+  );
 };
 
 export const createChangeLayerAction = (

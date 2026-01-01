@@ -2,9 +2,9 @@ package repo
 
 import (
 	"context"
-	"testing"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/chromy/viz/internal/core"
+	"github.com/go-git/go-git/v5/plumbing"
+	"testing"
 )
 
 func TestGetCommitRootTreeHash(t *testing.T) {
@@ -21,9 +21,8 @@ func TestGetCommitRootTreeHashRegistration(t *testing.T) {
 	if !found {
 		t.Error("Expected commitRootTreeHash blob computation to be registered")
 	}
-	
+
 	if computation.Id != "commitRootTreeHash" {
 		t.Errorf("Expected id 'commitRootTreeHash', got %s", computation.Id)
 	}
 }
-
