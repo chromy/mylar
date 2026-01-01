@@ -301,15 +301,25 @@ export interface MylarProps {
 }
 
 export const Mylar = ({ repo, committish }: MylarProps) => {
-  const { data: repoData, isLoading: repoLoading, isError: repoError, error: repoErrorMsg } = useJsonQuery({
+  const {
+    data: repoData,
+    isLoading: repoLoading,
+    isError: repoError,
+    error: repoErrorMsg,
+  } = useJsonQuery({
     path: `/api/resolve/${repo}/${committish}`,
     schema: ResolveCommittishResponseSchema,
   });
 
-  const { data: indexData, isLoading: indexLoading, isError: indexError, error: indexErrorMsg } = useJsonQuery({
+  const {
+    data: indexData,
+    isLoading: indexLoading,
+    isError: indexError,
+    error: indexErrorMsg,
+  } = useJsonQuery({
     path: `/api/repo/${repo}/${repoData?.commit}/index`,
     schema: IndexSchema,
-    enabled: !!(repoData?.commit),
+    enabled: !!repoData?.commit,
   });
 
   if (indexError) {
@@ -327,7 +337,12 @@ export const Mylar = ({ repo, committish }: MylarProps) => {
     <>
       {isLoading && <FullScreenDecryptLoader />}
       {hasAllData && (
-        <MylarContent repo={repo} commit={repoData.commit} tree={repoData.tree} index={indexData} />
+        <MylarContent
+          repo={repo}
+          commit={repoData.commit}
+          tree={repoData.tree}
+          index={indexData}
+        />
       )}
     </>
   );

@@ -66,8 +66,8 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     throw new Error(`Failed to parse tile data: ${error}`);
   }
 
-  const oklch = [0,0,0];
-  const rgb = [0,0,0];
+  const oklch = [0, 0, 0];
+  const rgb = [0, 0, 0];
 
   const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
   for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
@@ -85,7 +85,6 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     //buffer[pixelIndex + 1] = value; // G
     //buffer[pixelIndex + 2] = value; // B
     //buffer[pixelIndex + 3] = 255; // A
-
 
     oklch[0] = 1.0;
     oklch[1] = 1.0;

@@ -50,8 +50,8 @@ type RepoListResponse struct {
 }
 
 type ResolveCommittishResponse struct {
-	Commit  string `json:"commit"`
-	Tree string `json:"tree"`
+	Commit string `json:"commit"`
+	Tree   string `json:"tree"`
 }
 
 type AddFromPathOptions struct {
@@ -255,7 +255,7 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprou
 
 	response := ResolveCommittishResponse{
 		Commit: commit.String(),
-		Tree: tree,
+		Tree:   tree,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
