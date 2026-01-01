@@ -7,11 +7,8 @@ import (
 	"fmt"
 	_ "github.com/chromy/viz/internal/features"
 	"github.com/chromy/viz/internal/schemas"
-	"github.com/getsentry/sentry-go"
 	"io/fs"
-	"log"
 	"os"
-	"time"
 )
 
 //go:embed static/*
@@ -29,9 +26,6 @@ func Cmd() {
 		Usage()
 		os.Exit(1)
 	}
-
-	initSentry()
-	defer sentry.Flush(2 * time.Second)
 
 	ctx := context.Background()
 
@@ -108,34 +102,4 @@ func DoAssets(ctx context.Context) {
 
 func DoSchemas(ctx context.Context) {
 	fmt.Printf("%s", schemas.ToZodSchema())
-}
-
-func initSentry() {
-	dsn := os.Getenv("SENTRY_DSN")
-	if dsn == "" {
-		log.Println("SENTRY_DSN not set, Sentry disabled")
-		return
-	}
-
-	err := sentry.Init(sentry.ClientOptions{
-		Dsn:              dsn,
-		Environment:      getEnvironment(),
-		TracesSampleRate: 1.0,
-		Debug:            os.Getenv("SENTRY_DEBUG") == "true",
-	})
-	if err != nil {
-		log.Printf("sentry.Init: %s", err)
-	} else {
-		log.Println("Sentry initialized")
-	}
-}
-
-func getEnvironment() string {
-	if env := os.Getenv("ENVIRONMENT"); env != "" {
-		return env
-	}
-	if env := os.Getenv("GO_ENV"); env != "" {
-		return env
-	}
-	return "development"
 }

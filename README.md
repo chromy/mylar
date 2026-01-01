@@ -1,4 +1,5 @@
 # TODO:
+- Fix file type / extension
 - Split tile helper into per-file and per-line version
 - Make it so /api/tile/ does not always need repo
 - TileCompistor
@@ -22,8 +23,6 @@
 - more fancy outline
 
 - Singleton TileStore?
-- Handle: org/repo
-- Load arbitery github repos.
 
 - Font choice?
 - Remove bbox notes
@@ -34,7 +33,6 @@
 - Make pinch feel better
 - Camera limits
 
-- File type / extension
 - Investigate rgba-float16
 - aabb quad tree bit regions?
 - Show fps counter
@@ -53,4 +51,7 @@
 - Roll over file with mouse
 - once every n seconds update state
 - Abstrct tile handlers
+- File type / extension
+- Handle: org/repo
+- Load arbitery github repos.
 

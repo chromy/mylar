@@ -3,14 +3,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/julienschmidt/httprouter"
+	"net/http"
+	"strconv"
 )
 
 type TileMetadata struct {
@@ -138,7 +137,18 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 }
 
+func TriggerCrashHandler(_ http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	panic("panic triggered")
+}
+
 func init() {
+
+	core.RegisterRoute(core.Route{
+		Id:      "api.crash",
+		Method:  http.MethodPost,
+		Path:    "/api/crash",
+		Handler: TriggerCrashHandler,
+	})
 
 	core.RegisterRoute(core.Route{
 		Id:      "api.compute",

@@ -5,9 +5,11 @@ import (
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/getsentry/sentry-go"
+	"github.com/getsentry/sentry-go/http"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -37,6 +39,8 @@ func loadInitialRepos(ctx context.Context) {
 }
 
 func DoServe(ctx context.Context, port uint) {
+	initSentry()
+
 	router := httprouter.New()
 
 	router.ServeFiles("/static/*filepath", http.FS(staticFS))
@@ -44,7 +48,7 @@ func DoServe(ctx context.Context, port uint) {
 	routeIds := core.ListRoutes()
 	for _, id := range routeIds {
 		if route, found := core.GetRoute(id); found {
-			router.Handle(route.Method, route.Path, withSentry(route.Handler))
+			router.Handle(route.Method, route.Path, route.Handler)
 		}
 	}
 
@@ -52,28 +56,60 @@ func DoServe(ctx context.Context, port uint) {
 
 	router.Handler(http.MethodGet, "/debug/pprof/*item", http.DefaultServeMux)
 
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+
 	log.Printf("ready serve http://localhost:%d", port)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(int(port)), router))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(int(port)), sentryHandler.Handle(router)))
 }
 
-func withSentry(handler httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		hub := sentry.GetHubFromContext(r.Context())
-		if hub == nil {
-			hub = sentry.CurrentHub().Clone()
-			r = r.WithContext(sentry.SetHubOnContext(r.Context(), hub))
-		}
+func initSentry() {
+	dsn := os.Getenv("SENTRY_DSN")
+	if dsn == "" {
+		log.Println("SENTRY_DSN not set, sentry disabled")
+		return
+	}
 
-		hub.Scope().SetTag("path", r.URL.Path)
-		hub.Scope().SetTag("method", r.Method)
-
-		defer func() {
-			if err := recover(); err != nil {
-				hub.CaptureException(err.(error))
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
-		}()
-
-		handler(w, r, ps)
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              dsn,
+		Environment:      getEnvironment(),
+		TracesSampleRate: 1.0,
+		Debug:            os.Getenv("SENTRY_DEBUG") == "true",
+	})
+	if err == nil {
+		log.Println("sentry initialized")
+	} else {
+		log.Fatalf("sentry.Init: %s", err)
 	}
 }
+
+func getEnvironment() string {
+	if env := os.Getenv("ENVIRONMENT"); env != "" {
+		return env
+	}
+	if env := os.Getenv("GO_ENV"); env != "" {
+		return env
+	}
+	return "development"
+}
+
+//func withSentry(handler httprouter.Handle) httprouter.Handle {
+//	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+//		hub := sentry.GetHubFromContext(r.Context())
+//		if hub == nil {
+//			hub = sentry.CurrentHub().Clone()
+//			r = r.WithContext(sentry.SetHubOnContext(r.Context(), hub))
+//		}
+//
+//		hub.Scope().SetTag("path", r.URL.Path)
+//		hub.Scope().SetTag("method", r.Method)
+//
+//		defer func() {
+//			if err := recover(); err != nil {
+//				hub.CaptureException(err.(error))
+//				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+//			}
+//		}()
+//
+//		handler(w, r, ps)
+//	}
+//}
