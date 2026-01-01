@@ -91,25 +91,3 @@ func getEnvironment() string {
 	}
 	return "development"
 }
-
-//func withSentry(handler httprouter.Handle) httprouter.Handle {
-//	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-//		hub := sentry.GetHubFromContext(r.Context())
-//		if hub == nil {
-//			hub = sentry.CurrentHub().Clone()
-//			r = r.WithContext(sentry.SetHubOnContext(r.Context(), hub))
-//		}
-//
-//		hub.Scope().SetTag("path", r.URL.Path)
-//		hub.Scope().SetTag("method", r.Method)
-//
-//		defer func() {
-//			if err := recover(); err != nil {
-//				hub.CaptureException(err.(error))
-//				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-//			}
-//		}()
-//
-//		handler(w, r, ps)
-//	}
-//}
