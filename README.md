@@ -10,6 +10,9 @@
 - Custom layers
 - Change commitish to commit. Pass commit to tile render functions.
 - zstd cached?
+- Remove tiles from tile cache
+- Move index reoute
+- display-p3
 
 - Get working on:
 - Sentry

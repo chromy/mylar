@@ -1,3 +1,5 @@
+import { vec3 } from "gl-matrix";
+import { convert, OKLCH, sRGB } from "@texel/color";
 import { TILE_SIZE, type TileMetadata, TileMetadataSchema } from "./schemas.js";
 
 export interface TileRequest {
@@ -6,7 +8,7 @@ export interface TileRequest {
   lod: number;
   repo: string;
   kind: string;
-  committish: string;
+  commit: string;
 }
 
 export interface CompositeRequest {
@@ -14,7 +16,7 @@ export interface CompositeRequest {
   y: number;
   lod: number;
   repo: string;
-  committish: string;
+  commit: string;
 
   kind: string;
   composite: string;
@@ -27,7 +29,7 @@ interface TileData {
 }
 
 async function fetchTile(request: TileRequest): Promise<TileData> {
-  const url = `/api/tile/${request.kind}/${request.repo}/${request.committish}/${request.lod}/${request.x}/${request.y}`;
+  const url = `/api/tile/${request.kind}/${request.repo}/${request.commit}/${request.lod}/${request.x}/${request.y}`;
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -64,22 +66,36 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
     throw new Error(`Failed to parse tile data: ${error}`);
   }
 
+  const oklch = [0,0,0];
+  const rgb = [0,0,0];
+
   const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
   for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
     const pixelIndex = i * 4;
     const d = tileData[i]!;
 
-    const value = 255 - Math.min(255, Math.max(0, d));
-    buffer[pixelIndex] = value; // R
-    buffer[pixelIndex + 1] = value; // G
-    buffer[pixelIndex + 2] = value; // B
-    buffer[pixelIndex + 3] = 255; // A
+    //const value = 255 - Math.min(255, Math.max(0, d));
+    //buffer[pixelIndex] = value; // R
+    //buffer[pixelIndex + 1] = value; // G
+    //buffer[pixelIndex + 2] = value; // B
+    //buffer[pixelIndex + 3] = 255; // A
 
     //const value = d === 0 ? 255 : d % 256;
     //buffer[pixelIndex] = value; // R
     //buffer[pixelIndex + 1] = value; // G
     //buffer[pixelIndex + 2] = value; // B
     //buffer[pixelIndex + 3] = 255; // A
+
+
+    oklch[0] = 1.0;
+    oklch[1] = 1.0;
+    oklch[2] = d % 360;
+    convert(oklch, OKLCH, sRGB, rgb);
+
+    buffer[pixelIndex] = rgb[0]! * 256; // R
+    buffer[pixelIndex + 1] = rgb[1]! * 256; // G
+    buffer[pixelIndex + 2] = rgb[2]! * 256; // B
+    buffer[pixelIndex + 3] = 255; // A
   }
 
   const imageData = new ImageData(buffer, TILE_SIZE);
@@ -120,7 +136,7 @@ export class TileStore {
   }
 
   private tileKey(request: TileRequest): string {
-    return `${request.repo}_${request.committish}_${request.kind}_${request.x}_${request.y}_${request.lod}`;
+    return `${request.repo}_${request.commit}_${request.kind}_${request.x}_${request.y}_${request.lod}`;
   }
 
   update(requests: TileRequest[]): void {

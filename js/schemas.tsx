@@ -64,8 +64,8 @@ export const RepoListResponseSchema = z.object({
 export type RepoListResponse = z.infer<typeof RepoListResponseSchema>;
 
 export const ResolveCommittishResponseSchema = z.object({
-  commitHash: z.string(),
-  rootTreeHash: z.string(),
+  commit: z.string(),
+  tree: z.string(),
 });
 export type ResolveCommittishResponse = z.infer<
   typeof ResolveCommittishResponseSchema

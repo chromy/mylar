@@ -32,7 +32,7 @@ import {
 function boxToTileRequest(
   box: aabb,
   repo: string,
-  committish: string,
+  commit: string,
   kind: string,
 ): TileRequest {
   const width = aabb.width(box);
@@ -41,7 +41,7 @@ function boxToTileRequest(
     y: box[1] / width,
     lod: toLod(box),
     repo,
-    committish,
+    commit,
     kind,
   };
 }
@@ -103,7 +103,7 @@ const debugCurve = settings.addBoolean({
 
 class Renderer {
   private repo: string;
-  private committish: string;
+  private commit: string;
   private layout: TileLayout;
   private camera: Camera;
   private frameId: undefined | number;
@@ -128,12 +128,12 @@ class Renderer {
 
   constructor(
     repo: string,
-    committish: string,
+    commit: string,
     layout: TileLayout,
     callbacks: RendererHostCallbacks,
   ) {
     this.repo = repo;
-    this.committish = committish;
+    this.commit = commit;
     this.layout = layout;
     this.camera = new Camera();
     this.frameId = undefined;
@@ -270,7 +270,7 @@ class Renderer {
       pixelsPerWorldUnit,
     )) {
       const kind = currentLayer.kind;
-      reqs.push(boxToTileRequest(box, this.repo, this.committish, kind));
+      reqs.push(boxToTileRequest(box, this.repo, this.commit, kind));
     }
 
     // Update tile store with required tiles
@@ -599,7 +599,8 @@ class Renderer {
 
 export interface ViewerProps {
   repo: string;
-  committish: string;
+  commit: string;
+  tree: string;
   layout: TileLayout;
   setDebug: (info: DebugInfo) => void;
   setHoveredLineNumber: (line: number) => void;
@@ -612,7 +613,8 @@ export const Viewer = ({
   dispatch,
   state,
   repo,
-  committish,
+  commit,
+  tree,
   layout,
   setDebug,
   setHoveredLineNumber,
@@ -635,7 +637,7 @@ export const Viewer = ({
       return stateRef.current;
     };
 
-    const renderer = new Renderer(repo, committish, layout, {
+    const renderer = new Renderer(repo, commit, layout, {
       getCanvas,
       setFrameHistory,
       setDebug,

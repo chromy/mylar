@@ -50,8 +50,8 @@ type RepoListResponse struct {
 }
 
 type ResolveCommittishResponse struct {
-	CommitHash   string `json:"commitHash"`
-	RootTreeHash string `json:"rootTreeHash"`
+	Commit  string `json:"commit"`
+	Tree string `json:"tree"`
 }
 
 type AddFromPathOptions struct {
@@ -222,14 +222,14 @@ func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
-func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	repoId := r.URL.Query().Get("repoId")
+func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoId := ps.ByName("repoId")
 	if repoId == "" {
 		http.Error(w, "repoId parameter is required", http.StatusBadRequest)
 		return
 	}
 
-	committish := r.URL.Query().Get("committish")
+	committish := ps.ByName("committish")
 	if committish == "" {
 		http.Error(w, "committish parameter is required", http.StatusBadRequest)
 		return
@@ -241,21 +241,21 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, _ httprout
 		return
 	}
 
-	commitHash, err := ResolveCommittishToHash(repo, committish)
+	commit, err := ResolveCommittishToHash(repo, committish)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to resolve committish: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	rootTreeHash, err := GetCommitRootTreeHash(r.Context(), repoId, commitHash)
+	tree, err := GetCommitRootTreeHash(r.Context(), repoId, commit)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get root tree hash: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	response := ResolveCommittishResponse{
-		CommitHash:   commitHash.String(),
-		RootTreeHash: rootTreeHash,
+		Commit: commit.String(),
+		Tree: tree,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -417,7 +417,7 @@ func init() {
 	core.RegisterRoute(core.Route{
 		Id:      "repo.resolveCommittish",
 		Method:  http.MethodGet,
-		Path:    "/api/repo/resolve",
+		Path:    "/api/resolve/:repoId/:committish",
 		Handler: ResolveCommittishHandler,
 	})
 

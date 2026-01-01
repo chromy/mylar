@@ -15,6 +15,8 @@ import {
   IndexSchema,
   TILE_SIZE,
   type IndexEntry,
+  ResolveCommittishResponseSchema,
+  type ResolveCommittishResponse,
 } from "./schemas.js";
 
 const FileLinesSchema = z.string().array();
@@ -33,36 +35,6 @@ import {
   getCurrentLayer,
   createChangeLayerAction,
 } from "./state.js";
-
-interface IndexPanelProps {
-  repo: string;
-  committish: string;
-}
-
-const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
-  const { data, isLoading, isError, error } = useJsonQuery({
-    path: `/api/repo/${repo}/${committish}/index/`,
-    schema: IndexSchema,
-  });
-
-  if (isError) {
-    throw error;
-  }
-
-  return (
-    <div>
-      {isLoading && <FullScreenDecryptLoader />}
-      <ul>
-        {data &&
-          (data.entries ?? []).map(e => (
-            <li>
-              {e.path} {e.lineOffset} {e.lineCount}
-            </li>
-          ))}
-      </ul>
-    </div>
-  );
-};
 
 function toTileLayout(index: Index): TileLayout {
   const entries = index.entries ?? [];
@@ -117,7 +89,8 @@ function findIndexEntryByLine(
 
 export interface MylarContentProps {
   repo: string;
-  committish: string;
+  commit: string;
+  tree: string;
   index: Index;
 }
 
@@ -126,7 +99,7 @@ const displayFileContext = settings.addBoolean({
   name: "file context",
 });
 
-const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
+const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
   const fileCount = (index.entries ?? []).length;
   const lastFile = (index.entries ?? [])[fileCount - 1];
   const lineCount =
@@ -197,7 +170,8 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
       <div className="fixed bottom-0 left-0 top-0 right-0">
         <Viewer
           repo={repo}
-          committish={committish}
+          commit={commit}
+          tree={tree}
           layout={layout}
           setDebug={setDebug}
           dispatch={dispatch}
@@ -243,8 +217,12 @@ const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
               <td>{lineCount}</td>
             </tr>
             <tr>
-              <td>Ref</td>
-              <td>{committish}</td>
+              <td>Commit</td>
+              <td className="font-mono">{commit.slice(0, 6)}</td>
+            </tr>
+            <tr>
+              <td>Tree</td>
+              <td className="font-mono">{tree.slice(0, 6)}</td>
             </tr>
             {debug.map(kv => (
               <tr>
@@ -323,20 +301,33 @@ export interface MylarProps {
 }
 
 export const Mylar = ({ repo, committish }: MylarProps) => {
-  const { data, isLoading, isError, error } = useJsonQuery({
-    path: `/api/repo/${repo}/${committish}/index`,
-    schema: IndexSchema,
+  const { data: repoData, isLoading: repoLoading, isError: repoError, error: repoErrorMsg } = useJsonQuery({
+    path: `/api/resolve/${repo}/${committish}`,
+    schema: ResolveCommittishResponseSchema,
   });
 
-  if (isError) {
-    throw error;
+  const { data: indexData, isLoading: indexLoading, isError: indexError, error: indexErrorMsg } = useJsonQuery({
+    path: `/api/repo/${repo}/${repoData?.commit}/index`,
+    schema: IndexSchema,
+    enabled: !!(repoData?.commit),
+  });
+
+  if (indexError) {
+    throw indexErrorMsg;
   }
+
+  if (repoError) {
+    throw repoErrorMsg;
+  }
+
+  const isLoading = indexLoading || repoLoading;
+  const hasAllData = indexData && repoData;
 
   return (
     <>
       {isLoading && <FullScreenDecryptLoader />}
-      {data && (
-        <MylarContent repo={repo} committish={committish} index={data} />
+      {hasAllData && (
+        <MylarContent repo={repo} commit={repoData.commit} tree={repoData.tree} index={indexData} />
       )}
     </>
   );
