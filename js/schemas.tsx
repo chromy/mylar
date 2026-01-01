@@ -82,3 +82,12 @@ export const TreeEntriesSchema = z.object({
   entries: TreeEntrySchema.array().nullable(),
 });
 export type TreeEntries = z.infer<typeof TreeEntriesSchema>;
+
+export const VarzResponseSchema = z.object({
+  version: z.string(),
+  build_time: z.string(),
+  go_version: z.string(),
+  start_time: z.coerce.date(),
+  uptime: z.string(),
+});
+export type VarzResponse = z.infer<typeof VarzResponseSchema>;

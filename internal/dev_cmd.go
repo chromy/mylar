@@ -33,11 +33,11 @@ func DoDev(ctx context.Context, port uint) {
 	memcached := "localhost:8082"
 
 	dev := &DevServer{
-		port:         port,
-		servePort:    servePort,
-		serveUrl:     serveUrl,
-		memcached: memcached,
-		lastModTime:  make(map[string]time.Time),
+		port:        port,
+		servePort:   servePort,
+		serveUrl:    serveUrl,
+		memcached:   memcached,
+		lastModTime: make(map[string]time.Time),
 	}
 
 	dev.startMemcached()
@@ -101,7 +101,7 @@ func (dev *DevServer) startServeWithLock() {
 func (dev *DevServer) startMemcached() {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
-	
+
 	if dev.memcachedCmd != nil {
 		dev.memcachedCmd.Process.Kill()
 		dev.memcachedCmd.Wait()

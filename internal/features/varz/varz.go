@@ -27,7 +27,7 @@ var (
 
 func VarzHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	uptime := time.Since(startTime)
-	
+
 	response := VarzResponse{
 		Version:   version,
 		BuildTime: buildTime,

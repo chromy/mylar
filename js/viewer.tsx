@@ -19,7 +19,12 @@ import {
   type TilePosition,
   type LinePosition,
 } from "./utils.js";
-import { type TileRequest, type CompositeTileRequest, TileStore, TileCompositor } from "./store.js";
+import {
+  type TileRequest,
+  type CompositeTileRequest,
+  TileStore,
+  TileCompositor,
+} from "./store.js";
 import {
   type MylarAction,
   settings,
@@ -288,8 +293,10 @@ class Renderer {
       this.layout.lineCount,
       pixelsPerWorldUnit,
     )) {
-      const {kind, composite} = currentLayer;
-      reqs.push(boxToCompositeTileRequest(box, this.repo, this.commit, kind, composite));
+      const { kind, composite } = currentLayer;
+      reqs.push(
+        boxToCompositeTileRequest(box, this.repo, this.commit, kind, composite),
+      );
     }
 
     // Update tile compositor with required composite tiles

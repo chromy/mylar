@@ -38,7 +38,7 @@ func Cmd() {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			return 1
 		}
-		
+
 		DoServe(ctx, *port, *memcached)
 		return 0
 	}
@@ -60,7 +60,7 @@ func Cmd() {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			return 1
 		}
-		
+
 		DoDev(ctx, *port)
 		return 0
 	}

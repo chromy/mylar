@@ -27,7 +27,10 @@ export interface CompositeTileRequest {
   composite: string;
 }
 
-async function createTileBitmap(composite: string, tileData: number[]): Promise<ImageBitmap> {
+async function createTileBitmap(
+  composite: string,
+  tileData: number[],
+): Promise<ImageBitmap> {
   const oklch = [0, 0, 0];
   const rgb = [0, 0, 0];
 
@@ -37,7 +40,7 @@ async function createTileBitmap(composite: string, tileData: number[]): Promise<
     const d = tileData[i]!;
 
     if (composite === "direct") {
-      oklch[0] = 1.0 - (Math.min(Math.max(d, 0), 255) / 256.0);
+      oklch[0] = 1.0 - Math.min(Math.max(d, 0), 255) / 256.0;
       oklch[1] = 0;
       oklch[2] = 0;
     } else if (composite === "hash") {
@@ -57,21 +60,14 @@ async function createTileBitmap(composite: string, tileData: number[]): Promise<
 
   const imageData = new ImageData(buffer, TILE_SIZE);
 
-  return await createImageBitmap(
-    imageData,
-    0,
-    0,
-    TILE_SIZE,
-    TILE_SIZE,
-    {
-      resizeWidth: TILE_SIZE * 16,
-      resizeHeight: TILE_SIZE * 16,
-      premultiplyAlpha: "none",
-      colorSpaceConversion: "none",
-      imageOrientation: "none",
-      resizeQuality: "pixelated",
-    },
-  );
+  return await createImageBitmap(imageData, 0, 0, TILE_SIZE, TILE_SIZE, {
+    resizeWidth: TILE_SIZE * 16,
+    resizeHeight: TILE_SIZE * 16,
+    premultiplyAlpha: "none",
+    colorSpaceConversion: "none",
+    imageOrientation: "none",
+    resizeQuality: "pixelated",
+  });
 }
 
 async function fetchTile(request: TileRequest): Promise<TileData> {
@@ -256,7 +252,9 @@ export class TileCompositor {
     return this.compositeCache.get(key);
   }
 
-  private async processReadyTiles(requests: CompositeTileRequest[]): Promise<void> {
+  private async processReadyTiles(
+    requests: CompositeTileRequest[],
+  ): Promise<void> {
     for (const request of requests) {
       const key = this.compositeKey(request);
 
@@ -266,7 +264,10 @@ export class TileCompositor {
 
         if (tileData) {
           try {
-            const bitmap = await createTileBitmap(request.composite,  tileData.tileData);
+            const bitmap = await createTileBitmap(
+              request.composite,
+              tileData.tileData,
+            );
             this.compositeCache.set(key, bitmap);
           } catch (error) {
             console.error("Failed to create composite bitmap:", error);
