@@ -334,31 +334,33 @@ interface LayersMenuProps {
 
 const LAYER_LABELS: Record<LayerType, string> = {
   offset: "Line Offset",
-  length: "Line Length", 
+  length: "Line Length",
   fileHash: "File Hash",
   fileExtension: "File Type",
 };
 
 const LayersMenu = ({ dispatch, state }: LayersMenuProps) => {
   const currentLayer = getCurrentLayer(state);
-  
+
   return (
     <div className="space-y-1">
       <div className="text-xs font-medium mb-2">Layers</div>
       <div className="space-y-1">
-        {(["offset", "length", "fileHash", "fileExtension"] as LayerType[]).map(layer => (
-          <button
-            key={layer}
-            onClick={() => dispatch(createChangeLayerAction(layer))}
-            className={`block w-full text-left px-2 py-1 text-xs rounded-xs transition-colors ${
-              currentLayer === layer
-                ? "bg-blue-500/20 text-blue-700"
-                : "hover:bg-white/10"
-            }`}
-          >
-            {LAYER_LABELS[layer]}
-          </button>
-        ))}
+        {(["offset", "length", "fileHash", "fileExtension"] as LayerType[]).map(
+          layer => (
+            <button
+              key={layer}
+              onClick={() => dispatch(createChangeLayerAction(layer))}
+              className={`block w-full text-left px-2 py-1 text-xs rounded-xs transition-colors ${
+                currentLayer === layer
+                  ? "bg-blue-500/20 text-blue-700"
+                  : "hover:bg-white/10"
+              }`}
+            >
+              {LAYER_LABELS[layer]}
+            </button>
+          ),
+        )}
       </div>
     </div>
   );

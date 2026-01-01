@@ -119,7 +119,9 @@ export const getCurrentLayer = (state: MylarState): LayerType => {
   return (state.layer as LayerType) ?? "fileExtension";
 };
 
-export const createChangeLayerAction = (layer: LayerType): ChangeLayerMylarAction => ({
+export const createChangeLayerAction = (
+  layer: LayerType,
+): ChangeLayerMylarAction => ({
   type: "CHANGE_LAYER",
   layer,
 });
