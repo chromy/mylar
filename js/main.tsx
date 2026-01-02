@@ -42,8 +42,8 @@ const HomePage = () => {
             type="text"
             value={githubRepo}
             onChange={e => setGithubRepo(e.target.value)}
-            placeholder="Enter GitHub repo (e.g., google/perfetto)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter GitHub repo (e.g., getsentry/sentry)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </form>
 

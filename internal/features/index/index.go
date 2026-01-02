@@ -9,6 +9,7 @@ import (
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/chromy/viz/internal/utils"
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
@@ -16,6 +17,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type IndexEntry struct {
