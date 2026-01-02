@@ -67,6 +67,8 @@ export function* quadtreeAABBs(
   }
 }
 
+const MIN_PIXELS_TO_DISPLAY = 256;
+
 export function* requiredTiles(
   bounds: aabb,
   lineCount: number,
@@ -77,7 +79,7 @@ export function* requiredTiles(
 
   for (const quadAABB of quadtreeAABBs(lineCount, inScope)) {
     const width = aabb.width(quadAABB);
-    if (count > 0 && width * pixelsPerWorldUnit < 100) {
+    if (count > 0 && width * pixelsPerWorldUnit < MIN_PIXELS_TO_DISPLAY) {
       break;
     }
     if (toLod(quadAABB) < 0) {

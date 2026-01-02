@@ -8,6 +8,7 @@ import (
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 )
@@ -101,7 +102,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	var tile []int64
+	var tile []int32
 
 	if lod == 0 {
 		// For LOD=0, use the original tile computation directly
@@ -116,20 +117,30 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			{x*2 + 1, y*2 + 1}, // bottom-right
 		}
 
-		// Fetch all 4 child tiles
-		childTileData := make([][]int64, 4)
+		// Fetch all 4 child tiles in parallel using errgroup
+		childTileData := make([][]int32, 4)
+		g, ctx := errgroup.WithContext(r.Context())
+		
 		for i, coords := range childTiles {
-			childX, childY := coords[0], coords[1]
-			childTile, childErr := tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), childLod, childX, childY)
-			if childErr != nil {
-				http.Error(w, fmt.Sprintf("failed to fetch child tile (%d, %d) at LOD %d: %v", childX, childY, childLod, childErr), http.StatusInternalServerError)
-				return
-			}
-			childTileData[i] = childTile
+			i, coords := i, coords // capture loop variables
+			g.Go(func() error {
+				childX, childY := coords[0], coords[1]
+				childTile, childErr := tileComputation.Execute(ctx, repoName, plumbing.NewHash(commit), childLod, childX, childY)
+				if childErr != nil {
+					return fmt.Errorf("failed to fetch child tile (%d, %d) at LOD %d: %w", childX, childY, childLod, childErr)
+				}
+				childTileData[i] = childTile
+				return nil
+			})
+		}
+		
+		if err := g.Wait(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		// Combine child tiles into a single tile by downsampling
-		resultTile := make([]int64, constants.TileSize*constants.TileSize)
+		resultTile := make([]int32, constants.TileSize*constants.TileSize)
 
 		for parentY := 0; parentY < constants.TileSize; parentY++ {
 			for parentX := 0; parentX < constants.TileSize; parentX++ {
@@ -137,8 +148,8 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 				childBlockX := parentX * 2
 				childBlockY := parentY * 2
 
-				var sum int64
-				var count int64
+				var sum int32
+				var count int32
 
 				// Sample from appropriate child tiles based on position
 				for dy := 0; dy < 2; dy++ {
@@ -179,7 +190,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 				}
 
 				// Average the sampled values
-				var result int64
+				var result int32
 				if count > 0 {
 					result = sum / count
 				}
@@ -306,6 +317,13 @@ func init() {
 	})
 
 	core.RegisterRoute(core.Route{
+		Id:      "api.commit",
+		Method:  http.MethodGet,
+		Path:    "/api/commit/:computationId/:repoId/:commit/:hash",
+		Handler: CommitComputeHandler,
+	})
+
+	core.RegisterRoute(core.Route{
 		Id:      "api.list_blob_computations",
 		Method:  http.MethodGet,
 		Path:    "/api/blob_computations",
@@ -324,13 +342,6 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/commit_computations",
 		Handler: ListCommitComputationsHandler,
-	})
-
-	core.RegisterRoute(core.Route{
-		Id:      "api.commit_compute",
-		Method:  http.MethodGet,
-		Path:    "/api/commit_compute/:computationId/:repoId/:commit/:hash",
-		Handler: CommitComputeHandler,
 	})
 
 	schemas.Register("api.TileMetadata", TileMetadata{})

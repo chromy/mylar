@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type TileFunc func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error)
+type TileFunc func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error)
 
 type TileComputation struct {
 	Id      string
@@ -18,11 +18,11 @@ type TileComputation struct {
 var tileComputations map[string]TileComputation = make(map[string]TileComputation)
 
 func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
-	return func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+	return func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 		cacheKey := GenerateCacheKey(id, commit.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
 
 		if cached, err := theCache.Get(cacheKey); err == nil {
-			var tile []int64
+			var tile []int32
 			if err := json.Unmarshal(cached, &tile); err == nil {
 				return tile, nil
 			}

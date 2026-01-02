@@ -9,6 +9,7 @@ import (
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/chromy/viz/internal/utils"
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
@@ -188,19 +189,6 @@ type LineLength struct {
 	Maximum int64 `json:"maximum"`
 }
 
-type BlameLine struct {
-	Author     string    `json:"author"`
-	AuthorName string    `json:"authorName"`
-	Hash       string    `json:"hash"`
-	Date       time.Time `json:"date"`
-	Text       string    `json:"text"`
-}
-
-type BlameResult struct {
-	Path  string      `json:"path"`
-	Lines []BlameLine `json:"lines"`
-}
-
 var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]int, error) {
 	lines, err := repo.Lines(ctx, repoId, hash)
 	if err != nil {
@@ -215,53 +203,63 @@ var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ct
 	return lengths, nil
 })
 
-//var GetBlobBlame = core.RegisterBlobComputation("blobBlame", func(ctx context.Context, repoId string, hash plumbing.Hash) (BlameResult, error) {
-//	repository, err := repo.ResolveRepo(ctx, repoId)
-//	if err != nil {
-//		return BlameResult{}, err
-//	}
-//
-//	obj, err := repository.BlobObject(hash)
-//	if err != nil {
-//		return BlameResult{}, err
-//	}
-//
-//	reader, err := obj.Reader()
-//	if err != nil {
-//		return BlameResult{}, err
-//	}
-//	defer reader.Close()
-//
-//	blameResult, err := git.Blame(ctx, repository, hash.String(), "")
-//	if err != nil {
-//		return BlameResult{}, fmt.Errorf("blame failed: %w", err)
-//	}
-//
-//	lines := make([]BlameLine, len(blameResult.Lines))
-//	for i, line := range blameResult.Lines {
-//		lines[i] = BlameLine{
-//			Author:     line.Author,
-//			AuthorName: line.AuthorName,
-//			Hash:       line.Hash.String(),
-//			Date:       line.Date,
-//			Text:       line.Text,
-//		}
-//	}
-//
-//	return BlameResult{
-//		Path:  blameResult.Path,
-//		Lines: lines,
-//	}, nil
-//})
+type BlameLine struct {
+	Author     string    `json:"author"`
+	AuthorName string    `json:"authorName"`
+	Hash       string    `json:"hash"`
+	Date       time.Time `json:"date"`
+	Text       string    `json:"text"`
+}
 
-func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64, pixelFunc func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64) ([]int64, error) {
+type BlameResult struct {
+	Path  string      `json:"path"`
+	Lines []BlameLine `json:"lines"`
+}
+
+var GetBlame = core.RegisterCommitComputation("blame", func(ctx context.Context, repoId string, commit plumbing.Hash, hash plumbing.Hash) (BlameResult, error) {
+	repository, err := repo.ResolveRepo(ctx, repoId)
+	if err != nil {
+		return BlameResult{}, err
+	}
+
+	ptr, err := repository.CommitObject(commit);
+	if err != nil {
+		return BlameResult{}, err
+	}
+
+	// TODO
+	path := "README.md"
+
+	blameResult, err := git.Blame(ptr, path)
+	if err != nil {
+		return BlameResult{}, fmt.Errorf("blame failed: %w", err)
+	}
+
+	lines := make([]BlameLine, len(blameResult.Lines))
+	for i, line := range blameResult.Lines {
+		lines[i] = BlameLine{
+			Author:     line.Author,
+			AuthorName: line.AuthorName,
+			Hash:       line.Hash.String(),
+			Date:       line.Date,
+			Text:       line.Text,
+		}
+	}
+
+	return BlameResult{
+		Path:  blameResult.Path,
+		Lines: lines,
+	}, nil
+})
+
+func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64, pixelFunc func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32) ([]int32, error) {
 	// For non-zero LOD levels, return empty tiles
 	if lod != 0 {
-		return make([]int64, constants.TileSize*constants.TileSize), nil
+		return make([]int32, constants.TileSize*constants.TileSize), nil
 	}
 
 	tileSize := utils.LodToSize(int(lod))
-	tile := make([]int64, tileSize*tileSize)
+	tile := make([]int32, constants.TileSize*constants.TileSize)
 
 	tree, err := repo.CommitToTree(ctx, repoId, commit)
 	if err != nil {
@@ -303,17 +301,17 @@ func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.
 	return tile, nil
 }
 
-var GetTileLineOffset = core.RegisterTileComputation("offset", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+var GetTileLineOffset = core.RegisterTileComputation("offset", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
-			return int64(linePos) - entry.LineOffset
+			return int32(int64(linePos) - entry.LineOffset)
 		}
 		return 0
 	})
 })
 
-var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
@@ -323,24 +321,24 @@ var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.
 			}
 			lineIdxInFile := int64(linePos) - entry.LineOffset
 			if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
-				return int64(lineLengths[lineIdxInFile])
+				return lineLengths[lineIdxInFile]
 			}
 		}
 		return 0
 	})
 })
 
-var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
-			return utils.HashToInt53(entry.Hash)
+			return utils.HashToInt32(entry.Hash)
 		}
 		return 0
 	})
 })
 
-var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int64, error) {
+var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
@@ -349,9 +347,9 @@ var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ct
 				ext = ext[1:]
 			}
 
-			var result int64
-			for i := 0; i < len(ext) && i < 6; i++ {
-				result = (result << 8) | int64(ext[i])
+			var result int32
+			for i := 0; i < len(ext) && i < 4; i++ {
+				result = (result << 8) | int32(ext[i])
 			}
 			return result
 		}
