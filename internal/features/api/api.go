@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"context"
 	"fmt"
 	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/core"
@@ -47,6 +48,106 @@ func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
+
+
+func macroTile(ctx context.Context, tile core.TileComputation, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+	childLod := lod - 1
+	xys := [][2]int64{
+		{x * 2, y * 2},     // top-left
+		{x*2 + 1, y * 2},   // top-right
+		{x * 2, y*2 + 1},   // bottom-left
+		{x*2 + 1, y*2 + 1}, // bottom-right
+	}
+
+	result := make([]int32, constants.TileSize*constants.TileSize)
+
+	childTiles := make([][]int32, 4)
+	g, ctx := errgroup.WithContext(ctx)
+	
+	for i, coords := range xys {
+		i, coords := i, coords // capture loop variables
+		g.Go(func() error {
+			childX, childY := coords[0], coords[1]
+			childTile, childErr := tile.Execute(ctx, repoName, commit, childLod, childX, childY)
+			if childErr != nil {
+				return fmt.Errorf("failed to fetch child tile (%d, %d) at LOD %d: %w", childX, childY, childLod, childErr)
+			}
+			childTiles[i] = childTile
+			return nil
+		})
+	}
+	
+	if err := g.Wait(); err != nil {
+		return result, err
+	}
+
+	// Combine child tiles into a single tile by downsampling
+
+	for parentY := 0; parentY < constants.TileSize; parentY++ {
+		for parentX := 0; parentX < constants.TileSize; parentX++ {
+			// Each parent pixel corresponds to a 2x2 block in child tiles
+			childBlockX := parentX * 2
+			childBlockY := parentY * 2
+
+			var sum int32
+			var count int32
+
+			// Sample from appropriate child tiles based on position
+			for dy := 0; dy < 2; dy++ {
+				for dx := 0; dx < 2; dx++ {
+					childX := childBlockX + dx
+					childY := childBlockY + dy
+
+					// Determine which child tile this pixel belongs to
+					var tileIdx int
+					if childX >= constants.TileSize {
+						// Right side
+						if childY >= constants.TileSize {
+							tileIdx = 3 // bottom-right
+							childX -= constants.TileSize
+							childY -= constants.TileSize
+						} else {
+							tileIdx = 1 // top-right
+							childX -= constants.TileSize
+						}
+					} else {
+						// Left side
+						if childY >= constants.TileSize {
+							tileIdx = 2 // bottom-left
+							childY -= constants.TileSize
+						} else {
+							tileIdx = 0 // top-left
+						}
+					}
+
+					if tileIdx < len(childTiles) && childTiles[tileIdx] != nil {
+						childIdx := childY*constants.TileSize + childX
+						if childIdx >= 0 && childIdx < len(childTiles[tileIdx]) {
+							sum += childTiles[tileIdx][childIdx]
+							count++
+						}
+					}
+				}
+			}
+
+			// Average the sampled values
+			var pixel int32
+			if count > 0 {
+				pixel = sum / count
+			}
+
+			resultIdx := parentY*constants.TileSize + parentX
+			result[resultIdx] = pixel
+		}
+	}
+
+	return result, nil
+}
+
+func cachingMacroTile(ctx context.Context, tile core.TileComputation, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+	return macroTile(ctx, tile, repoName, commit, lod, x, y)
+}
+
 
 func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	repoName := ps.ByName("repoId")
@@ -105,102 +206,9 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var tile []int32
 
 	if lod == 0 {
-		// For LOD=0, use the original tile computation directly
 		tile, err = tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), lod, x, y)
 	} else {
-		// For LOD > 0, fetch and combine 4 child tiles
-		childLod := lod - 1
-		childTiles := [][2]int64{
-			{x * 2, y * 2},     // top-left
-			{x*2 + 1, y * 2},   // top-right
-			{x * 2, y*2 + 1},   // bottom-left
-			{x*2 + 1, y*2 + 1}, // bottom-right
-		}
-
-		// Fetch all 4 child tiles in parallel using errgroup
-		childTileData := make([][]int32, 4)
-		g, ctx := errgroup.WithContext(r.Context())
-		
-		for i, coords := range childTiles {
-			i, coords := i, coords // capture loop variables
-			g.Go(func() error {
-				childX, childY := coords[0], coords[1]
-				childTile, childErr := tileComputation.Execute(ctx, repoName, plumbing.NewHash(commit), childLod, childX, childY)
-				if childErr != nil {
-					return fmt.Errorf("failed to fetch child tile (%d, %d) at LOD %d: %w", childX, childY, childLod, childErr)
-				}
-				childTileData[i] = childTile
-				return nil
-			})
-		}
-		
-		if err := g.Wait(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Combine child tiles into a single tile by downsampling
-		resultTile := make([]int32, constants.TileSize*constants.TileSize)
-
-		for parentY := 0; parentY < constants.TileSize; parentY++ {
-			for parentX := 0; parentX < constants.TileSize; parentX++ {
-				// Each parent pixel corresponds to a 2x2 block in child tiles
-				childBlockX := parentX * 2
-				childBlockY := parentY * 2
-
-				var sum int32
-				var count int32
-
-				// Sample from appropriate child tiles based on position
-				for dy := 0; dy < 2; dy++ {
-					for dx := 0; dx < 2; dx++ {
-						childX := childBlockX + dx
-						childY := childBlockY + dy
-
-						// Determine which child tile this pixel belongs to
-						var tileIdx int
-						if childX >= constants.TileSize {
-							// Right side
-							if childY >= constants.TileSize {
-								tileIdx = 3 // bottom-right
-								childX -= constants.TileSize
-								childY -= constants.TileSize
-							} else {
-								tileIdx = 1 // top-right
-								childX -= constants.TileSize
-							}
-						} else {
-							// Left side
-							if childY >= constants.TileSize {
-								tileIdx = 2 // bottom-left
-								childY -= constants.TileSize
-							} else {
-								tileIdx = 0 // top-left
-							}
-						}
-
-						if tileIdx < len(childTileData) && childTileData[tileIdx] != nil {
-							childIdx := childY*constants.TileSize + childX
-							if childIdx >= 0 && childIdx < len(childTileData[tileIdx]) {
-								sum += childTileData[tileIdx][childIdx]
-								count++
-							}
-						}
-					}
-				}
-
-				// Average the sampled values
-				var result int32
-				if count > 0 {
-					result = sum / count
-				}
-
-				resultIdx := parentY*constants.TileSize + parentX
-				resultTile[resultIdx] = result
-			}
-		}
-
-		tile = resultTile
+		tile, err = cachingMacroTile(r.Context(), tileComputation, repoName, plumbing.NewHash(commit), lod, x, y)
 	}
 
 	if err != nil {

@@ -302,7 +302,7 @@ func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.
 }
 
 var GetTileLineOffset = core.RegisterTileComputation("offset", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
+	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
 			return int32(int64(linePos) - entry.LineOffset)
@@ -312,7 +312,7 @@ var GetTileLineOffset = core.RegisterTileComputation("offset", func(ctx context.
 })
 
 var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
+	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
 			lineLengths, err := GetBlobLineLengths(ctx, repoId, entry.Hash)
@@ -321,7 +321,7 @@ var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.
 			}
 			lineIdxInFile := int64(linePos) - entry.LineOffset
 			if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
-				return lineLengths[lineIdxInFile]
+				return int32(lineLengths[lineIdxInFile])
 			}
 		}
 		return 0
@@ -329,7 +329,7 @@ var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.
 })
 
 var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
+	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
 			return utils.HashToInt32(entry.Hash)
@@ -339,7 +339,7 @@ var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.
 })
 
 var GetTileFileExtension = core.RegisterTileComputation("fileExtension", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64 {
+	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
 		linePos := utils.WorldToLine(worldPos, *layout)
 		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
 			ext := filepath.Ext(entry.Path)

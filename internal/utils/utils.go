@@ -11,6 +11,10 @@ func HashToInt53(hash plumbing.Hash) int64 {
 	return 0x1FFFFFFFFFFFFF & int64(binary.LittleEndian.Uint64(hash[:]))
 }
 
+func HashToInt32(hash plumbing.Hash) int32 {
+	return int32(binary.LittleEndian.Uint32(hash[:]))
+}
+
 // LodToSize converts a level of detail to the corresponding size
 // lod 0 -> TILE_SIZE
 // lod 1 -> TILE_SIZE*2

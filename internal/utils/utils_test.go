@@ -34,6 +34,25 @@ func TestHashToInt53(t *testing.T) {
 	}
 }
 
+func TestHashToInt32(t *testing.T) {
+	tests := []struct {
+		hashAsString string
+		want         int32
+	}{
+		{"", 0},
+		{"09030652af16811842314a2c8fa5e344c2bb5c34", 1376125705},
+		{"c5ff5b84be06c42e15a35a312a7a2bb3760d29d9", -2074345531},
+	}
+
+	for _, tt := range tests {
+		hash := plumbing.NewHash(tt.hashAsString)
+		got := HashToInt32(hash)
+		if got != tt.want {
+			t.Errorf("HashToInt32(%s) = %d, want %d", hash, got, tt.want)
+		}
+	}
+}
+
 func TestMortonEncoding(t *testing.T) {
 	tests := []struct {
 		x, y uint32
