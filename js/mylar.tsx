@@ -128,7 +128,10 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
     {
       path: `/api/compute/lines/${repo}/${hashString}`,
       schema: FileLinesSchema,
-      enabled: !!hoveredEntry && hashString.length > 0,
+      enabled:
+        !!hoveredEntry &&
+        hashString.length > 0 &&
+        displayFileContext.get(state),
     },
     [repo, hashString],
   );

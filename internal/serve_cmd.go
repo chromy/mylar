@@ -32,8 +32,14 @@ func loadInitialRepos(ctx context.Context) {
 	//}
 
 	if _, err := repo.ResolveRepo(ctx, "gh:go-git:go-billy"); err != nil {
-		log.Printf("Failed to add go-billy repo from github: %v", err)
+		log.Printf("initial repo resolution failed: %v", err)
 	}
+	if _, err := repo.ResolveRepo(ctx, "gh:google:perfetto"); err != nil {
+		log.Printf("initial repo resolution failed: %v", err)
+	}
+	//if _, err := repo.ResolveRepo(ctx, "gh:google:perfetto"); err != nil {
+	//	log.Printf("Failed to add go-billy repo from github: %v", err)
+	//}
 
 	//if _, err := repo.ResolveRepo(ctx, "gh:githubtraining:hellogitworld"); err != nil {
 	//	log.Printf("load initial repos: %v", err)
