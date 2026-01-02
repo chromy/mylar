@@ -102,7 +102,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	var tile []int64
-	
+
 	if lod == 0 {
 		// For LOD=0, use the original tile computation directly
 		tile, err = tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), lod, x, y)
@@ -110,10 +110,10 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// For LOD > 0, fetch and combine 4 child tiles
 		childLod := lod - 1
 		childTiles := [][2]int64{
-			{x * 2, y * 2},         // top-left
-			{x*2 + 1, y * 2},       // top-right
-			{x * 2, y*2 + 1},       // bottom-left
-			{x*2 + 1, y*2 + 1},     // bottom-right
+			{x * 2, y * 2},     // top-left
+			{x*2 + 1, y * 2},   // top-right
+			{x * 2, y*2 + 1},   // bottom-left
+			{x*2 + 1, y*2 + 1}, // bottom-right
 		}
 
 		// Fetch all 4 child tiles
@@ -130,22 +130,22 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 		// Combine child tiles into a single tile by downsampling
 		resultTile := make([]int64, constants.TileSize*constants.TileSize)
-		
+
 		for parentY := 0; parentY < constants.TileSize; parentY++ {
 			for parentX := 0; parentX < constants.TileSize; parentX++ {
 				// Each parent pixel corresponds to a 2x2 block in child tiles
 				childBlockX := parentX * 2
 				childBlockY := parentY * 2
-				
+
 				var sum int64
 				var count int64
-				
+
 				// Sample from appropriate child tiles based on position
 				for dy := 0; dy < 2; dy++ {
 					for dx := 0; dx < 2; dx++ {
 						childX := childBlockX + dx
 						childY := childBlockY + dy
-						
+
 						// Determine which child tile this pixel belongs to
 						var tileIdx int
 						if childX >= constants.TileSize {
@@ -159,7 +159,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 								childX -= constants.TileSize
 							}
 						} else {
-							// Left side  
+							// Left side
 							if childY >= constants.TileSize {
 								tileIdx = 2 // bottom-left
 								childY -= constants.TileSize
@@ -167,7 +167,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 								tileIdx = 0 // top-left
 							}
 						}
-						
+
 						if tileIdx < len(childTileData) && childTileData[tileIdx] != nil {
 							childIdx := childY*constants.TileSize + childX
 							if childIdx >= 0 && childIdx < len(childTileData[tileIdx]) {
@@ -177,21 +177,21 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 						}
 					}
 				}
-				
+
 				// Average the sampled values
 				var result int64
 				if count > 0 {
 					result = sum / count
 				}
-				
+
 				resultIdx := parentY*constants.TileSize + parentX
 				resultTile[resultIdx] = result
 			}
 		}
-		
+
 		tile = resultTile
 	}
-	
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -217,7 +217,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 func ListBlobComputationsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	computations := core.ListBlobComputations()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(computations); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
@@ -226,7 +226,7 @@ func ListBlobComputationsHandler(w http.ResponseWriter, r *http.Request, ps http
 
 func ListTileComputationsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	computations := core.ListTileComputations()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(computations); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
@@ -235,7 +235,7 @@ func ListTileComputationsHandler(w http.ResponseWriter, r *http.Request, ps http
 
 func ListCommitComputationsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	computations := core.ListCommitComputations()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(computations); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)

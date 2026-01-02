@@ -84,7 +84,7 @@ func GetCommitComputation(id string) (CommitComputation, bool) {
 func ListCommitComputations() []string {
 	mu.RLock()
 	defer mu.RUnlock()
-	
+
 	ids := make([]string, 0, len(commitComputations))
 	for id := range commitComputations {
 		ids = append(ids, id)
