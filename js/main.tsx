@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { Route, Switch, useParams, useLocation } from "wouter";
 import { z } from "zod";
 import { useState } from "react";
+import * as Sentry from "@sentry/react";
 import { FullScreenDecryptLoader } from "./loader.js";
 import { useJsonQuery } from "./query.js";
 import { Mylar } from "./mylar.js";
@@ -78,7 +79,29 @@ const App = () => (
   </>
 );
 
+function initSentry() {
+  const dsn = (window as any).__SENTRY_DSN__;
+  if (!dsn) {
+    console.log("Sentry DSN not available, skipping initialization");
+    return;
+  }
+
+  Sentry.init({
+    dsn,
+    environment: (window as any).__ENVIRONMENT__ || "development",
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration(),
+    ],
+    tracesSampleRate: 1.0,
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
+}
+
 export function main() {
+  initSentry();
+
   const dom = document.querySelector("main")!;
   const root = createRoot(dom);
   root.render(<App />);

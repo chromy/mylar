@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 )
@@ -19,12 +20,22 @@ var (
 	state State
 )
 
+type TemplateData struct {
+	SentryDSN   string
+	Environment string
+}
+
 func Home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mu.RLock()
 	defer mu.RUnlock()
 	t := state.Templates["home.html"]
 
-	err := t.Execute(w, nil)
+	data := TemplateData{
+		SentryDSN:   `"` + os.Getenv("SENTRY_FRONTEND_DSN") + `"`,
+		Environment: `"` + GetEnvironment() + `"`,
+	}
+
+	err := t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

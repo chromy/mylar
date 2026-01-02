@@ -8,6 +8,10 @@
   </head>
   <body class="raycast">
     {{block "content" .}}{{end}}
+    <script>
+      window.__SENTRY_DSN__ = {{.SentryDSN}};
+      window.__ENVIRONMENT__ = {{.Environment}};
+    </script>
     <script src="/static/bundle.js"></script>
   </body>
 </html>

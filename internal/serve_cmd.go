@@ -91,7 +91,7 @@ func initSentry() {
 
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:              dsn,
-		Environment:      getEnvironment(),
+		Environment:      GetEnvironment(),
 		TracesSampleRate: 1.0,
 		Debug:            os.Getenv("SENTRY_DEBUG") == "true",
 	})
@@ -102,7 +102,7 @@ func initSentry() {
 	}
 }
 
-func getEnvironment() string {
+func GetEnvironment() string {
 	if env := os.Getenv("ENVIRONMENT"); env != "" {
 		return env
 	}

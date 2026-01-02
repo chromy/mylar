@@ -117,7 +117,6 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
 export class TileStore {
   private requestedTiles: Set<string> = new Set();
   private tileCache: Map<string, TileData> = new Map();
-  private pendingRequests: Set<string> = new Set();
   private requestQueue: TileRequest[] = [];
   private liveRequests: Set<string> = new Set();
   private readonly maxLiveRequests: number;
@@ -133,7 +132,6 @@ export class TileStore {
   update(requests: TileRequest[]): void {
     this.requestedTiles.clear();
 
-    // Remove canceled requests from queue
     this.requestQueue = this.requestQueue.filter(request => {
       const key = this.tileKey(request);
       return requests.some(r => this.tileKey(r) === key);
@@ -142,21 +140,15 @@ export class TileStore {
     for (const request of requests) {
       const key = this.tileKey(request);
       this.requestedTiles.add(key);
-
-      if (!this.tileCache.has(key) && !this.pendingRequests.has(key)) {
-        if (this.liveRequests.size < this.maxLiveRequests) {
-          this.requestTile(request);
-        } else {
-          // Add to queue if not already there
-          const alreadyQueued = this.requestQueue.some(
-            r => this.tileKey(r) === key,
-          );
-          if (!alreadyQueued) {
-            this.requestQueue.push(request);
-          }
-        }
+      const alreadyQueued = this.requestQueue.some(
+        r => this.tileKey(r) === key,
+      );
+      if (!alreadyQueued) {
+        this.requestQueue.push(request);
       }
     }
+
+    this.processQueue();
   }
 
   get(request: TileRequest): TileData | undefined {
@@ -166,7 +158,6 @@ export class TileStore {
 
   private async requestTile(request: TileRequest): Promise<void> {
     const key = this.tileKey(request);
-    this.pendingRequests.add(key);
     this.liveRequests.add(key);
 
     try {
@@ -175,7 +166,6 @@ export class TileStore {
     } catch (error) {
       console.error("Failed to fetch tile:", error);
     } finally {
-      this.pendingRequests.delete(key);
       this.liveRequests.delete(key);
       this.processQueue();
     }
@@ -189,12 +179,7 @@ export class TileStore {
       const request = this.requestQueue.shift()!;
       const key = this.tileKey(request);
 
-      // Only process if still requested and not already cached or pending
-      if (
-        this.requestedTiles.has(key) &&
-        !this.tileCache.has(key) &&
-        !this.pendingRequests.has(key)
-      ) {
+      if (this.requestedTiles.has(key) && !this.tileCache.has(key)) {
         this.requestTile(request);
       }
     }
@@ -234,9 +219,9 @@ export class TileCompositor {
     for (const request of requests) {
       const key = this.compositeKey(request);
       this.requestedComposites.add(key);
+      tileRequests.push(this.tileRequestFromComposite(request));
 
       if (!this.compositeCache.has(key) && !this.pendingComposites.has(key)) {
-        tileRequests.push(this.tileRequestFromComposite(request));
         this.pendingComposites.add(key);
       }
     }
