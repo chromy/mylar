@@ -85,6 +85,17 @@ func GetBlobComputation(id string) (BlobComputation, bool) {
 	return c, found
 }
 
+func ListBlobComputations() []string {
+	mu.RLock()
+	defer mu.RUnlock()
+	
+	ids := make([]string, 0, len(blobComputations))
+	for id := range blobComputations {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 func ResetBlobComputationsForTesting() {
 	mu.Lock()
 	defer mu.Unlock()

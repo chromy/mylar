@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -100,7 +101,97 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	tile, err := tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), lod, x, y)
+	var tile []int64
+	
+	if lod == 0 {
+		// For LOD=0, use the original tile computation directly
+		tile, err = tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), lod, x, y)
+	} else {
+		// For LOD > 0, fetch and combine 4 child tiles
+		childLod := lod - 1
+		childTiles := [][2]int64{
+			{x * 2, y * 2},         // top-left
+			{x*2 + 1, y * 2},       // top-right
+			{x * 2, y*2 + 1},       // bottom-left
+			{x*2 + 1, y*2 + 1},     // bottom-right
+		}
+
+		// Fetch all 4 child tiles
+		childTileData := make([][]int64, 4)
+		for i, coords := range childTiles {
+			childX, childY := coords[0], coords[1]
+			childTile, childErr := tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), childLod, childX, childY)
+			if childErr != nil {
+				http.Error(w, fmt.Sprintf("failed to fetch child tile (%d, %d) at LOD %d: %v", childX, childY, childLod, childErr), http.StatusInternalServerError)
+				return
+			}
+			childTileData[i] = childTile
+		}
+
+		// Combine child tiles into a single tile by downsampling
+		resultTile := make([]int64, constants.TileSize*constants.TileSize)
+		
+		for parentY := 0; parentY < constants.TileSize; parentY++ {
+			for parentX := 0; parentX < constants.TileSize; parentX++ {
+				// Each parent pixel corresponds to a 2x2 block in child tiles
+				childBlockX := parentX * 2
+				childBlockY := parentY * 2
+				
+				var sum int64
+				var count int64
+				
+				// Sample from appropriate child tiles based on position
+				for dy := 0; dy < 2; dy++ {
+					for dx := 0; dx < 2; dx++ {
+						childX := childBlockX + dx
+						childY := childBlockY + dy
+						
+						// Determine which child tile this pixel belongs to
+						var tileIdx int
+						if childX >= constants.TileSize {
+							// Right side
+							if childY >= constants.TileSize {
+								tileIdx = 3 // bottom-right
+								childX -= constants.TileSize
+								childY -= constants.TileSize
+							} else {
+								tileIdx = 1 // top-right
+								childX -= constants.TileSize
+							}
+						} else {
+							// Left side  
+							if childY >= constants.TileSize {
+								tileIdx = 2 // bottom-left
+								childY -= constants.TileSize
+							} else {
+								tileIdx = 0 // top-left
+							}
+						}
+						
+						if tileIdx < len(childTileData) && childTileData[tileIdx] != nil {
+							childIdx := childY*constants.TileSize + childX
+							if childIdx >= 0 && childIdx < len(childTileData[tileIdx]) {
+								sum += childTileData[tileIdx][childIdx]
+								count++
+							}
+						}
+					}
+				}
+				
+				// Average the sampled values
+				var result int64
+				if count > 0 {
+					result = sum / count
+				}
+				
+				resultIdx := parentY*constants.TileSize + parentX
+				resultTile[resultIdx] = result
+			}
+		}
+		
+		tile = resultTile
+	}
+	
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -122,6 +213,69 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+}
+
+func ListBlobComputationsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	computations := core.ListBlobComputations()
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(computations); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func ListTileComputationsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	computations := core.ListTileComputations()
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(computations); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func ListCommitComputationsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	computations := core.ListCommitComputations()
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(computations); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func CommitComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoId := ps.ByName("repoId")
+	rawCommitHash := ps.ByName("commit")
+	rawHash := ps.ByName("hash")
+	computationId := ps.ByName("computationId")
+
+	computation, found := core.GetCommitComputation(computationId)
+	if !found {
+		http.Error(w, fmt.Sprintf("Computation '%s' unknown", computationId), http.StatusNotFound)
+		return
+	}
+
+	if !plumbing.IsHash(rawCommitHash) {
+		http.Error(w, fmt.Sprintf("Could not parse commit hash '%s'", rawCommitHash), http.StatusNotFound)
+		return
+	}
+	commitHash := plumbing.NewHash(rawCommitHash)
+
+	if !plumbing.IsHash(rawHash) {
+		http.Error(w, fmt.Sprintf("Could not parse hash '%s'", rawHash), http.StatusNotFound)
+		return
+	}
+	hash := plumbing.NewHash(rawHash)
+
+	result, err := computation.Execute(r.Context(), repoId, commitHash, hash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func TriggerCrashHandler(_ http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
@@ -149,6 +303,34 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/tile/:tileComputationId/:repoId/:commit/:lod/:x/:y",
 		Handler: TileHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "api.list_blob_computations",
+		Method:  http.MethodGet,
+		Path:    "/api/blob_computations",
+		Handler: ListBlobComputationsHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "api.list_tile_computations",
+		Method:  http.MethodGet,
+		Path:    "/api/tile_computations",
+		Handler: ListTileComputationsHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "api.list_commit_computations",
+		Method:  http.MethodGet,
+		Path:    "/api/commit_computations",
+		Handler: ListCommitComputationsHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "api.commit_compute",
+		Method:  http.MethodGet,
+		Path:    "/api/commit_compute/:computationId/:repoId/:commit/:hash",
+		Handler: CommitComputeHandler,
 	})
 
 	schemas.Register("api.TileMetadata", TileMetadata{})

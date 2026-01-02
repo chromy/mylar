@@ -67,6 +67,17 @@ func GetTileComputation(id string) (TileComputation, bool) {
 	return c, found
 }
 
+func ListTileComputations() []string {
+	mu.RLock()
+	defer mu.RUnlock()
+	
+	ids := make([]string, 0, len(tileComputations))
+	for id := range tileComputations {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 func ResetTileComputationsForTesting() {
 	mu.Lock()
 	defer mu.Unlock()

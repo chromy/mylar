@@ -9,7 +9,6 @@ import (
 	"github.com/chromy/viz/internal/features/repo"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/chromy/viz/internal/utils"
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
@@ -189,6 +188,19 @@ type LineLength struct {
 	Maximum int64 `json:"maximum"`
 }
 
+type BlameLine struct {
+	Author     string    `json:"author"`
+	AuthorName string    `json:"authorName"`
+	Hash       string    `json:"hash"`
+	Date       time.Time `json:"date"`
+	Text       string    `json:"text"`
+}
+
+type BlameResult struct {
+	Path  string      `json:"path"`
+	Lines []BlameLine `json:"lines"`
+}
+
 var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]int, error) {
 	lines, err := repo.Lines(ctx, repoId, hash)
 	if err != nil {
@@ -202,6 +214,45 @@ var GetBlobLineLengths = core.RegisterBlobComputation("blobLineLengths", func(ct
 
 	return lengths, nil
 })
+
+//var GetBlobBlame = core.RegisterBlobComputation("blobBlame", func(ctx context.Context, repoId string, hash plumbing.Hash) (BlameResult, error) {
+//	repository, err := repo.ResolveRepo(ctx, repoId)
+//	if err != nil {
+//		return BlameResult{}, err
+//	}
+//
+//	obj, err := repository.BlobObject(hash)
+//	if err != nil {
+//		return BlameResult{}, err
+//	}
+//
+//	reader, err := obj.Reader()
+//	if err != nil {
+//		return BlameResult{}, err
+//	}
+//	defer reader.Close()
+//
+//	blameResult, err := git.Blame(ctx, repository, hash.String(), "")
+//	if err != nil {
+//		return BlameResult{}, fmt.Errorf("blame failed: %w", err)
+//	}
+//
+//	lines := make([]BlameLine, len(blameResult.Lines))
+//	for i, line := range blameResult.Lines {
+//		lines[i] = BlameLine{
+//			Author:     line.Author,
+//			AuthorName: line.AuthorName,
+//			Hash:       line.Hash.String(),
+//			Date:       line.Date,
+//			Text:       line.Text,
+//		}
+//	}
+//
+//	return BlameResult{
+//		Path:  blameResult.Path,
+//		Lines: lines,
+//	}, nil
+//})
 
 func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64, pixelFunc func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int64) ([]int64, error) {
 	// For non-zero LOD levels, return empty tiles

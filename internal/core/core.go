@@ -8,6 +8,7 @@ import (
 
 var mu sync.RWMutex
 var blobComputations map[string]BlobComputation = make(map[string]BlobComputation)
+var commitComputations map[string]CommitComputation = make(map[string]CommitComputation)
 var routes map[string]Route = make(map[string]Route)
 var theCache cache.Cache = cache.NewMemoryCache()
 var cacheOnce sync.Once
