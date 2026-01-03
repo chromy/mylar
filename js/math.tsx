@@ -1,6 +1,6 @@
 import { aabb } from "./aabb.js";
 import { TILE_SIZE } from "./schemas.js";
-import { initialSize } from "./utils.js";
+import { getGridSide, type TileLayout } from "./utils.js";
 
 export function nextPowerOfTwo(n: number): number {
   if (n <= 0) {
@@ -21,20 +21,16 @@ export function toLod(box: aabb): number {
   return Math.log2(aabb.width(box) / TILE_SIZE);
 }
 
-export function quadtreeBoundingBox(m: number): aabb {
-  const size = initialSize(m);
+export function quadtreeBoundingBox(layout: TileLayout): aabb {
+  const size = getGridSide(layout);
   return aabb.fromValues(0, 0, size, size);
 }
 
 export function* quadtreeAABBs(
-  m: number,
+  layout: TileLayout,
   predicate: (box: aabb) => boolean,
 ): Generator<aabb> {
-  if (m <= 0) {
-    return;
-  }
-
-  const queue = [quadtreeBoundingBox(m)];
+  const queue = [quadtreeBoundingBox(layout)];
 
   while (queue.length > 0) {
     const currentAABB = queue.shift();
@@ -71,7 +67,7 @@ const MIN_PIXELS_TO_DISPLAY = 256;
 
 export function* requiredTiles(
   bounds: aabb,
-  lineCount: number,
+  layout: TileLayout,
   pixelsPerWorldUnit: number,
 ): Generator<aabb> {
   const viz = quadtreeBoundingBox(lineCount);
@@ -80,7 +76,7 @@ export function* requiredTiles(
   const inScope = (box: aabb) => aabb.overlaps(box, viz);
   let count = 0;
 
-  for (const quadAABB of quadtreeAABBs(lineCount, inScope)) {
+  for (const quadAABB of quadtreeAABBs(layout, inScope)) {
     const width = aabb.width(quadAABB);
     if (count > 0 && width * pixelsPerWorldUnit < MIN_PIXELS_TO_DISPLAY) {
       break;

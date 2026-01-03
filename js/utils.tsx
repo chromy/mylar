@@ -8,67 +8,72 @@ export function lodToSize(lod: number): number {
   return TILE_SIZE * Math.pow(2, lod);
 }
 
-export function initialSize(m: number): number {
-  if (m <= 1) {
-    return 2;
-  }
-  const k = Math.ceil(Math.log2(Math.sqrt(m)));
-  return Math.pow(2, k);
-}
-
 // We convert freely between three spaces:
 // 'line space' is a 1D space from 0..layout.LastLine
 // WorldPosition is a 2D space. We map each LinePosition onto a single
-// WorldPosition. World space is a 2D square. If line space is 0..n
-// then the world square is (0..2**k), (0..2**k) st. k is the smallest
-// integer n <= 2**k * 2**k
+// WorldPosition. World space is a 2D square.
+//
+// We use a Hilbert Curve for this mapping to preserve locality.
+// If line space is 0..n then the world square side length is n = 2^k
 // World space is divided into lod=0 tiles of size TILE_SIZE. Each
 // (X, Y) in world space can be mapped into a single point into a
-// single  tile. If (wx, wy) then tx=wx//TILE_SIZE ty=wy//TILE_SIZE
+// single tile. If (wx, wy) then tx=wx//TILE_SIZE ty=wy//TILE_SIZE
 // and the offset within the tile is (wx % TILE_SIZE, wy % TILE_SIZE).
 
+export type LinePosition = number;
+
 export interface TileLayout {
-  LastLine: LinePosition;
+  lineCount: LinePosition;
 }
 
 export interface WorldPosition {
-  X: number;
-  Y: number;
+  x: number;
+  y: number;
 }
 
 export interface TilePosition {
-  Lod: number;
-  TileX: number;
-  TileY: number;
-  OffsetX: number;
-  OffsetY: number;
+  lod: number;
+  tileX: number;
+  tileY: number;
+  offsetX: number;
+  offsetY: number;
 }
 
-export type LinePosition = number;
+
+// Helper to calculate the side length of the square grid (N).
+// N must be a power of 2.
+export function getGridSide(layout: TileLayout): number {
+  const m = layout.lineCount;
+  // Side length = 2^ceil(log2(sqrt(m)))
+  const k = Math.ceil(Math.log2(Math.sqrt(m)));
+  return Math.pow(2, k);
+}
 
 export function lineToWorld(
   line: LinePosition,
   layout: TileLayout,
 ): WorldPosition {
-  const [x, y] = mortonDecode(line);
-  return { X: x, Y: y };
+  const n = getGridSide(layout);
+  const [x, y] = hilbertPoint(n, line);
+
+  return { x, y };
 }
 
 export function worldToTile(
   world: WorldPosition,
   layout: TileLayout,
 ): TilePosition {
-  const tileX = Math.floor(world.X / TILE_SIZE);
-  const tileY = Math.floor(world.Y / TILE_SIZE);
-  const offsetX = world.X % TILE_SIZE;
-  const offsetY = world.Y % TILE_SIZE;
+  const tileX = Math.floor(world.x / TILE_SIZE);
+  const tileY = Math.floor(world.y / TILE_SIZE);
+  const offsetX = world.x % TILE_SIZE;
+  const offsetY = world.y % TILE_SIZE;
 
   return {
-    Lod: 0,
-    TileX: tileX,
-    TileY: tileY,
-    OffsetX: offsetX,
-    OffsetY: offsetY,
+    lod: 0,
+    tileX: tileX,
+    tileY: tileY,
+    offsetX: offsetX,
+    offsetY: offsetY,
   };
 }
 
@@ -76,48 +81,79 @@ export function tileToWorld(
   tile: TilePosition,
   layout: TileLayout,
 ): WorldPosition {
-  const tileSize = lodToSize(tile.Lod);
-  const worldX = tile.TileX * tileSize + tile.OffsetX;
-  const worldY = tile.TileY * tileSize + tile.OffsetY;
+  const tileSize = lodToSize(tile.lod);
+  const worldX = tile.tileX * tileSize + tile.offsetX;
+  const worldY = tile.tileY * tileSize + tile.offsetY;
 
-  return { X: worldX, Y: worldY };
+  return { x: worldX, y: worldY };
 }
 
 export function worldToLine(
   world: WorldPosition,
   layout: TileLayout,
 ): LinePosition {
-  const encoded = mortonEncode(world.X, world.Y);
-  return encoded;
+  const n = getGridSide(layout);
+  const d = hilbertIndex(n, world.c, world.y);
+
+  return d;
 }
 
-// mortonEncode interleaves the bits of x and y to produce a Morton code
-export function mortonEncode(x: number, y: number): number {
-  return spreadBits(x) | (spreadBits(y) << 1);
+/**
+ * Rotates and flips the quadrant for the Hilbert curve.
+ * Uses standard JS numbers.
+ */
+function rot(n: number, ref: { x: number; y: number }, rx: number, ry: number) {
+  if (ry === 0) {
+    if (rx === 1) {
+      ref.x = n - 1 - ref.x;
+      ref.y = n - 1 - ref.y;
+    }
+    // Swap x and y
+    const temp = ref.x;
+    ref.x = ref.y;
+    ref.y = temp;
+  }
 }
 
-// mortonDecode extracts x and y from a Morton code
-export function mortonDecode(code: number): [number, number] {
-  const x = compactBits(code);
-  const y = compactBits(code >> 1);
-  return [x, y];
+/**
+ * Maps a 1D distance d to (x,y) coordinates on a grid of size n*n.
+ */
+function hilbertPoint(n: number, d: number): [number, number] {
+  let rx: number, ry: number, s: number, t: number = d;
+  const pt = { x: 0, y: 0 };
+
+  for (s = 1; s < n; s *= 2) {
+    // 1 & (t / 2)
+    rx = 1 & (t >>> 1);
+    ry = 1 & (t ^ rx);
+
+    rot(s, pt, rx, ry);
+
+    pt.x += s * rx;
+    pt.y += s * ry;
+
+    // t /= 4
+    t >>>= 2;
+  }
+  return [pt.x, pt.y];
 }
 
-// spreadBits spreads the bits of a 16-bit number across 32 bits
-export function spreadBits(x: number): number {
-  x = (x | (x << 8)) & 0x00ff00ff;
-  x = (x | (x << 4)) & 0x0f0f0f0f;
-  x = (x | (x << 2)) & 0x33333333;
-  x = (x | (x << 1)) & 0x55555555;
-  return x >>> 0; // Convert to unsigned 32-bit
-}
+/**
+ * Maps (x,y) coordinates to a 1D distance d on a grid of size n*n.
+ */
+function hilbertIndex(n: number, x: number, y: number): number {
+  let rx: number, ry: number, s: number, d: number = 0;
+  // We copy x and y into an object so we can mutate them in rot()
+  const pt = { x: x, y: y };
 
-// compactBits compacts spread bits back to a 16-bit number
-export function compactBits(x: number): number {
-  x = x & 0x55555555;
-  x = (x ^ (x >> 1)) & 0x33333333;
-  x = (x ^ (x >> 2)) & 0x0f0f0f0f;
-  x = (x ^ (x >> 4)) & 0x00ff00ff;
-  x = (x ^ (x >> 8)) & 0x0000ffff;
-  return x >>> 0; // Convert to unsigned 32-bit
+  for (s = n >>> 1; s > 0; s >>>= 1) {
+    // Check if the bits corresponding to s are set
+    rx = (pt.x & s) > 0 ? 1 : 0;
+    ry = (pt.y & s) > 0 ? 1 : 0;
+
+    d += s * s * ((3 * rx) ^ ry);
+
+    rot(s, pt, rx, ry);
+  }
+  return d;
 }

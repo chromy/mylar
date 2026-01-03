@@ -176,7 +176,7 @@ class Renderer {
     this.screenMouse = vec2.create();
     this.worldMouse = vec2.create();
     this.worldMousePosition = { X: 0, Y: 0 };
-    this.tilePosition = { Lod: 0, TileX: 0, TileY: 0, OffsetX: 0, OffsetY: 0 };
+    this.tilePosition = { Lod: 0, tileX: 0, tileY: 0, offsetX: 0, offsetY: 0 };
     this.linePosition = 0;
   }
 
@@ -268,12 +268,8 @@ class Renderer {
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
     this.worldMousePosition = { X: this.worldMouse[0], Y: this.worldMouse[1] };
-    this.tilePosition = worldToTile(this.worldMousePosition, {
-      LastLine: this.layout.lineCount - 1,
-    });
-    this.linePosition = worldToLine(this.worldMousePosition, {
-      LastLine: this.layout.lineCount - 1,
-    });
+    this.tilePosition = worldToTile(this.worldMousePosition, this.layout);
+    this.linePosition = worldToLine(this.worldMousePosition, this.layout);
     this.callbacks.setHoveredLineNumber(this.linePosition);
 
     const state = this.callbacks.getState();
@@ -330,7 +326,7 @@ class Renderer {
         debugItems.push(["World mouse", `(${worldMouseX}, ${worldMouseY})`]);
         debugItems.push([
           "Tile position",
-          `T(${this.tilePosition.TileX}, ${this.tilePosition.TileY}) O(${this.tilePosition.OffsetX.toFixed(0)}, ${this.tilePosition.OffsetY.toFixed(0)})`,
+          `T(${this.tilePosition.tileX}, ${this.tilePosition.tileY}) O(${this.tilePosition.offsetX.toFixed(0)}, ${this.tilePosition.offsetY.toFixed(0)})`,
         ]);
         debugItems.push(["Line position", `${this.linePosition}`]);
         debugItems.push([
@@ -553,12 +549,12 @@ class Renderer {
 
       // Convert world positions to screen coordinates
       const currentWorldVec = vec2.fromValues(
-        currentWorld.X + 0.5,
-        currentWorld.Y + 0.5,
+        currentWorld.x + 0.5,
+        currentWorld.y + 0.5,
       );
       const nextWorldVec = vec2.fromValues(
-        nextWorld.X + 0.5,
-        nextWorld.Y + 0.5,
+        nextWorld.x + 0.5,
+        nextWorld.y + 0.5,
       );
 
       const currentScreen = vec2.create();
