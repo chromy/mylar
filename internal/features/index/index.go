@@ -355,6 +355,10 @@ func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.
 	return tile, nil
 }
 
+//type Shader interface {
+//	Pixel(world *utils.WorldPosition, index *Index) int32
+//}
+
 var GetTileLineOffset = core.RegisterTileComputation("offset", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
 		linePos := utils.WorldToLine(worldPos, *layout)
@@ -365,21 +369,89 @@ var GetTileLineOffset = core.RegisterTileComputation("offset", func(ctx context.
 	})
 })
 
+//var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+//	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
+//		linePos := utils.WorldToLine(worldPos, *layout)
+//		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+//			lineLengths, err := GetBlobLineLengths(ctx, repoId, entry.Hash)
+//			if err != nil {
+//				return 0
+//			}
+//			lineIdxInFile := int64(linePos) - entry.LineOffset
+//			if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
+//				return int32(lineLengths[lineIdxInFile])
+//			}
+//		}
+//		return 0
+//	})
+//})
+
 var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32 {
-		linePos := utils.WorldToLine(worldPos, *layout)
-		if entry := index.FindFileByLine(int64(linePos)); entry != nil {
-			lineLengths, err := GetBlobLineLengths(ctx, repoId, entry.Hash)
-			if err != nil {
-				return 0
+	if lod != 0 {
+		return make([]int32, constants.TileSize*constants.TileSize), nil
+	}
+
+	tileSize := utils.LodToSize(int(lod))
+	tile := make([]int32, constants.TileSize*constants.TileSize)
+
+	tree, err := repo.CommitToTree(ctx, repoId, commit)
+	if err != nil {
+		return nil, err
+	}
+
+	index, err := GetIndex(ctx, repoId, tree)
+	if err != nil {
+		return nil, err
+	}
+
+	layout := index.ToTileLayout()
+
+	tilePos := utils.TilePosition{
+		Lod:     lod,
+		TileX:   x,
+		TileY:   y,
+		OffsetX: 0,
+		OffsetY: 0,
+	}
+
+	// Get the world position for the top-left corner of this tile
+	tileWorldPos := utils.TileToWorld(tilePos, *layout)
+
+	m := make(map[plumbing.Hash][]int)
+
+	// For each position in the tile, calculate the value using the provided pixel function
+	for tileY := 0; tileY < tileSize; tileY++ {
+		for tileX := 0; tileX < tileSize; tileX++ {
+			// Calculate world position for this pixel in the tile
+			worldPos := utils.WorldPosition{
+				X: tileWorldPos.X + int64(tileX),
+				Y: tileWorldPos.Y + int64(tileY),
 			}
-			lineIdxInFile := int64(linePos) - entry.LineOffset
-			if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
-				return int32(lineLengths[lineIdxInFile])
+
+			tileIdx := tileY*tileSize + tileX
+
+			linePos := utils.WorldToLine(worldPos, *layout)
+
+			if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+
+				lineLengths, found := m[entry.Hash]
+				if !found {
+					lineLengths, err = GetBlobLineLengths(ctx, repoId, entry.Hash)
+					if err != nil {
+						return tile, err
+					}
+					m[entry.Hash] = lineLengths
+				}
+
+				lineIdxInFile := int64(linePos) - entry.LineOffset
+				if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineLengths)) {
+					tile[tileIdx] = int32(lineLengths[lineIdxInFile])
+				}
 			}
+
 		}
-		return 0
-	})
+	}
+	return tile, nil
 })
 
 var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {

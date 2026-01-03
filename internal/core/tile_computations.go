@@ -5,24 +5,7 @@ import (
 	"fmt"
 	"github.com/go-git/go-git/v5/plumbing"
 	"time"
-	"unsafe"
 )
-
-// int32SliceToBytes converts []int32 to []byte using unsafe for zero-copy
-func int32SliceToBytes(slice []int32) []byte {
-	if len(slice) == 0 {
-		return nil
-	}
-	return unsafe.Slice((*byte)(unsafe.Pointer(&slice[0])), len(slice)*4)
-}
-
-// bytesToInt32Slice converts []byte to []int32 using unsafe for zero-copy
-func bytesToInt32Slice(data []byte) []int32 {
-	if len(data) == 0 {
-		return nil
-	}
-	return unsafe.Slice((*int32)(unsafe.Pointer(&data[0])), len(data)/4)
-}
 
 type TileFunc func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error)
 
@@ -38,7 +21,7 @@ func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
 		cacheKey := GenerateCacheKey(id, commit.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
 
 		if cached, err := theCache.Get(cacheKey); err == nil {
-			tile := bytesToInt32Slice(cached)
+			tile := BytesToInt32Slice(cached)
 			return tile, nil
 		}
 
@@ -47,7 +30,7 @@ func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
 			return nil, err
 		}
 
-		tileData := int32SliceToBytes(result)
+		tileData := Int32SliceToBytes(result)
 		theCache.Add(cacheKey, tileData, 30*time.Minute)
 
 		return result, nil

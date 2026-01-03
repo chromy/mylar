@@ -4,6 +4,7 @@ import (
 	"github.com/chromy/viz/internal/cache"
 	"os"
 	"sync"
+	"unsafe"
 )
 
 var mu sync.RWMutex
@@ -31,4 +32,20 @@ func initStorage() {
 func GetStoragePath() string {
 	storageOnce.Do(initStorage)
 	return storagePath
+}
+
+// Int32SliceToBytes converts []int32 to []byte using unsafe for zero-copy
+func Int32SliceToBytes(slice []int32) []byte {
+	if len(slice) == 0 {
+		return nil
+	}
+	return unsafe.Slice((*byte)(unsafe.Pointer(&slice[0])), len(slice)*4)
+}
+
+// BytesToInt32Slice converts []byte to []int32 using unsafe for zero-copy
+func BytesToInt32Slice(data []byte) []int32 {
+	if len(data) == 0 {
+		return nil
+	}
+	return unsafe.Slice((*int32)(unsafe.Pointer(&data[0])), len(data)/4)
 }
