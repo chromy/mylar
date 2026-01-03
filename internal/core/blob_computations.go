@@ -3,9 +3,9 @@ package core
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/vmihailenco/msgpack/v5"
 	"strings"
 	"time"
 )
@@ -19,7 +19,7 @@ func wrapObjectFuncWithCaching[T any](id string, execute ObjectFunc[T]) ObjectFu
 
 		if cached, err := c.Get(key); err == nil {
 			var result T
-			err := json.Unmarshal(cached, &result)
+			err := msgpack.Unmarshal(cached, &result)
 
 			if err != nil {
 				// TODO: delete key
@@ -36,7 +36,7 @@ func wrapObjectFuncWithCaching[T any](id string, execute ObjectFunc[T]) ObjectFu
 			return zero, err
 		}
 
-		serialized, err := json.Marshal(result)
+		serialized, err := msgpack.Marshal(result)
 		if err != nil {
 			var zero T
 			return zero, err

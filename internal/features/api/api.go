@@ -1,8 +1,8 @@
 package api
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/chromy/viz/internal/constants"
 	"github.com/chromy/viz/internal/features/index"
@@ -14,7 +14,24 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"unsafe"
 )
+
+// int32SliceToBytes converts []int32 to []byte using unsafe for zero-copy
+func int32SliceToBytes(slice []int32) []byte {
+	if len(slice) == 0 {
+		return nil
+	}
+	return unsafe.Slice((*byte)(unsafe.Pointer(&slice[0])), len(slice)*4)
+}
+
+// bytesToInt32Slice converts []byte to []int32 using unsafe for zero-copy
+func bytesToInt32Slice(data []byte) []int32 {
+	if len(data) == 0 {
+		return nil
+	}
+	return unsafe.Slice((*int32)(unsafe.Pointer(&data[0])), len(data)/4)
+}
 
 type TileMetadata struct {
 	X   int64 `json:"x"`
@@ -149,10 +166,8 @@ func cachingMacroTile(ctx context.Context, computationId string, repoName string
 
 	cache := core.GetCache()
 	if cached, err := cache.Get(cacheKey); err == nil {
-		var result []int32
-		if err := json.Unmarshal(cached, &result); err == nil {
-			return result, nil
-		}
+		result := bytesToInt32Slice(cached)
+		return result, nil
 	}
 
 	result, err := macroTile(ctx, computationId, repoName, commit, lod, x, y)
@@ -160,9 +175,8 @@ func cachingMacroTile(ctx context.Context, computationId string, repoName string
 		return nil, err
 	}
 
-	if tileData, err := json.Marshal(result); err == nil {
-		cache.Add(cacheKey, tileData, 30*time.Minute)
-	}
+	tileData := int32SliceToBytes(result)
+	cache.Add(cacheKey, tileData, 30*time.Minute)
 
 	return result, nil
 }
