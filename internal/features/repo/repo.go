@@ -188,7 +188,7 @@ func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.
 		return *hash, nil
 	}
 
-	return plumbing.ZeroHash, fmt.Errorf("unable to resolve committish '%s'", committish)
+	return plumbing.ZeroHash, fmt.Errorf("resolving committish %s: %s", committish, err)
 }
 
 func ResolveCommittishToTreeish(repo *git.Repository, committish string) (plumbing.Hash, error) {
@@ -202,7 +202,7 @@ func ResolveCommittishToTreeish(repo *git.Repository, committish string) (plumbi
 		return commit.TreeHash, nil
 	}
 
-	return hash, nil
+	return plumbing.ZeroHash, fmt.Errorf("resolving committish %s: %s", committish, err)
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
