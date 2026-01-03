@@ -166,7 +166,7 @@ class Renderer {
     this.lastDebugUpdateMs = 0;
     this.callbacks = callbacks;
     this.screenWorldAabb = aabb.create();
-    this.tileCompositor = new TileCompositor();
+    this.tileCompositor = new TileCompositor(new TileStore());
     this.visualizationBounds = quadtreeBoundingBox(this.layout.lineCount);
 
     this.boundFrame = this.frame.bind(this);

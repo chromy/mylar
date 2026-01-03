@@ -2,6 +2,8 @@ import { vec3 } from "gl-matrix";
 import { floatToByte, convert, OKLCH, sRGB } from "@texel/color";
 import { TILE_SIZE, type TileMetadata, TileMetadataSchema } from "./schemas.js";
 
+const DEFAULT_MAX_LIVE_REQUESTS = 6;
+
 export interface TileRequest {
   x: number;
   y: number;
@@ -13,18 +15,7 @@ export interface TileRequest {
 
 interface TileData {
   metadata: TileMetadata;
-  tileData: number[];
-}
-
-export interface CompositeTileRequest {
-  x: number;
-  y: number;
-  lod: number;
-  repo: string;
-  commit: string;
-
-  kind: string;
-  composite: string;
+  data: number[];
 }
 
 async function createTileBitmap(
@@ -61,8 +52,8 @@ async function createTileBitmap(
   const imageData = new ImageData(buffer, TILE_SIZE);
 
   return await createImageBitmap(imageData, 0, 0, TILE_SIZE, TILE_SIZE, {
-    resizeWidth: TILE_SIZE * 16,
-    resizeHeight: TILE_SIZE * 16,
+    resizeWidth: TILE_SIZE * 4,
+    resizeHeight: TILE_SIZE * 4,
     premultiplyAlpha: "none",
     colorSpaceConversion: "none",
     imageOrientation: "none",
@@ -70,9 +61,8 @@ async function createTileBitmap(
   });
 }
 
-async function fetchTile(request: TileRequest): Promise<TileData> {
-  const url = `/api/tile/${request.kind}/${request.repo}/${request.commit}/${request.lod}/${request.x}/${request.y}`;
-  const response = await fetch(url);
+async function fetchTile(url: string, signal: AbortSignal): Promise<TileData> {
+  const response = await fetch(url, {signal});
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -98,10 +88,10 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
   }
 
   // Parse tile data from second line
-  let tileData: number[];
+  let data: number[];
   try {
-    tileData = JSON.parse(rawData);
-    if (!Array.isArray(tileData)) {
+    data = JSON.parse(rawData);
+    if (!Array.isArray(data)) {
       throw new Error("Tile data is not an array");
     }
   } catch (error) {
@@ -110,157 +100,227 @@ async function fetchTile(request: TileRequest): Promise<TileData> {
 
   return {
     metadata,
-    tileData,
+    data,
   };
 }
 
+
+
 export class TileStore {
-  private requestedTiles: Set<string> = new Set();
-  private tileCache: Map<string, TileData> = new Map();
-  private requestQueue: TileRequest[] = [];
-  private liveRequests: Set<string> = new Set();
   private readonly maxLiveRequests: number;
 
-  constructor(maxLiveRequests: number = 6) {
+  private tiles: Map<string, TileData> = new Map();
+  private cache: Map<string, WeakRef<TileData>> = new Map();
+
+  private queue: string[] = [];
+  private requested: Set<string> = new Set();
+  private live: Set<string> = new Set();
+  private aborts: Map<string, () => void> = new Map();
+  private preventRequestsTill: number;
+
+  constructor(maxLiveRequests: number = DEFAULT_MAX_LIVE_REQUESTS) {
     this.maxLiveRequests = maxLiveRequests;
+    this.preventRequestsTill = performance.now();
   }
 
-  private tileKey(request: TileRequest): string {
-    return `${request.repo}_${request.commit}_${request.kind}_${request.x}_${request.y}_${request.lod}`;
-  }
+  update(urls: string[]): void {
+    this.requested.clear();
 
-  update(requests: TileRequest[]): void {
-    this.requestedTiles.clear();
+    // Clear the hard refs:
+    this.tiles.clear();
 
-    this.requestQueue = this.requestQueue.filter(request => {
-      const key = this.tileKey(request);
-      return requests.some(r => this.tileKey(r) === key);
-    });
+    // Hard ref anything requested that is cached:
+    for (const url of urls) {
+      this.requested.add(url);
 
-    for (const request of requests) {
-      const key = this.tileKey(request);
-      this.requestedTiles.add(key);
-      const alreadyQueued = this.requestQueue.some(
-        r => this.tileKey(r) === key,
-      );
-      if (!alreadyQueued) {
-        this.requestQueue.push(request);
+      const tile = this.cache.get(url)?.deref();
+      if (tile === undefined) {
+        if (!this.live.has(url)) {
+          this.queue.push(url);
+        }
+      } else {
+        this.tiles.set(url, tile);
+      }
+    }
+
+    this.queue = this.queue.filter(url => this.requested.has(url));
+    for (const [url, abort] of this.aborts.entries()) {
+      if (!this.requested.has(url)) {
+        abort();
       }
     }
 
     this.processQueue();
   }
 
-  get(request: TileRequest): TileData | undefined {
-    const key = this.tileKey(request);
-    return this.tileCache.get(key);
+  get(url: string): TileData | undefined {
+    return this.tiles.get(url);
   }
 
-  private async requestTile(request: TileRequest): Promise<void> {
-    const key = this.tileKey(request);
-    this.liveRequests.add(key);
+  private async requestTile(url: string): Promise<void> {
+    this.live.add(url);
 
     try {
-      const tile = await fetchTile(request);
-      this.tileCache.set(key, tile);
+      const controller = new AbortController();
+      this.aborts.set(url, () => controller.abort("panned away"));
+      const signal = controller.signal;
+      const tile = await fetchTile(url, signal);
+      this.tiles.set(url, tile);
+      this.cache.set(url, new WeakRef(tile));
     } catch (error) {
-      console.error("Failed to fetch tile:", error);
+      if (!(error instanceof Error) || error.name !== "AbortError") {
+        console.error("Failed to fetch tile:", error);
+        this.preventRequestsTill = performance.now() + 10000;
+      }
     } finally {
-      this.liveRequests.delete(key);
+      this.live.delete(url);
+      this.aborts.delete(url);
       this.processQueue();
     }
   }
 
   private processQueue(): void {
+    if (performance.now() < this.preventRequestsTill) {
+      return;
+    }
     while (
-      this.requestQueue.length > 0 &&
-      this.liveRequests.size < this.maxLiveRequests
+      this.queue.length > 0 &&
+      this.live.size < this.maxLiveRequests
     ) {
-      const request = this.requestQueue.shift()!;
-      const key = this.tileKey(request);
-
-      if (this.requestedTiles.has(key) && !this.tileCache.has(key)) {
-        this.requestTile(request);
-      }
+      const url = this.queue.shift()!;
+      this.requestTile(url);
     }
   }
 }
 
-export class TileCompositor {
-  private tileStore: TileStore;
-  private requestedComposites: Set<string> = new Set();
-  private compositeCache: Map<string, ImageBitmap> = new Map();
-  private pendingComposites: Set<string> = new Set();
+export interface CompositeTileRequest {
+  x: number;
+  y: number;
+  lod: number;
+  repo: string;
+  commit: string;
 
-  constructor(maxLiveRequests: number = 6) {
-    this.tileStore = new TileStore(maxLiveRequests);
+  kind: string;
+  composite: string;
+}
+
+interface CompositorJob {
+  // Unique identifier for this request:
+  key: string;
+
+  state: "pending"|"processing"|"done";
+
+  // Details of the job:
+  x: number;
+  y: number;
+  lod: number;
+  repo: string;
+  commit: string;
+  kind: string;
+  composite: string;
+
+  // Required tiles:
+  tiles: string[];
+
+  // Final bitmap:
+  bitmap?: ImageBitmap;
+}
+
+function compositeToRequiredTiles(r: CompositeTileRequest): string[] {
+  const tiles: string[] = [];
+  tiles.push(`/api/tile/${r.kind}/${r.repo}/${r.commit}/${r.lod}/${r.x}/${r.y}`);
+  return tiles;
+}
+
+export class TileCompositor {
+  private requested: Set<string> = new Set();
+  private jobs: Map<string, CompositorJob> = new Map();
+  private store: TileStore;
+
+  constructor(store: TileStore) {
+    this.store = store;
   }
 
-  private compositeKey(request: CompositeTileRequest): string {
+  private toKey(request: CompositeTileRequest): string {
     return `${request.repo}_${request.commit}_${request.kind}_${request.composite}_${request.x}_${request.y}_${request.lod}`;
   }
 
-  private tileRequestFromComposite(request: CompositeTileRequest): TileRequest {
-    return {
-      x: request.x,
-      y: request.y,
-      lod: request.lod,
-      repo: request.repo,
-      commit: request.commit,
-      kind: request.kind,
-    };
-  }
-
   update(requests: CompositeTileRequest[]): void {
-    this.requestedComposites.clear();
-
-    const tileRequests: TileRequest[] = [];
+    this.requested.clear();
 
     for (const request of requests) {
-      const key = this.compositeKey(request);
-      this.requestedComposites.add(key);
-      tileRequests.push(this.tileRequestFromComposite(request));
+      const key = this.toKey(request);
+      this.requested.add(key);
 
-      if (!this.compositeCache.has(key) && !this.pendingComposites.has(key)) {
-        this.pendingComposites.add(key);
+      if (!this.jobs.has(key)) {
+        this.jobs.set(key, {
+          key,
+          state: "pending",
+          tiles: compositeToRequiredTiles(request),
+          ...request
+        });
       }
     }
 
-    this.tileStore.update(tileRequests);
+    const jobsKeys = [...this.jobs.keys()];
 
-    // Process any ready tiles into composites
-    this.processReadyTiles(requests);
+    // Remove any dead jobs:
+    for (const key of jobsKeys) {
+      if (!this.requested.has(key)) {
+        this.jobs.delete(key);
+      }
+    }
+
+    // Request all tiles for active jobs:
+    const tiles = [];
+    for (const job of this.jobs.values()) {
+      for (const tile of job.tiles) {
+        tiles.push(tile);
+      }
+    }
+    this.store.update(tiles);
+
+
+    for (const job of this.jobs.values()) {
+      if (job.state !== "pending") {
+        continue;
+      }
+
+      let ready = true;
+      for (const tile of job.tiles) {
+        ready = ready && (this.store.get(tile) !== undefined);
+      }
+
+      if (!ready) {
+        continue;
+      }
+
+      job.state = "processing";
+      this.doJob(job);
+    }
+  }
+
+  private async doJob(job: CompositorJob): Promise<void> {
+    try {
+      const data = this.store.get(job.tiles[0]!)!.data;
+      const bitmap = await createTileBitmap(
+          job.composite,
+          data,
+      )
+      job.bitmap = bitmap;
+    } catch (error) {
+      console.error("Failed to create composite bitmap:", error);
+    } finally {
+      job.state = "done";
+    }
   }
 
   get(request: CompositeTileRequest): ImageBitmap | undefined {
-    const key = this.compositeKey(request);
-    return this.compositeCache.get(key);
-  }
-
-  private async processReadyTiles(
-    requests: CompositeTileRequest[],
-  ): Promise<void> {
-    for (const request of requests) {
-      const key = this.compositeKey(request);
-
-      if (this.pendingComposites.has(key) && !this.compositeCache.has(key)) {
-        const tileRequest = this.tileRequestFromComposite(request);
-        const tileData = this.tileStore.get(tileRequest);
-
-        if (tileData) {
-          try {
-            const bitmap = await createTileBitmap(
-              request.composite,
-              tileData.tileData,
-            );
-            this.compositeCache.set(key, bitmap);
-          } catch (error) {
-            console.error("Failed to create composite bitmap:", error);
-          } finally {
-            this.pendingComposites.delete(key);
-          }
-        }
-      }
+    const key = this.toKey(request);
+    const job = this.jobs.get(key);
+    if (job === undefined) {
+      return undefined;
     }
+    return job.bitmap;
   }
 }

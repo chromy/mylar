@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/chromy/viz/internal/constants"
+	"github.com/chromy/viz/internal/features/index"
 	"github.com/chromy/viz/internal/core"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type TileMetadata struct {
@@ -50,7 +52,7 @@ func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 }
 
 
-func macroTile(ctx context.Context, tile core.TileComputation, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+func macroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	childLod := lod - 1
 	xys := [][2]int64{
 		{x * 2, y * 2},     // top-left
@@ -68,7 +70,7 @@ func macroTile(ctx context.Context, tile core.TileComputation, repoName string, 
 		i, coords := i, coords // capture loop variables
 		g.Go(func() error {
 			childX, childY := coords[0], coords[1]
-			childTile, childErr := tile.Execute(ctx, repoName, commit, childLod, childX, childY)
+			childTile, childErr := getTile(ctx, computationId, repoName, commit, childLod, childX, childY)
 			if childErr != nil {
 				return fmt.Errorf("failed to fetch child tile (%d, %d) at LOD %d: %w", childX, childY, childLod, childErr)
 			}
@@ -80,8 +82,6 @@ func macroTile(ctx context.Context, tile core.TileComputation, repoName string, 
 	if err := g.Wait(); err != nil {
 		return result, err
 	}
-
-	// Combine child tiles into a single tile by downsampling
 
 	for parentY := 0; parentY < constants.TileSize; parentY++ {
 		for parentX := 0; parentX < constants.TileSize; parentX++ {
@@ -144,8 +144,48 @@ func macroTile(ctx context.Context, tile core.TileComputation, repoName string, 
 	return result, nil
 }
 
-func cachingMacroTile(ctx context.Context, tile core.TileComputation, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	return macroTile(ctx, tile, repoName, commit, lod, x, y)
+func cachingMacroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+	cacheKey := core.GenerateCacheKey("macroTile", computationId, repoName, commit.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
+
+	cache := core.GetCache()
+	if cached, err := cache.Get(cacheKey); err == nil {
+		var result []int32
+		if err := json.Unmarshal(cached, &result); err == nil {
+			return result, nil
+		}
+	}
+
+	result, err := macroTile(ctx, computationId, repoName, commit, lod, x, y)
+	if err != nil {
+		return nil, err
+	}
+
+	if tileData, err := json.Marshal(result); err == nil {
+		cache.Add(cacheKey, tileData, 30*time.Minute)
+	}
+
+	return result, nil
+}
+
+func getTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+	isBlank, err := index.IsBlankTile(ctx, repoName, commit, lod, x, y)
+	if err != nil {
+		return []int32{}, err
+	}
+
+	if isBlank {
+		return make([]int32, constants.TileSize*constants.TileSize), nil
+	}
+
+	if lod == 0 {
+		c, found := core.GetTileComputation(computationId)
+		if !found {
+			return []int32{}, fmt.Errorf("computation %s not found", computationId)
+		}
+		return c.Execute(ctx, repoName, commit, lod, x, y)
+	} else {
+		return cachingMacroTile(ctx, computationId, repoName, commit, lod, x, y)
+	}
 }
 
 
@@ -197,20 +237,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	tileComputationId := ps.ByName("tileComputationId")
 
-	tileComputation, found := core.GetTileComputation(tileComputationId)
-	if !found {
-		http.Error(w, fmt.Sprintf("tile computation %s not found", tileComputationId), http.StatusNotFound)
-		return
-	}
-
-	var tile []int32
-
-	if lod == 0 {
-		tile, err = tileComputation.Execute(r.Context(), repoName, plumbing.NewHash(commit), lod, x, y)
-	} else {
-		tile, err = cachingMacroTile(r.Context(), tileComputation, repoName, plumbing.NewHash(commit), lod, x, y)
-	}
-
+	tile, err := getTile(r.Context(), tileComputationId, repoName, plumbing.NewHash(commit), lod, x, y)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

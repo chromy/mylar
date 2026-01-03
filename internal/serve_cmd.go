@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 import _ "net/http/pprof"
@@ -78,8 +79,14 @@ func DoServe(ctx context.Context, port uint, memcached string) {
 
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
+	srv := &http.Server{
+		Addr:           ":"+strconv.Itoa(int(port)),
+		Handler:        sentryHandler.Handle(router),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+	}
 	log.Printf("ready serve http://localhost:%d", port)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(int(port)), sentryHandler.Handle(router)))
+	log.Fatal(srv.ListenAndServe())
 }
 
 func initSentry() {

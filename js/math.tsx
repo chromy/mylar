@@ -74,7 +74,11 @@ export function* requiredTiles(
   lineCount: number,
   pixelsPerWorldUnit: number,
 ): Generator<aabb> {
-  const inScope = (box: aabb) => aabb.overlaps(box, bounds);
+
+  const viz = quadtreeBoundingBox(lineCount);
+  aabb.intersection(viz, viz, bounds)
+
+  const inScope = (box: aabb) => aabb.overlaps(box, viz);
   let count = 0;
 
   for (const quadAABB of quadtreeAABBs(lineCount, inScope)) {
@@ -85,7 +89,13 @@ export function* requiredTiles(
     if (toLod(quadAABB) < 0) {
       break;
     }
+    // TODO: bug
+    //if (aabb.containsAABB(quadAABB, viz) && toLod(quadAABB) > 0) {
+    //  continue;
+    //}
+
     count += 1;
     yield quadAABB;
   }
 }
+

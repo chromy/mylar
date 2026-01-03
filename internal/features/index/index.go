@@ -62,6 +62,31 @@ func (idx *Index) ToTileLayout() *utils.TileLayout {
 	return &layout
 }
 
+func IsBlankTile(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) (bool, error) {
+	tree, err := repo.CommitToTree(ctx, repoId, commit)
+	if err != nil {
+		return false, err
+	}
+
+	index, err := GetIndex(ctx, repoId, tree)
+	if err != nil {
+		return false, err
+	}
+
+	layout := index.ToTileLayout()
+
+	tile := utils.TilePosition{
+		Lod: lod,
+		TileX: x,
+		TileY: y,
+		OffsetX: 0,
+		OffsetY: 0,
+	}
+	world := utils.TileToWorld(tile, *layout)
+	line := utils.WorldToLine(world, *layout)
+	return line > layout.LastLine, nil
+}
+
 var GetBlobIndex = core.RegisterBlobComputation("blobIndex", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
 	lineCount, err := repo.LineCount(ctx, repoId, hash)
 	if err != nil {
@@ -253,7 +278,6 @@ var GetBlame = core.RegisterCommitComputation("blame", func(ctx context.Context,
 })
 
 func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64, pixelFunc func(worldPos utils.WorldPosition, index *Index, layout *utils.TileLayout) int32) ([]int32, error) {
-	// For non-zero LOD levels, return empty tiles
 	if lod != 0 {
 		return make([]int32, constants.TileSize*constants.TileSize), nil
 	}
