@@ -19,32 +19,24 @@ import (
 import _ "net/http/pprof"
 
 func loadInitialRepos(ctx context.Context) {
-	//if err := repo.AddFromGithub(ctx, "google", "perfetto"); err != nil {
-	//	log.Printf("Failed to add perfetto repo from github: %v", err)
-	//}
-	//if err := repo.AddFromGithub(ctx, "getsentry", "sentry"); err != nil {
-	//	log.Printf("Failed to add sentry repo from github: %v", err)
-	//}
-	//if err := repo.AddFromPath(ctx, "path:self", "."); err != nil {
-	//	log.Printf("Failed to add self repo: %v", err)
-	//}
-	//if err := repo.AddFromPath(ctx, "path:perfetto", "/Users/chromy/src/perfetto"); err != nil {
-	//	log.Printf("Failed to add perfetto repo from path: %v", err)
-	//}
-
-	if _, err := repo.ResolveRepo(ctx, "gh:go-git:go-billy"); err != nil {
-		log.Printf("initial repo resolution failed: %v", err)
-	}
 	if _, err := repo.ResolveRepo(ctx, "gh:google:perfetto"); err != nil {
 		log.Printf("initial repo resolution failed: %v", err)
 	}
-	//if _, err := repo.ResolveRepo(ctx, "gh:google:perfetto"); err != nil {
-	//	log.Printf("Failed to add go-billy repo from github: %v", err)
+	if _, err := repo.ResolveRepo(ctx, "gh:getsentry:sentry"); err != nil {
+		log.Printf("initial repo resolution failed: %v", err)
+	}
+	//if _, err := repo.ResolveRepo(ctx, "gh:torvalds:linux"); err != nil {
+	//	log.Printf("initial repo resolution failed: %v", err)
 	//}
-
-	//if _, err := repo.ResolveRepo(ctx, "gh:githubtraining:hellogitworld"); err != nil {
-	//	log.Printf("load initial repos: %v", err)
-	//}
+	if _, err := repo.ResolveRepo(ctx, "gh:facebook:react"); err != nil {
+		log.Printf("initial repo resolution failed: %v", err)
+	}
+	if _, err := repo.ResolveRepo(ctx, "gh:simonw:llm"); err != nil {
+		log.Printf("initial repo resolution failed: %v", err)
+	}
+	if _, err := repo.ResolveRepo(ctx, "gh:d3:d3"); err != nil {
+		log.Printf("initial repo resolution failed: %v", err)
+	}
 }
 
 func DoServe(ctx context.Context, port uint, memcached string) {

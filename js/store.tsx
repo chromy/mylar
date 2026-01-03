@@ -30,6 +30,14 @@ async function createTileBitmap(
     const pixelIndex = i * 4;
     const d = tileData[i]!;
 
+    if (d === 0) {
+      buffer[pixelIndex+0] = 255;
+      buffer[pixelIndex+1] = 255;
+      buffer[pixelIndex+2] = 255;
+      buffer[pixelIndex+3] = 255;
+      continue;
+    }
+
     if (composite === "direct") {
       oklch[0] = 1.0 - Math.min(Math.max(d, 0), 255) / 256.0;
       oklch[1] = 0;

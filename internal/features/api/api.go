@@ -13,7 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type TileMetadata struct {
@@ -159,7 +158,7 @@ func cachingMacroTile(ctx context.Context, computationId string, repoName string
 	}
 
 	tileData := core.Int32SliceToBytes(result)
-	cache.Add(cacheKey, tileData, 30*time.Minute)
+	cache.Add(cacheKey, tileData)
 
 	return result, nil
 }

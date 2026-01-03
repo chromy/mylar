@@ -12,7 +12,7 @@ func TestMemoryCache_AddAndGet(t *testing.T) {
 	value := []byte("test_value")
 
 	// Add item to cache
-	err := cache.Add(key, value, 0)
+	err := cache.Add(key, value)
 	if err != nil {
 		t.Fatalf("Add failed: %v", err)
 	}
@@ -38,14 +38,14 @@ func TestMemoryCache_GetNonExistent(t *testing.T) {
 	}
 }
 
-func TestMemoryCache_Expiration(t *testing.T) {
+func TestMemoryCache_NoExpiration(t *testing.T) {
 	cache := NewMemoryCache()
 
-	key := "expiring_key"
-	value := []byte("expiring_value")
+	key := "persistent_key"
+	value := []byte("persistent_value")
 
-	// Add item with short expiration
-	err := cache.Add(key, value, 100*time.Millisecond)
+	// Add item to cache
+	err := cache.Add(key, value)
 	if err != nil {
 		t.Fatalf("Add failed: %v", err)
 	}
@@ -53,19 +53,22 @@ func TestMemoryCache_Expiration(t *testing.T) {
 	// Item should exist immediately
 	retrieved, err := cache.Get(key)
 	if err != nil {
-		t.Fatalf("Get failed before expiration: %v", err)
+		t.Fatalf("Get failed: %v", err)
 	}
 	if string(retrieved) != string(value) {
 		t.Errorf("Expected %s, got %s", string(value), string(retrieved))
 	}
 
-	// Wait for expiration
-	time.Sleep(150 * time.Millisecond)
+	// Wait some time
+	time.Sleep(50 * time.Millisecond)
 
-	// Item should be expired
-	_, err = cache.Get(key)
-	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound after expiration, got %v", err)
+	// Item should still exist (no expiration)
+	retrieved, err = cache.Get(key)
+	if err != nil {
+		t.Errorf("Expected item to persist, got error: %v", err)
+	}
+	if string(retrieved) != string(value) {
+		t.Errorf("Expected %s, got %s", string(value), string(retrieved))
 	}
 }
 
@@ -76,7 +79,7 @@ func TestMemoryCache_DataIsolation(t *testing.T) {
 	originalValue := []byte("original")
 
 	// Add item to cache
-	err := cache.Add(key, originalValue, 0)
+	err := cache.Add(key, originalValue)
 	if err != nil {
 		t.Fatalf("Add failed: %v", err)
 	}
@@ -114,22 +117,18 @@ func TestMemoryCache_Size(t *testing.T) {
 	}
 
 	// Add items
-	cache.Add("key1", []byte("value1"), 0)
-	cache.Add("key2", []byte("value2"), 0)
+	cache.Add("key1", []byte("value1"))
+	cache.Add("key2", []byte("value2"))
 
 	if cache.Size() != 2 {
 		t.Errorf("Expected cache size 2, got %d", cache.Size())
 	}
 
-	// Add expired item
-	cache.Add("expired", []byte("value"), 1*time.Nanosecond)
-	time.Sleep(2 * time.Nanosecond)
+	// Add another item
+	cache.Add("key3", []byte("value3"))
 
-	// Access expired item to trigger cleanup
-	cache.Get("expired")
-
-	if cache.Size() != 2 {
-		t.Errorf("Expected cache size 2 after expired item cleanup, got %d", cache.Size())
+	if cache.Size() != 3 {
+		t.Errorf("Expected cache size 3, got %d", cache.Size())
 	}
 }
 
@@ -137,8 +136,8 @@ func TestMemoryCache_Clear(t *testing.T) {
 	cache := NewMemoryCache()
 
 	// Add items
-	cache.Add("key1", []byte("value1"), 0)
-	cache.Add("key2", []byte("value2"), 0)
+	cache.Add("key1", []byte("value1"))
+	cache.Add("key2", []byte("value2"))
 
 	if cache.Size() != 2 {
 		t.Errorf("Expected cache size 2, got %d", cache.Size())
@@ -171,7 +170,7 @@ func TestMemoryCache_ConcurrentAccess(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			key := "key" + string(rune('0'+i%10))
 			value := []byte("value" + string(rune('0'+i%10)))
-			cache.Add(key, value, 0)
+			cache.Add(key, value)
 		}
 		done <- true
 	}()

@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"time"
-
 	"github.com/bradfitz/gomemcache/memcache"
 )
 
@@ -19,15 +17,12 @@ func NewMemcachedCache(serverList ...string) *MemcachedCache {
 	}
 }
 
-// Add stores a value in memcached with the given key and expiration duration.
-func (c *MemcachedCache) Add(key string, value []byte, duration time.Duration) error {
+// Add stores a value in memcached with the given key.
+func (c *MemcachedCache) Add(key string, value []byte) error {
 	item := &memcache.Item{
 		Key:   key,
 		Value: value,
-	}
-
-	if duration > 0 {
-		item.Expiration = int32(duration.Seconds())
+		// Expiration: 0 means no expiration
 	}
 
 	return c.client.Set(item)

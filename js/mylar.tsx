@@ -6,6 +6,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useLocation } from "wouter";
 import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
@@ -108,6 +109,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
   const [debug, setDebug] = useState<DebugInfo>([]);
   const [state, dispatch] = useReducer(mylarReducer, initialMylarState);
   const [hoveredLineNumber, setHoveredLineNumber] = useState<number>(-1);
+  const [, setLocation] = useLocation();
 
   const layout = useMemo(() => {
     return toTileLayout(index);
@@ -187,6 +189,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
       </GlassPanel>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
+          <Button onClick={() => setLocation("/")}>
+            Home
+          </Button>
           <Button onClick={() => dispatch(settingsPanelSetting.enable)}>
             Settings
           </Button>
@@ -252,40 +257,59 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
         </table>
       </GlassPanel>
 
-      {hoveredEntry && (
-        <GlassPanel area="mylar-content-line self-end">
-          <div className="font-mono text-xxs space-y-1">
-            {contextLines &&
-              displayFileContext.get(state) &&
-              contextLines.lines.map((line, index) => {
-                const lineNum = contextLines.startLineNumber + index;
-                const isHovered =
-                  lineNum === contextLines.hoveredFileLineNumber;
-                return (
-                  <div
-                    key={lineNum}
-                    className={`flex ${isHovered ? "bg-yellow-500/20" : ""}`}
-                  >
-                    <span className="text-gray-500 text-right w-8 mr-2 select-none">
-                      {lineNum}
-                    </span>
-                    <span className="whitespace-pre">{line || " "}</span>
-                  </div>
-                );
-              })}
-            <div className="text-xxs text-gray-400 mt-2">
-              {hoveredEntry.path}{" "}
-              {contextLines && (
+      <GlassPanel area="mylar-content-line self-end">
+        <div className="font-mono text-xxs space-y-1">
+          {hoveredEntry && contextLines &&
+            displayFileContext.get(state) &&
+            contextLines.lines.map((line, index) => {
+              const lineNum = contextLines.startLineNumber + index;
+              const isHovered =
+                lineNum === contextLines.hoveredFileLineNumber;
+              return (
+                <div
+                  key={lineNum}
+                  className={`flex ${isHovered ? "bg-yellow-500/20" : ""}`}
+                >
+                  <span className="text-gray-600 text-right w-8 mr-2 select-none">
+                    {lineNum}
+                  </span>
+                  <span className="whitespace-pre text-gray-700">{line || " "}</span>
+                </div>
+              );
+            })}
+          <div className="flex items-center justify-between text-xxs mt-2">
+            <div className="text-gray-600">
+              {hoveredEntry ? (
                 <span>
-                  (lines {contextLines.startLineNumber}-
-                  {contextLines.startLineNumber + contextLines.lines.length - 1}
-                  )
+                  {hoveredEntry.path}{" "}
+                  {contextLines && (
+                    <span>
+                      (lines {contextLines.startLineNumber}-
+                      {contextLines.startLineNumber + contextLines.lines.length - 1}
+                      )
+                    </span>
+                  )}
                 </span>
+              ) : (
+                <span>No file selected</span>
               )}
             </div>
+            <button
+              onClick={() => {
+                if (displayFileContext.get(state)) {
+                  dispatch(displayFileContext.disable);
+                } else {
+                  dispatch(displayFileContext.enable);
+                }
+              }}
+              className="ml-4 px-2 py-1 text-xxs bg-white/10 hover:bg-white/20 rounded border border-black/10 transition-colors"
+              title={displayFileContext.get(state) ? "Hide file context" : "Show file context"}
+            >
+              {displayFileContext.get(state) ? "Hide Context" : "Show Context"}
+            </button>
           </div>
-        </GlassPanel>
-      )}
+        </div>
+      </GlassPanel>
 
       <SettingsPanel dispatch={dispatch} state={state} />
     </div>

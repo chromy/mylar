@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-git/go-git/v5/plumbing"
-	"time"
 )
 
 type TileFunc func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error)
@@ -31,7 +30,7 @@ func wrapTileFuncWithCaching(id string, execute TileFunc) TileFunc {
 		}
 
 		tileData := Int32SliceToBytes(result)
-		theCache.Add(cacheKey, tileData, 30*time.Minute)
+		theCache.Add(cacheKey, tileData)
 
 		return result, nil
 	}

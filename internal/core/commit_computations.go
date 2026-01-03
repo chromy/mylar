@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/vmihailenco/msgpack/v5"
-	"time"
 )
 
 type CommitFunc[T any] func(ctx context.Context, repoId string, commit plumbing.Hash, hash plumbing.Hash) (T, error)
@@ -40,7 +39,7 @@ func wrapCommitFuncWithCaching[T any](id string, execute CommitFunc[T]) CommitFu
 			return zero, err
 		}
 
-		c.Add(key, serialized, time.Hour)
+		c.Add(key, serialized)
 
 		return result, nil
 	}

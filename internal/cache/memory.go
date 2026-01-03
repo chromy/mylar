@@ -30,15 +30,10 @@ func NewMemoryCache() *MemoryCache {
 	}
 }
 
-// Add stores a value in the cache with the given key and expiration duration.
-func (c *MemoryCache) Add(key string, value []byte, duration time.Duration) error {
+// Add stores a value in the cache with the given key.
+func (c *MemoryCache) Add(key string, value []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	var expiry time.Time
-	if duration > 0 {
-		expiry = time.Now().Add(duration)
-	}
 
 	// Make a copy of the value to avoid external modifications
 	data := make([]byte, len(value))
@@ -46,7 +41,7 @@ func (c *MemoryCache) Add(key string, value []byte, duration time.Duration) erro
 
 	c.items[key] = &cacheItem{
 		data:   data,
-		expiry: expiry,
+		expiry: time.Time{}, // Zero time means no expiration
 	}
 
 	return nil

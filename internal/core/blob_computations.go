@@ -7,7 +7,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/vmihailenco/msgpack/v5"
 	"strings"
-	"time"
 )
 
 type ObjectFunc[T any] func(ctx context.Context, repoId string, hash plumbing.Hash) (T, error)
@@ -42,7 +41,7 @@ func wrapObjectFuncWithCaching[T any](id string, execute ObjectFunc[T]) ObjectFu
 			return zero, err
 		}
 
-		c.Add(key, serialized, time.Hour)
+		c.Add(key, serialized)
 
 		return result, nil
 	}
