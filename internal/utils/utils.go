@@ -2,14 +2,10 @@ package utils
 
 import (
 	"encoding/binary"
+	"math"
 	"github.com/chromy/viz/internal/constants"
 	"github.com/go-git/go-git/v5/plumbing"
-	"math"
 )
-
-func HashToInt53(hash plumbing.Hash) int64 {
-	return 0x1FFFFFFFFFFFFF & int64(binary.LittleEndian.Uint64(hash[:]))
-}
 
 func HashToInt32(hash plumbing.Hash) int32 {
 	return int32(binary.LittleEndian.Uint32(hash[:]))
@@ -24,27 +20,34 @@ func LodToSize(lod int) int {
 	return constants.TileSize * int(math.Pow(2, float64(lod)))
 }
 
-func InitialSize(m int) int {
-	if m <= 1 {
-		return 2
-	}
-	k := math.Ceil(math.Log2(math.Sqrt(float64(m))))
-	return int(math.Pow(2, k))
-}
-
 // We convert freely between three spaces:
 // 'line space' is a 1D space from 0..layout.LastLine
 // WorldPosition is a 2D space. We map each LinePosition onto a single
-// WorldPosition. World space is a 2D square. If line space is 0..n
-// then the world square is (0..2**k), (0..2**k) st. k is the smallest
-// integer n <= 2**k * 2**k
+// WorldPosition. World space is a 2D square.
+//
+// We use a Hilbert Curve for this mapping to preserve locality.
+// If line space is 0..n then the world square side length is n = 2^k
 // World space is divided into lod=0 tiles of size TILE_SIZE. Each
 // (X, Y) in world space can be mapped into a single point into a
-// single  tile. If (wx, wy) then tx=wx//TILE_SIZE ty=wy//TILE_SIZE
+// single tile. If (wx, wy) then tx=wx//TILE_SIZE ty=wy//TILE_SIZE
 // and the offset within the tile is (wx % TILE_SIZE, wy % TILE_SIZE).
 
+type LinePosition int64
+
 type TileLayout struct {
-	LastLine LinePosition
+	LineCount LinePosition
+}
+
+// GridSide calculates the side length of the square grid required to
+// hold all lines up to LastLine. The side length is always a power of
+// 2.
+func (l TileLayout) GridSideLength() int64 {
+	m := int64(l.LineCount)
+	// We need total area >= m+1
+	// Indices are [0..LineCount)
+	// Side length = 2^ceil(log2(sqrt(m+1)))
+	k := math.Ceil(math.Log2(math.Sqrt(float64(m))))
+	return int64(math.Pow(2, k))
 }
 
 type WorldPosition struct {
@@ -60,11 +63,11 @@ type TilePosition struct {
 	OffsetY int64
 }
 
-type LinePosition int64
-
 func LineToWorld(line LinePosition, layout TileLayout) WorldPosition {
-	x, y := mortonDecode(uint64(line))
-	return WorldPosition{X: int64(x), Y: int64(y)}
+	n := layout.GridSideLength()
+	
+	x, y := hilbertPoint(n, int64(line))
+	return WorldPosition{X: x, Y: y}
 }
 
 func WorldToTile(world WorldPosition, layout TileLayout) TilePosition {
@@ -91,37 +94,50 @@ func TileToWorld(tile TilePosition, layout TileLayout) WorldPosition {
 }
 
 func WorldToLine(world WorldPosition, layout TileLayout) LinePosition {
-	encoded := mortonEncode(uint32(world.X), uint32(world.Y))
-	return LinePosition(encoded)
+	n := layout.GridSideLength()
+	
+	d := hilbertIndex(n, world.X, world.Y)
+	return LinePosition(d)
 }
 
-// mortonEncode interleaves the bits of x and y to produce a Morton code
-func mortonEncode(x, y uint32) uint64 {
-	return uint64(spreadBits(x)) | (uint64(spreadBits(y)) << 1)
+// rot rotates and flips the quadrant for the Hilbert curve
+func rot(n int64, x, y *int64, rx, ry int64) {
+	if ry == 0 {
+		if rx == 1 {
+			*x = n - 1 - *x
+			*y = n - 1 - *y
+		}
+		// Swap x and y
+		*x, *y = *y, *x
+	}
 }
 
-// mortonDecode extracts x and y from a Morton code
-func mortonDecode(code uint64) (uint32, uint32) {
-	x := compactBits(uint32(code))
-	y := compactBits(uint32(code >> 1))
+// hilbertPoint maps a 1D distance d to (x,y) coordinates on a grid of size n*n
+func hilbertPoint(n int64, d int64) (int64, int64) {
+	var rx, ry, s, t, x, y int64
+	t = d
+	x = 0
+	y = 0
+	for s = 1; s < n; s *= 2 {
+		rx = 1 & (t / 2)
+		ry = 1 & (t ^ rx)
+		rot(s, &x, &y, rx, ry)
+		x += s * rx
+		y += s * ry
+		t /= 4
+	}
 	return x, y
 }
 
-// spreadBits spreads the bits of a 16-bit number across 32 bits
-func spreadBits(x uint32) uint32 {
-	x = (x | (x << 8)) & 0x00FF00FF
-	x = (x | (x << 4)) & 0x0F0F0F0F
-	x = (x | (x << 2)) & 0x33333333
-	x = (x | (x << 1)) & 0x55555555
-	return x
-}
-
-// compactBits compacts spread bits back to a 16-bit number
-func compactBits(x uint32) uint32 {
-	x = x & 0x55555555
-	x = (x ^ (x >> 1)) & 0x33333333
-	x = (x ^ (x >> 2)) & 0x0F0F0F0F
-	x = (x ^ (x >> 4)) & 0x00FF00FF
-	x = (x ^ (x >> 8)) & 0x0000FFFF
-	return x
+// hilbertIndex maps (x,y) coordinates to a 1D distance d on a grid of size n*n
+func hilbertIndex(n, x, y int64) int64 {
+	var rx, ry, s, d int64
+	d = 0
+	for s = n / 2; s > 0; s /= 2 {
+		rx = (x & s) / s // 1 if x has bit s, else 0
+		ry = (y & s) / s
+		d += s * s * ((3 * rx) ^ ry)
+		rot(s, &x, &y, rx, ry)
+	}
+	return d
 }
