@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -61,6 +62,10 @@ func (idx *Index) ToTileLayout() *utils.TileLayout {
 	layout := utils.TileLayout{LastLine: utils.LinePosition(lastLine)}
 	return &layout
 }
+
+var mu sync.RWMutex
+var indexCache map[string]*Index = make(map[string]*Index)
+
 
 func IsBlankTile(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) (bool, error) {
 	tree, err := repo.CommitToTree(ctx, repoId, commit)
@@ -156,7 +161,7 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 	return Index{Entries: allEntries}, nil
 })
 
-var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
+var GetIndexInternal = core.RegisterBlobComputation("index", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
 	objectType, err := repo.GetObjectType(ctx, repoId, hash)
 	if err != nil {
 		return Index{}, err
@@ -171,6 +176,31 @@ var GetIndex = core.RegisterBlobComputation("index", func(ctx context.Context, r
 		return Index{}, fmt.Errorf("index can't handle object type %s", objectType)
 	}
 })
+
+func GetIndex(ctx context.Context, repoId string, hash plumbing.Hash) (*Index, error) {
+	cacheKey := repoId + ":" + hash.String()
+	
+	// Try to get from cache first
+	mu.RLock()
+	if cached, found := indexCache[cacheKey]; found {
+		mu.RUnlock()
+		return cached, nil
+	}
+	mu.RUnlock()
+	
+	// Not in cache, compute it
+	index, err := GetIndexInternal(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Cache the result
+	mu.Lock()
+	indexCache[cacheKey] = &index
+	mu.Unlock()
+	
+	return &index, nil
+}
 
 func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	repoName := ps.ByName("repo")
@@ -318,7 +348,7 @@ func ExecuteTileComputation(ctx context.Context, repoId string, commit plumbing.
 			}
 
 			tileIdx := tileY*tileSize + tileX
-			tile[tileIdx] = pixelFunc(worldPos, &index, layout)
+			tile[tileIdx] = pixelFunc(worldPos, index, layout)
 		}
 	}
 

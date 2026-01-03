@@ -158,7 +158,11 @@ func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
 		if err := AddFromPath(ctx, repoId, repoPath, AddFromPathOptions{Name: name, Owner: owner}); err != nil {
 			return nil, fmt.Errorf("failed to add repo from path %s: %w", repoPath, err)
 		}
-		return Get(ctx, repoId)
+		repo, err := Get(ctx, repoId)
+		if err != nil {
+			return repo, fmt.Errorf("get after AddFromPath: %s", err)
+		}
+		return repo, nil
 	}
 
 	// Repo doesn't exist in storage, clone from GitHub
@@ -166,7 +170,11 @@ func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
 		return nil, fmt.Errorf("failed to add repo from GitHub %s/%s: %w", owner, name, err)
 	}
 
-	return Get(ctx, repoId)
+	repo, err := Get(ctx, repoId)
+	if err != nil {
+		return repo, fmt.Errorf("get after AddFromGithub: %s", err)
+	}
+	return repo, nil
 }
 
 func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.Hash, error) {
@@ -265,7 +273,7 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprou
 }
 
 var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context, repoId string, hash plumbing.Hash) (bool, error) {
-	repo, err := Get(ctx, repoId)
+	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {
 		return false, err
 	}
@@ -306,7 +314,7 @@ var Content = core.RegisterBlobComputation("content", func(ctx context.Context, 
 		return "", nil
 	}
 
-	repo, err := Get(ctx, repoId)
+	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {
 		return "", err
 	}
@@ -355,7 +363,7 @@ var LineCount = core.RegisterBlobComputation("lineCount", func(ctx context.Conte
 })
 
 var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]TreeEntry, error) {
-	repo, err := Get(ctx, repoId)
+	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +386,7 @@ var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx contex
 })
 
 var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.Context, repoId string, hash plumbing.Hash) (string, error) {
-	repo, err := Get(ctx, repoId)
+	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {
 		return "", err
 	}
@@ -392,7 +400,7 @@ var GetObjectType = core.RegisterBlobComputation("objectType", func(ctx context.
 })
 
 var CommitToTree = core.RegisterBlobComputation("commitRootTreeHash", func(ctx context.Context, repoId string, hash plumbing.Hash) (plumbing.Hash, error) {
-	repo, err := Get(ctx, repoId)
+	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
