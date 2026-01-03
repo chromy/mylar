@@ -83,11 +83,26 @@ export const TreeEntriesSchema = z.object({
 });
 export type TreeEntries = z.infer<typeof TreeEntriesSchema>;
 
+export const MemoryStatsSchema = z.object({
+  alloc: z.number(),
+  total_alloc: z.number(),
+  sys: z.number(),
+  num_gc: z.number(),
+  heap_alloc: z.number(),
+  heap_sys: z.number(),
+  heap_inuse: z.number(),
+  heap_released: z.number(),
+  stack_inuse: z.number(),
+  stack_sys: z.number(),
+});
+export type MemoryStats = z.infer<typeof MemoryStatsSchema>;
+
 export const VarzResponseSchema = z.object({
   version: z.string(),
   build_time: z.string(),
   go_version: z.string(),
   start_time: z.coerce.date(),
   uptime: z.string(),
+  memory: MemoryStatsSchema,
 });
 export type VarzResponse = z.infer<typeof VarzResponseSchema>;

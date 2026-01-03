@@ -189,9 +189,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
       </GlassPanel>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
-          <Button onClick={() => setLocation("/")}>
-            Home
-          </Button>
+          <Button onClick={() => setLocation("/")}>Home</Button>
           <Button onClick={() => dispatch(settingsPanelSetting.enable)}>
             Settings
           </Button>
@@ -259,12 +257,12 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
 
       <GlassPanel area="mylar-content-line self-end">
         <div className="font-mono text-xxs space-y-1">
-          {hoveredEntry && contextLines &&
+          {hoveredEntry &&
+            contextLines &&
             displayFileContext.get(state) &&
             contextLines.lines.map((line, index) => {
               const lineNum = contextLines.startLineNumber + index;
-              const isHovered =
-                lineNum === contextLines.hoveredFileLineNumber;
+              const isHovered = lineNum === contextLines.hoveredFileLineNumber;
               return (
                 <div
                   key={lineNum}
@@ -273,7 +271,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                   <span className="text-gray-600 text-right w-8 mr-2 select-none">
                     {lineNum}
                   </span>
-                  <span className="whitespace-pre text-gray-700">{line || " "}</span>
+                  <span className="whitespace-pre text-gray-700">
+                    {line || " "}
+                  </span>
                 </div>
               );
             })}
@@ -285,7 +285,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                   {contextLines && (
                     <span>
                       (lines {contextLines.startLineNumber}-
-                      {contextLines.startLineNumber + contextLines.lines.length - 1}
+                      {contextLines.startLineNumber +
+                        contextLines.lines.length -
+                        1}
                       )
                     </span>
                   )}
@@ -303,7 +305,11 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                 }
               }}
               className="ml-4 px-2 py-1 text-xxs bg-white/10 hover:bg-white/20 rounded border border-black/10 transition-colors"
-              title={displayFileContext.get(state) ? "Hide file context" : "Show file context"}
+              title={
+                displayFileContext.get(state)
+                  ? "Hide file context"
+                  : "Show file context"
+              }
             >
               {displayFileContext.get(state) ? "Hide Context" : "Show Context"}
             </button>

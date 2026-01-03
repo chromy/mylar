@@ -74,9 +74,8 @@ export function* requiredTiles(
   lineCount: number,
   pixelsPerWorldUnit: number,
 ): Generator<aabb> {
-
   const viz = quadtreeBoundingBox(lineCount);
-  aabb.intersection(viz, viz, bounds)
+  aabb.intersection(viz, viz, bounds);
 
   const inScope = (box: aabb) => aabb.overlaps(box, viz);
   let count = 0;
@@ -98,4 +97,3 @@ export function* requiredTiles(
     yield quadAABB;
   }
 }
-

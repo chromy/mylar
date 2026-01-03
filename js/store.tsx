@@ -31,10 +31,10 @@ async function createTileBitmap(
     const d = tileData[i]!;
 
     if (d === 0) {
-      buffer[pixelIndex+0] = 255;
-      buffer[pixelIndex+1] = 255;
-      buffer[pixelIndex+2] = 255;
-      buffer[pixelIndex+3] = 255;
+      buffer[pixelIndex + 0] = 255;
+      buffer[pixelIndex + 1] = 255;
+      buffer[pixelIndex + 2] = 255;
+      buffer[pixelIndex + 3] = 255;
       continue;
     }
 
@@ -70,7 +70,7 @@ async function createTileBitmap(
 }
 
 async function fetchTile(url: string, signal: AbortSignal): Promise<TileData> {
-  const response = await fetch(url, {signal});
+  const response = await fetch(url, { signal });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -111,8 +111,6 @@ async function fetchTile(url: string, signal: AbortSignal): Promise<TileData> {
     data,
   };
 }
-
-
 
 export class TileStore {
   private readonly maxLiveRequests: number;
@@ -191,10 +189,7 @@ export class TileStore {
     if (performance.now() < this.preventRequestsTill) {
       return;
     }
-    while (
-      this.queue.length > 0 &&
-      this.live.size < this.maxLiveRequests
-    ) {
+    while (this.queue.length > 0 && this.live.size < this.maxLiveRequests) {
       const url = this.queue.shift()!;
       this.requestTile(url);
     }
@@ -216,7 +211,7 @@ interface CompositorJob {
   // Unique identifier for this request:
   key: string;
 
-  state: "pending"|"processing"|"done";
+  state: "pending" | "processing" | "done";
 
   // Details of the job:
   x: number;
@@ -236,7 +231,9 @@ interface CompositorJob {
 
 function compositeToRequiredTiles(r: CompositeTileRequest): string[] {
   const tiles: string[] = [];
-  tiles.push(`/api/tile/${r.kind}/${r.repo}/${r.commit}/${r.lod}/${r.x}/${r.y}`);
+  tiles.push(
+    `/api/tile/${r.kind}/${r.repo}/${r.commit}/${r.lod}/${r.x}/${r.y}`,
+  );
   return tiles;
 }
 
@@ -265,7 +262,7 @@ export class TileCompositor {
           key,
           state: "pending",
           tiles: compositeToRequiredTiles(request),
-          ...request
+          ...request,
         });
       }
     }
@@ -288,7 +285,6 @@ export class TileCompositor {
     }
     this.store.update(tiles);
 
-
     for (const job of this.jobs.values()) {
       if (job.state !== "pending") {
         continue;
@@ -296,7 +292,7 @@ export class TileCompositor {
 
       let ready = true;
       for (const tile of job.tiles) {
-        ready = ready && (this.store.get(tile) !== undefined);
+        ready = ready && this.store.get(tile) !== undefined;
       }
 
       if (!ready) {
@@ -311,10 +307,7 @@ export class TileCompositor {
   private async doJob(job: CompositorJob): Promise<void> {
     try {
       const data = this.store.get(job.tiles[0]!)!.data;
-      const bitmap = await createTileBitmap(
-          job.composite,
-          data,
-      )
+      const bitmap = await createTileBitmap(job.composite, data);
       job.bitmap = bitmap;
     } catch (error) {
       console.error("Failed to create composite bitmap:", error);

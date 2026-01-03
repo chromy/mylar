@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/chromy/viz/internal/constants"
-	"github.com/chromy/viz/internal/features/index"
 	"github.com/chromy/viz/internal/core"
+	"github.com/chromy/viz/internal/features/index"
 	"github.com/chromy/viz/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/julienschmidt/httprouter"
@@ -50,7 +50,6 @@ func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	}
 }
 
-
 func macroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	childLod := lod - 1
 	xys := [][2]int64{
@@ -64,7 +63,7 @@ func macroTile(ctx context.Context, computationId string, repoName string, commi
 
 	childTiles := make([][]int32, 4)
 	g, ctx := errgroup.WithContext(ctx)
-	
+
 	for i, coords := range xys {
 		i, coords := i, coords // capture loop variables
 		g.Go(func() error {
@@ -77,7 +76,7 @@ func macroTile(ctx context.Context, computationId string, repoName string, commi
 			return nil
 		})
 	}
-	
+
 	if err := g.Wait(); err != nil {
 		return result, err
 	}
@@ -183,7 +182,6 @@ func getTile(ctx context.Context, computationId string, repoName string, commit 
 		return cachingMacroTile(ctx, computationId, repoName, commit, lod, x, y)
 	}
 }
-
 
 func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	repoName := ps.ByName("repoId")

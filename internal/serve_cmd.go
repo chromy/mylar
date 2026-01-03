@@ -72,10 +72,10 @@ func DoServe(ctx context.Context, port uint, memcached string) {
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
 	srv := &http.Server{
-		Addr:           ":"+strconv.Itoa(int(port)),
-		Handler:        sentryHandler.Handle(router),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		Addr:         ":" + strconv.Itoa(int(port)),
+		Handler:      sentryHandler.Handle(router),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 	log.Printf("ready serve http://localhost:%d", port)
 	log.Fatal(srv.ListenAndServe())

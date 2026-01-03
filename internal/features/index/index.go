@@ -66,7 +66,6 @@ func (idx *Index) ToTileLayout() *utils.TileLayout {
 var mu sync.RWMutex
 var indexCache map[string]*Index = make(map[string]*Index)
 
-
 func IsBlankTile(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) (bool, error) {
 	tree, err := repo.CommitToTree(ctx, repoId, commit)
 	if err != nil {
@@ -81,9 +80,9 @@ func IsBlankTile(ctx context.Context, repoId string, commit plumbing.Hash, lod i
 	layout := index.ToTileLayout()
 
 	tile := utils.TilePosition{
-		Lod: lod,
-		TileX: x,
-		TileY: y,
+		Lod:     lod,
+		TileX:   x,
+		TileY:   y,
 		OffsetX: 0,
 		OffsetY: 0,
 	}
@@ -179,7 +178,7 @@ var GetIndexInternal = core.RegisterBlobComputation("index", func(ctx context.Co
 
 func GetIndex(ctx context.Context, repoId string, hash plumbing.Hash) (*Index, error) {
 	cacheKey := repoId + ":" + hash.String()
-	
+
 	// Try to get from cache first
 	mu.RLock()
 	if cached, found := indexCache[cacheKey]; found {
@@ -187,18 +186,18 @@ func GetIndex(ctx context.Context, repoId string, hash plumbing.Hash) (*Index, e
 		return cached, nil
 	}
 	mu.RUnlock()
-	
+
 	// Not in cache, compute it
 	index, err := GetIndexInternal(ctx, repoId, hash)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Cache the result
 	mu.Lock()
 	indexCache[cacheKey] = &index
 	mu.Unlock()
-	
+
 	return &index, nil
 }
 
@@ -277,7 +276,7 @@ var GetBlame = core.RegisterCommitComputation("blame", func(ctx context.Context,
 		return BlameResult{}, err
 	}
 
-	ptr, err := repository.CommitObject(commit);
+	ptr, err := repository.CommitObject(commit)
 	if err != nil {
 		return BlameResult{}, err
 	}
