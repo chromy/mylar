@@ -149,7 +149,7 @@ const App = () => (
 
 function initSentry() {
   const dsn = (window as any).__SENTRY_DSN__;
-  if (!dsn) {
+  if (!dsn || dsn === "") {
     console.log("Sentry DSN not available, skipping initialization");
     return;
   }

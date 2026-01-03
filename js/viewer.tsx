@@ -528,7 +528,7 @@ class Renderer {
     ctx: CanvasRenderingContext2D,
     state: MylarState,
   ): void {
-    const numLines = 30;
+    const numLines = 45;
     const startLine = this.linePosition;
 
     ctx.strokeStyle = "hotpink";

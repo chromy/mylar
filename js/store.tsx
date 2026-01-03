@@ -4,6 +4,8 @@ import { TILE_SIZE, type TileMetadata, TileMetadataSchema } from "./schemas.js";
 
 const DEFAULT_MAX_LIVE_REQUESTS = 6;
 
+const CANCELLED = Symbol("cancelled");
+
 export interface TileRequest {
   x: number;
   y: number;
@@ -119,6 +121,7 @@ export class TileStore {
   private cache: Map<string, WeakRef<TileData>> = new Map();
 
   private queue: string[] = [];
+  private errored: Set<string> = new Set();
   private requested: Set<string> = new Set();
   private live: Set<string> = new Set();
   private aborts: Map<string, () => void> = new Map();
@@ -141,7 +144,7 @@ export class TileStore {
 
       const tile = this.cache.get(url)?.deref();
       if (tile === undefined) {
-        if (!this.live.has(url)) {
+        if (!this.live.has(url) && !this.errored.has(url)) {
           this.queue.push(url);
         }
       } else {
@@ -168,27 +171,23 @@ export class TileStore {
 
     try {
       const controller = new AbortController();
-      this.aborts.set(url, () => controller.abort("panned away"));
+      this.aborts.set(url, () => controller.abort(CANCELLED));
       const signal = controller.signal;
       const tile = await fetchTile(url, signal);
       this.tiles.set(url, tile);
       this.cache.set(url, new WeakRef(tile));
     } catch (error) {
-      if (!(error instanceof Error) || error.name !== "AbortError") {
+      if (error !== CANCELLED) {
         console.error("Failed to fetch tile:", error);
-        this.preventRequestsTill = performance.now() + 10000;
+        this.errored.add(url);
       }
     } finally {
       this.live.delete(url);
       this.aborts.delete(url);
-      this.processQueue();
     }
   }
 
   private processQueue(): void {
-    if (performance.now() < this.preventRequestsTill) {
-      return;
-    }
     while (this.queue.length > 0 && this.live.size < this.maxLiveRequests) {
       const url = this.queue.shift()!;
       this.requestTile(url);

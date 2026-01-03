@@ -31,8 +31,8 @@ func Home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	t := state.Templates["home.html"]
 
 	data := TemplateData{
-		SentryDSN:   `"` + os.Getenv("SENTRY_FRONTEND_DSN") + `"`,
-		Environment: `"` + GetEnvironment() + `"`,
+		SentryDSN:   os.Getenv("SENTRY_FRONTEND_DSN"),
+		Environment: GetEnvironment(),
 	}
 
 	err := t.Execute(w, data)

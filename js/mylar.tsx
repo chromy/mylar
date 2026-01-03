@@ -271,7 +271,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                   <span className="text-gray-600 text-right w-8 mr-2 select-none">
                     {lineNum}
                   </span>
-                  <span className="whitespace-pre text-gray-700">
+                  <span className="whitespace-pre text-gray-700 overflow-hidden text-ellipsis block max-w-96">
                     {line || " "}
                   </span>
                 </div>
