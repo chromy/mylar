@@ -39,6 +39,9 @@ func loadInitialRepos(ctx context.Context) {
 	if _, err := repo.ResolveRepo(ctx, "gh:numpy:numpy"); err != nil {
 		log.Printf("initial repo resolution failed: %v", err)
 	}
+	if _, err := repo.ResolveRepo(ctx, "gh:chromy:mylar"); err != nil {
+		log.Printf("initial repo resolution failed: %v", err)
+	}
 }
 
 func DoServe(ctx context.Context, port uint, memcached string) {

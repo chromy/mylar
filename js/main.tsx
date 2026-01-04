@@ -40,7 +40,17 @@ const HomePage = () => {
         <div className="max-w-4xl mx-auto px-6 py-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">mylar</h1>
           <p className="text-lg text-slate-600">
-            Interactive code visualization for Git repositories
+            Interactive code visualization for Git repositories{" "}
+          </p>
+          <p>
+            <a
+              href="https://github.com/chromy/mylar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline font-xxs"
+            >
+              https://github.com/chromy/mylar
+            </a>
           </p>
         </div>
       </header>

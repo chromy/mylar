@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/julienschmidt/httprouter"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -19,7 +20,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"log"
 )
 
 type Repo struct {
