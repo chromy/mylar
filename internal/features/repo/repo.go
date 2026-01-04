@@ -304,7 +304,7 @@ func TagListHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	err = tagIter.ForEach(func(ref *plumbing.Reference) error {
 		tagName := ref.Name().Short()
 		commitHash := ref.Hash().String()
-		
+
 		tags = append(tags, TagInfo{
 			Tag:    tagName,
 			Commit: commitHash,

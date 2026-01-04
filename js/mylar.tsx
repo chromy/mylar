@@ -11,6 +11,7 @@ import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { FullScreenDecryptLoader } from "./loader.js";
+import { MylarLink } from "./mylar_link.js";
 import {
   type Index,
   IndexSchema,
@@ -18,6 +19,8 @@ import {
   type IndexEntry,
   ResolveCommittishResponseSchema,
   type ResolveCommittishResponse,
+  TagListResponseSchema,
+  type TagListResponse,
 } from "./schemas.js";
 
 const FileLinesSchema = z.string().array();
@@ -498,13 +501,16 @@ const TagsMenu = ({ repo }: TagsMenuProps) => {
       <div className="text-xs font-medium mb-2">Tags</div>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {tags.map(tag => (
-          <div
+          <MylarLink
             key={tag.tag}
-            className="block w-full text-left px-2 py-1 text-xs rounded-xs hover:bg-white/10 transition-colors"
+            href={`/app/repo/${repo}/${tag.tag}`}
+            className="block w-full text-left px-2 py-1 text-xs rounded-xs hover:bg-white/10 transition-colors text-inherit hover:text-inherit no-underline hover:no-underline"
           >
             <div className="font-medium">{tag.tag}</div>
-            <div className="text-xxs text-gray-600 font-mono">{tag.commit.slice(0, 6)}</div>
-          </div>
+            <div className="text-xxs text-gray-600 font-mono">
+              {tag.commit.slice(0, 6)}
+            </div>
+          </MylarLink>
         ))}
       </div>
     </div>

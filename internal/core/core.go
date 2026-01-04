@@ -23,7 +23,7 @@ var versionOnce sync.Once
 
 func initVersion() {
 	version = "dev" // default fallback
-	
+
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key == "vcs.revision" {

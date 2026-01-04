@@ -320,8 +320,14 @@ class Renderer {
       const debugItems: DebugInfo = [];
 
       debugItems.push(["# Tile requests", `${reqs.length}`]);
-      debugItems.push(["# Outstanding fetches", `${this.tileStore.getLiveRequestCount()}`]);
-      debugItems.push(["# Outstanding composites", `${this.tileCompositor.getProcessingJobCount()}`]);
+      debugItems.push([
+        "# Outstanding fetches",
+        `${this.tileStore.getLiveRequestCount()}`,
+      ]);
+      debugItems.push([
+        "# Outstanding composites",
+        `${this.tileCompositor.getProcessingJobCount()}`,
+      ]);
 
       if (displayFps.get(state)) {
         debugItems.push(["Frame duration", this.lastFrameMs.toFixed(2) + "ms"]);

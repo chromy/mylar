@@ -71,6 +71,17 @@ export type ResolveCommittishResponse = z.infer<
   typeof ResolveCommittishResponseSchema
 >;
 
+export const TagInfoSchema = z.object({
+  tag: z.string(),
+  commit: z.string(),
+});
+export type TagInfo = z.infer<typeof TagInfoSchema>;
+
+export const TagListResponseSchema = z.object({
+  tags: TagInfoSchema.array().nullable(),
+});
+export type TagListResponse = z.infer<typeof TagListResponseSchema>;
+
 export const TreeEntrySchema = z.object({
   name: z.string(),
   hash: z.string(),
@@ -106,14 +117,3 @@ export const VarzResponseSchema = z.object({
   memory: MemoryStatsSchema,
 });
 export type VarzResponse = z.infer<typeof VarzResponseSchema>;
-
-export const TagInfoSchema = z.object({
-  tag: z.string(),
-  commit: z.string(),
-});
-export type TagInfo = z.infer<typeof TagInfoSchema>;
-
-export const TagListResponseSchema = z.object({
-  tags: TagInfoSchema.array(),
-});
-export type TagListResponse = z.infer<typeof TagListResponseSchema>;
