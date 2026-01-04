@@ -2,6 +2,7 @@ import { vec3 } from "gl-matrix";
 import { floatToByte, convert, OKLCH, sRGB } from "@texel/color";
 import { schemeObservable10 } from "d3-scale-chromatic";
 import { TILE_SIZE, type TileMetadata, TileMetadataSchema } from "./schemas.js";
+import { compile, constant, swap, dup, sub, Stack } from "./ssl.js";
 
 const DEFAULT_MAX_LIVE_REQUESTS = 6;
 
@@ -40,17 +41,36 @@ function rainbow(out: [number, number, number], t: number): void {
   out[2] = 360 * t - 100;
 }
 
-async function createTileBitmap(
-  composite: string,
-  tileData: number[],
-): Promise<ImageBitmap> {
+function compositeTile(
+  program: string,
+  size: number,
+  tiles: number[][],
+  buffer: Uint8ClampedArray,
+): void {
+  switch (program) {
+    case "direct":
+    case "x10":
+    case "hash":
+    case "hashRainbow":
+      compositeTileOld(program, size, tiles, buffer);
+      break;
+    default:
+      compositeTileShader(program, size, tiles, buffer);
+      break;
+  }
+}
+
+function compositeTileOld(
+  program: string,
+  size: number,
+  tiles: number[][],
+  buffer: Uint8ClampedArray,
+): void {
   const oklch: [number, number, number] = [0, 0, 0];
   const rgb = [0, 0, 0];
-
-  const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
   for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
     const pixelIndex = i * 4;
-    const d = tileData[i]!;
+    const d = tiles[0]![i]!;
 
     if (d === 0) {
       buffer[pixelIndex + 0] = 255;
@@ -60,19 +80,19 @@ async function createTileBitmap(
       continue;
     }
 
-    if (composite === "direct") {
+    if (program === "direct") {
       oklch[0] = 1.0 - Math.min(Math.max(d, 0), 255) / 256.0;
       oklch[1] = 0;
       oklch[2] = 0;
-    } else if (composite === "x10") {
+    } else if (program === "x10") {
       oklch[0] = 1.0 - Math.min(Math.max(d * 10, 0), 255) / 256.0;
       oklch[1] = 0;
       oklch[2] = 0;
-    } else if (composite === "hash") {
+    } else if (program === "hash") {
       oklch[0] = 1.0;
       oklch[1] = 1.0;
       oklch[2] = d % 360;
-    } else if (composite === "hashRainbow") {
+    } else if (program === "hashRainbow") {
       rainbow(oklch, (hash(d) + 2147483648) / 4294967295);
     } else {
     }
@@ -84,6 +104,50 @@ async function createTileBitmap(
     buffer[pixelIndex + 2] = floatToByte(rgb[2]!); // B
     buffer[pixelIndex + 3] = 255; // A
   }
+}
+
+function compositeTileShader(
+  program: string,
+  size: number,
+  tiles: number[][],
+  buffer: Uint8ClampedArray,
+): void {
+  const instructions = compile(program);
+
+  const stack = new Stack(10);
+  for (let i = 0; i < size; ++i) {
+    if (tiles[0]![i]! === 0) {
+      continue;
+    }
+
+    for (const tile of tiles) {
+      stack.push(tile[i]!);
+    }
+
+    for (const instruction of instructions) {
+      instruction(stack);
+    }
+
+    const b = stack.pop();
+    const g = stack.pop();
+    const r = stack.pop();
+
+    buffer[i * 4 + 0] = r;
+    buffer[i * 4 + 1] = g;
+    buffer[i * 4 + 2] = b;
+    buffer[i * 4 + 3] = 255;
+
+    stack.clear();
+  }
+}
+
+async function createTileBitmap(
+  composite: string,
+  tileData: number[],
+): Promise<ImageBitmap> {
+  const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
+
+  compositeTile(composite, TILE_SIZE * TILE_SIZE, [tileData], buffer);
 
   const imageData = new ImageData(buffer, TILE_SIZE);
 
@@ -204,7 +268,6 @@ export class TileStore {
       const controller = new AbortController();
       this.aborts.set(url, () => controller.abort(CANCELLED));
       const signal = controller.signal;
-      console.log("fetch", url, this.queue.length);
       const tile = await fetchTile(url, signal);
       this.tiles.set(url, tile);
       this.cache.set(url, new WeakRef(tile));

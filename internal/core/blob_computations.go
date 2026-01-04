@@ -102,7 +102,8 @@ func ResetBlobComputationsForTesting() {
 }
 
 func GenerateCacheKey(parts ...string) string {
-	combined := strings.Join(parts, ":")
+	versionedParts := append([]string{GetVersion()}, parts...)
+	combined := strings.Join(versionedParts, ":")
 	h := sha256.Sum256([]byte(combined))
 	return fmt.Sprintf("%x", h)
 }

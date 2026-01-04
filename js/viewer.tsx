@@ -34,27 +34,11 @@ import {
 } from "./state.js";
 import { type LayerType } from "./layers.js";
 
-function boxToTileRequest(
-  box: aabb,
-  repo: string,
-  commit: string,
-  kind: string,
-): TileRequest {
-  const width = aabb.width(box);
-  return {
-    x: box[0] / width,
-    y: box[1] / width,
-    lod: toLod(box),
-    repo,
-    commit,
-    kind,
-  };
-}
-
 function boxToCompositeTileRequest(
   box: aabb,
   repo: string,
   commit: string,
+
   kind: string,
   composite: string,
   aggregation: string,
@@ -692,6 +676,7 @@ export const Viewer = ({
       getState,
       setHoveredLineNumber,
     });
+    (window as any).renderer = renderer;
     renderer.start();
 
     return () => {

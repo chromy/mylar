@@ -187,12 +187,22 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
           setHoveredLineNumber={setHoveredLineNumber}
         />
       </div>
-      <GlassPanel className="mylar-layers">
-        <LayersMenu dispatch={dispatch} state={state} />
-      </GlassPanel>
-      <GlassPanel className="mylar-tags">
-        <TagsMenu repo={repo} />
-      </GlassPanel>
+      <div className="mylar-layers">
+        <GlassPanel>
+          <LayersMenu dispatch={dispatch} state={state} />
+        </GlassPanel>
+        <GlassPanel className="">
+          <div className="font-medium mb-1">Shader</div>
+          <div className="font-mono text-xs break-all">
+            {getCurrentLayer(state)
+              .composite.split("|")
+              .map(p => (
+                <div>{p}</div>
+              ))}
+          </div>
+        </GlassPanel>
+      </div>
+      <TagsMenuWithData repo={repo} />
       <div className="mylar-menu">
         <GlassPanel>
           <div className="flex gap-2">
@@ -457,11 +467,11 @@ const GesturesHelp = () => {
   );
 };
 
-interface TagsMenuProps {
+interface TagsMenuWithDataProps {
   repo: string;
 }
 
-const TagsMenu = ({ repo }: TagsMenuProps) => {
+const TagsMenuWithData = ({ repo }: TagsMenuWithDataProps) => {
   const { data: tagsData } = useJsonQuery({
     path: `/api/tags/${repo}`,
     schema: TagListResponseSchema,
@@ -473,6 +483,19 @@ const TagsMenu = ({ repo }: TagsMenuProps) => {
     return null;
   }
 
+  return (
+    <GlassPanel className="mylar-tags">
+      <TagsMenu repo={repo} tags={tags} />
+    </GlassPanel>
+  );
+};
+
+interface TagsMenuProps {
+  repo: string;
+  tags: Array<{ tag: string; commit: string }>;
+}
+
+const TagsMenu = ({ repo, tags }: TagsMenuProps) => {
   return (
     <div className="space-y-1">
       <div className="text-xs font-medium mb-2">Tags</div>

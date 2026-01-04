@@ -5,11 +5,23 @@ export interface LayerType {
 }
 
 export const LAYER_OPTIONS: LayerType[] = [
-  { kind: "length", composite: "direct", aggregation: "mean" },
-  { kind: "indent", composite: "x10", aggregation: "max" },
-  { kind: "offset", composite: "direct", aggregation: "mean" },
-  { kind: "fileHash", composite: "hash", aggregation: "mode" },
-  { kind: "fileExtension", composite: "hashRainbow", aggregation: "mode" },
+  { kind: "length", composite: "255|swap|sub|dup|dup", aggregation: "mean" },
+  {
+    kind: "indent",
+    composite: "10|mul|0|max|255|min|255|swap|sub|dup|dup",
+    aggregation: "max",
+  },
+  { kind: "offset", composite: "255|swap|sub|dup|dup", aggregation: "mean" },
+  {
+    kind: "fileHash",
+    composite: "1|swap|1|swap|hash|360|mod|oklchToSrgb|toByteX3",
+    aggregation: "mode",
+  },
+  {
+    kind: "fileExtension",
+    composite: "hash|int32ToUnit|rainbow|oklchToSrgb|toByteX3",
+    aggregation: "mode",
+  },
 ];
 
 export const DEFAULT_LAYER = LAYER_OPTIONS[0]!;
