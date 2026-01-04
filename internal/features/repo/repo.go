@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"log"
 )
 
 type Repo struct {
@@ -112,6 +113,7 @@ func AddFromGithub(_ context.Context, owner string, name string) error {
 	url := fmt.Sprintf("https://github.com/%s/%s", owner, name)
 
 	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
+	log.Printf("Cloning %s (%s) to %s", url, id, repoPath)
 	if err := os.MkdirAll(filepath.Dir(repoPath), 0755); err != nil {
 		return fmt.Errorf("creating parent directory for %s: %w", repoPath, err)
 	}
@@ -126,6 +128,7 @@ func AddFromGithub(_ context.Context, owner string, name string) error {
 	time.Sleep(3 * time.Second)
 
 	// Test the repo seeing if HEAD is resolvable
+	log.Printf("PlainOpen %s", repoPath)
 	repository, err := git.PlainOpen(repoPath)
 	if err != nil {
 		// If we can't open the repo, delete it and return error
