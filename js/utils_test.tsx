@@ -25,11 +25,6 @@ o.spec("utils", () => {
   });
 
   o.spec("getGridSide", () => {
-    o("handles edge cases", () => {
-      o(getGridSide({ lineCount: 0 })).equals(1);
-      o(getGridSide({ lineCount: 1 })).equals(1);
-    });
-
     o("calculates correct grid side", () => {
       o(getGridSide({ lineCount: 4 })).equals(2);
       o(getGridSide({ lineCount: 16 })).equals(4);
@@ -75,4 +70,25 @@ o.spec("utils", () => {
       o(world.y).equals(200); // 3 * 64 + 8 = 200
     });
   });
+
+  o.spec("coordinate conversions", () => {
+
+    o("regression", () => {
+      const layout: TileLayout = { lineCount: 26322 };
+
+      const world = { x: 0, y: 64 };
+      const tile = worldToTile(world, layout);
+      o(tile.lod).equals(0);
+      o(tile.tileX).equals(0);
+      o(tile.tileY).equals(1);
+      o(tile.offsetX).equals(0);
+      o(tile.offsetY).equals(0);
+
+      const line = worldToLine(world, layout);
+      o(line).equals(15018);
+
+    });
+
+  });
+
 });

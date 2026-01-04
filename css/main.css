@@ -6,21 +6,39 @@ html, body {
   height: 100%;
 }
 
-.mylar-content {
+.mylar {
   display: grid;
   grid:
-    "a     b     c" 1fr
-    "d     e     f" 1fr
-    "line     line     info" auto
-    / 3fr 1fr minmax(auto, 1fr);
+    "layers  tags    search  menu" auto
+    ".       .       .       menu" auto
+    ".       .       .       ." 1fr
+    "context context context debug" auto
+    / auto auto 3fr minmax(auto, 1fr);
 }
 
-.mylar-content-info {
-  grid-area: info;
+
+.mylar-layers {
+  grid-area: layers;
 }
 
-.mylar-content-line {
-  grid-area: line;
+.mylar-tags {
+  grid-area: tags;
+}
+
+.mylar-search {
+  grid-area: search;
+}
+
+.mylar-menu {
+  grid-area: menu;
+}
+
+.mylar-context {
+  grid-area: context;
+}
+
+.mylar-debug {
+  grid-area: debug;
 }
 
 canvas {

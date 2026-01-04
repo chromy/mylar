@@ -21,7 +21,7 @@ export const ModalPanel = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0" onClick={onClose} />
-      <GlassPanel area="modal-content relative max-w-md w-full max-h-96 overflow-y-auto">
+      <GlassPanel className="modal-content relative max-w-md w-full max-h-96 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           {title && <h2 className="font-semibold">{title}</h2>}
           <button

@@ -173,7 +173,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
   }, [dispatch, state]);
 
   return (
-    <div className="mylar-content bottom-0 top-0 fixed left-0 right-0">
+    <div className="mylar bottom-0 top-0 fixed left-0 right-0">
       <CommandMenu dispatch={dispatch} state={state} />
       <div className="fixed bottom-0 left-0 top-0 right-0">
         <Viewer
@@ -187,24 +187,26 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
           setHoveredLineNumber={setHoveredLineNumber}
         />
       </div>
-      <GlassPanel area="mylar-layers fixed top-0 left-0">
+      <GlassPanel className="mylar-layers">
         <LayersMenu dispatch={dispatch} state={state} />
       </GlassPanel>
-      <GlassPanel area="mylar-tags fixed top-0 left-[300px]">
+      <GlassPanel className="mylar-tags">
         <TagsMenu repo={repo} />
       </GlassPanel>
-      <GlassPanel area="mylar-buttons fixed top-0 right-0">
-        <div className="flex gap-2">
-          <Button onClick={() => setLocation("/")}>Home</Button>
-          <Button onClick={() => dispatch(settingsPanelSetting.enable)}>
-            Settings
-          </Button>
-        </div>
-      </GlassPanel>
-      <GlassPanel area="fixed top-12 right-0">
-        <GesturesHelp />
-      </GlassPanel>
-      <GlassPanel area="mylar-content-info self-end text-xxs">
+      <div className="mylar-menu">
+        <GlassPanel>
+          <div className="flex gap-2">
+            <Button onClick={() => setLocation("/")}>Home</Button>
+            <Button onClick={() => dispatch(settingsPanelSetting.enable)}>
+              Settings
+            </Button>
+          </div>
+        </GlassPanel>
+        <GlassPanel>
+          <GesturesHelp />
+        </GlassPanel>
+      </div>
+      <GlassPanel className="mylar-debug self-end text-xxs">
         <table className="table-auto w-full">
           <thead></thead>
           <tbody>
@@ -264,7 +266,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
         </table>
       </GlassPanel>
 
-      <GlassPanel area="mylar-content-line self-end">
+      <GlassPanel className="mylar-context self-end">
         <div className="font-mono text-xxs space-y-1">
           {hoveredEntry &&
             contextLines &&
@@ -280,7 +282,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                   <span className="text-gray-600 text-right w-8 mr-2 select-none">
                     {lineNum}
                   </span>
-                  <span className="whitespace-pre text-gray-700 overflow-hidden text-ellipsis block max-w-96">
+                  <span className="whitespace-pre text-gray-700 overflow-hidden text-ellipsis block">
                     {line || " "}
                   </span>
                 </div>
@@ -313,14 +315,14 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                   dispatch(displayFileContext.enable);
                 }
               }}
-              className="ml-4 px-2 py-1 text-xxs bg-white/10 hover:bg-white/20 rounded border border-black/10 transition-colors"
+              className="ml-4 px-2 py-1 text-xxs bg-white/10 hover:bg-white/20 rounded-xs border border-black/10 transition-colors"
               title={
                 displayFileContext.get(state)
                   ? "Hide file context"
                   : "Show file context"
               }
             >
-              {displayFileContext.get(state) ? "Hide Context" : "Show Context"}
+              {displayFileContext.get(state) ? "Hide file context" : "Show file context"}
             </button>
           </div>
         </div>
@@ -330,21 +332,6 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
     </div>
   );
 };
-
-//      {hoveredEntry && (
-//        <GlassPanel area="mylar-content-line self-end grid grid-cols-[auto_1fr] gap-x-5">
-//          <div className="text-left pb-2">Line {hoveredLineNumber}</div>
-//          <div></div>
-//          <div>File</div>
-//          <div className="font-mono text-sm">{hoveredEntry.path}</div>
-//          <div>Line Range</div>
-//          <div>{hoveredEntry.lineOffset} - {hoveredEntry.lineOffset + hoveredEntry.lineCount - 1}</div>
-//          <div>File Lines</div>
-//          <div>{hoveredEntry.lineCount}</div>
-//          <div>File Line</div>
-//          <div>{hoveredLineNumber - hoveredEntry.lineOffset + 1}</div>
-//        </GlassPanel>
-//      )}
 
 const MylarLoading = () => {
   return <FullScreenDecryptLoader />;
@@ -454,10 +441,12 @@ const GesturesHelp = () => {
       <div className="text-xs font-medium mb-2">Gestures</div>
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <span>Scroll to pan</span>
+          <span>Pan</span>
+          <span>Scroll</span>
         </div>
         <div className="flex items-center justify-between">
-          <span>Pinch to zoom</span>
+          <span>Zoom</span>
+          <span>Pinch</span>
         </div>
         <div className="flex items-center justify-between">
           <span>Zoom</span>
@@ -468,7 +457,7 @@ const GesturesHelp = () => {
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span>Command menu</span>
+          <span>Commands</span>
           <div className="flex items-center gap-1">
             <kbd className="gesture-key">⌘</kbd>
             <span className="text-xs">+</span>
