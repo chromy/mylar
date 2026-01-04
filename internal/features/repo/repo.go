@@ -54,6 +54,15 @@ type ResolveCommittishResponse struct {
 	Tree   string `json:"tree"`
 }
 
+type TagInfo struct {
+	Tag    string `json:"tag"`
+	Commit string `json:"commit"`
+}
+
+type TagListResponse struct {
+	Tags []TagInfo `json:"tags"`
+}
+
 type AddFromPathOptions struct {
 	Name  string
 	Owner string
@@ -272,6 +281,55 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 }
 
+func TagListHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoId := ps.ByName("repoId")
+	if repoId == "" {
+		http.Error(w, "repoId parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := ResolveRepo(r.Context(), repoId)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to resolve repo: %v", err), http.StatusNotFound)
+		return
+	}
+
+	tagIter, err := repo.Tags()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get tags: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var tags []TagInfo
+	err = tagIter.ForEach(func(ref *plumbing.Reference) error {
+		tagName := ref.Name().Short()
+		commitHash := ref.Hash().String()
+		
+		tags = append(tags, TagInfo{
+			Tag:    tagName,
+			Commit: commitHash,
+		})
+		return nil
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to iterate tags: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	sort.Slice(tags, func(i, j int) bool {
+		return tags[i].Tag < tags[j].Tag
+	})
+
+	response := TagListResponse{
+		Tags: tags,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 var IsBinary = core.RegisterBlobComputation("isBinary", func(ctx context.Context, repoId string, hash plumbing.Hash) (bool, error) {
 	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {
@@ -429,9 +487,18 @@ func init() {
 		Handler: ResolveCommittishHandler,
 	})
 
+	core.RegisterRoute(core.Route{
+		Id:      "repo.tags",
+		Method:  http.MethodGet,
+		Path:    "/api/tags/:repoId",
+		Handler: TagListHandler,
+	})
+
 	schemas.Register("repo.RepoInfo", RepoInfo{})
 	schemas.Register("repo.RepoListResponse", RepoListResponse{})
 	schemas.Register("repo.ResolveCommittishResponse", ResolveCommittishResponse{})
+	schemas.Register("repo.TagInfo", TagInfo{})
+	schemas.Register("repo.TagListResponse", TagListResponse{})
 	schemas.Register("repo.TreeEntry", TreeEntry{})
 	schemas.Register("repo.TreeEntries", TreeEntries{})
 }

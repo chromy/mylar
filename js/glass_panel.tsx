@@ -11,7 +11,7 @@ export const GlassPanel = ({
 }: GlassPanelProps) => {
   return (
     <div
-      className={`${area} backdrop-blur-sm z-1 border border-solid rounded-xs border-black/5 m-1 p-2 text-zinc-950/80 text-xs`}
+      className={`${area} backdrop-blur-sm bg-white/70 z-1 border border-solid rounded-xs border-black/5 m-1 p-2 text-zinc-950/80 text-xs`}
     >
       {children}
     </div>

@@ -34,7 +34,6 @@ type VarzResponse struct {
 }
 
 var (
-	version   = "dev"
 	buildTime = "unknown"
 	startTime = time.Now()
 )
@@ -60,7 +59,7 @@ func VarzHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	response := VarzResponse{
-		Version:   version,
+		Version:   core.GetVersion(),
 		BuildTime: buildTime,
 		GoVersion: runtime.Version(),
 		StartTime: startTime,

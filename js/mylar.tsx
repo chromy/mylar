@@ -11,14 +11,7 @@ import { type TileLayout, type DebugInfo, Viewer } from "./viewer.js";
 import { z } from "zod";
 import { useJsonQuery } from "./query.js";
 import { FullScreenDecryptLoader } from "./loader.js";
-import {
-  type Index,
-  IndexSchema,
-  TILE_SIZE,
-  type IndexEntry,
-  ResolveCommittishResponseSchema,
-  type ResolveCommittishResponse,
-} from "./schemas.js";
+import { type Index, IndexSchema, TILE_SIZE, type IndexEntry, TagListResponseSchema, type TagListResponse, type TagInfo } from "./schemas.js";
 
 const FileLinesSchema = z.string().array();
 type FileLines = z.infer<typeof FileLinesSchema>;
@@ -37,6 +30,36 @@ import {
   createChangeLayerAction,
 } from "./state.js";
 
+interface IndexPanelProps {
+  repo: string;
+  committish: string;
+}
+
+const IndexPanel = ({ repo, committish }: IndexPanelProps) => {
+  const { data, isLoading, isError, error } = useJsonQuery({
+    path: `/api/repo/${repo}/${committish}/index/`,
+    schema: IndexSchema,
+  });
+
+  if (isError) {
+    throw error;
+  }
+
+  return (
+    <div>
+      {isLoading && <FullScreenDecryptLoader />}
+      <ul>
+        {data &&
+          (data.entries ?? []).map(e => (
+            <li>
+              {e.path} {e.lineOffset} {e.lineCount}
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+};
+
 function toTileLayout(index: Index): TileLayout {
   const entries = index.entries ?? [];
   const lastFile = entries[entries.length - 1];
@@ -53,10 +76,7 @@ function toTileLayout(index: Index): TileLayout {
   };
 }
 
-function findIndexEntryByLine(
-  entries: IndexEntry[],
-  lineNumber: number,
-): IndexEntry | undefined {
+function findIndexEntryByLine(entries: IndexEntry[], lineNumber: number): IndexEntry | undefined {
   if (entries.length === 0 || lineNumber < 0) {
     return undefined;
   }
@@ -88,10 +108,43 @@ function findIndexEntryByLine(
   return result;
 }
 
+interface TagsMenuProps {
+  repo: string;
+}
+
+const TagsMenu = ({ repo }: TagsMenuProps) => {
+  const { data: tagsData } = useJsonQuery({
+    path: `/api/tags/${repo}`,
+    schema: TagListResponseSchema,
+  });
+
+  const tags = tagsData?.tags ?? [];
+
+  if (tags.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium mb-2">Tags</div>
+      <div className="space-y-1 max-h-32 overflow-y-auto">
+        {tags.map(tag => (
+          <div
+            key={tag.tag}
+            className="block w-full text-left px-2 py-1 text-xs rounded-xs hover:bg-white/10 transition-colors"
+          >
+            <div className="font-medium">{tag.tag}</div>
+            <div className="text-xxs text-gray-600 font-mono">{tag.commit.slice(0, 6)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export interface MylarContentProps {
   repo: string;
-  commit: string;
-  tree: string;
+  committish: string;
   index: Index;
 }
 
@@ -100,7 +153,7 @@ const displayFileContext = settings.addBoolean({
   name: "file context",
 });
 
-const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
+const MylarContent = ({ repo, committish, index }: MylarContentProps) => {
   const fileCount = (index.entries ?? []).length;
   const lastFile = (index.entries ?? [])[fileCount - 1];
   const lineCount =
@@ -175,8 +228,8 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
       <div className="fixed bottom-0 left-0 top-0 right-0">
         <Viewer
           repo={repo}
-          commit={commit}
-          tree={tree}
+          commit={committish}
+          tree=""
           layout={layout}
           setDebug={setDebug}
           dispatch={dispatch}
@@ -187,6 +240,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
       <GlassPanel area="mylar-layers fixed top-0 left-0">
         <LayersMenu dispatch={dispatch} state={state} />
       </GlassPanel>
+      <GlassPanel area="mylar-tags fixed top-0 left-[300px]">
+        <TagsMenu repo={repo} />
+      </GlassPanel>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
           <Button onClick={() => setLocation("/")}>Home</Button>
@@ -194,6 +250,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
             Settings
           </Button>
         </div>
+      </GlassPanel>
+      <GlassPanel area="fixed top-12 right-0">
+        <GesturesHelp />
       </GlassPanel>
       <GlassPanel area="mylar-content-info self-end text-xxs">
         <table className="table-auto w-full">
@@ -227,95 +286,83 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
               <td className="font-mono">
                 {repo.startsWith("gh:") ? (
                   <a
-                    href={`https://github.com/${repo.slice(3).replace(":", "/")}/commit/${commit}`}
+                    href={`https://github.com/${repo.slice(3).replace(":", "/")}/commit/${committish}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 underline"
                   >
-                    {commit.slice(0, 6)}
+                    {committish.slice(0, 6)}
                   </a>
                 ) : (
-                  commit.slice(0, 6)
+                  committish.slice(0, 6)
                 )}
               </td>
             </tr>
-            <tr>
-              <td>Tree</td>
-              <td className="font-mono">{tree.slice(0, 6)}</td>
-            </tr>
-            {debug.map(kv => (
-              <tr>
-                <td>{kv[0]}</td>
-                <td>
-                  <pre>{kv[1]}</pre>
-                </td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </GlassPanel>
-
-      <GlassPanel area="mylar-content-line self-end">
-        <div className="font-mono text-xxs space-y-1">
-          {hoveredEntry &&
-            contextLines &&
-            displayFileContext.get(state) &&
-            contextLines.lines.map((line, index) => {
-              const lineNum = contextLines.startLineNumber + index;
-              const isHovered = lineNum === contextLines.hoveredFileLineNumber;
-              return (
-                <div
-                  key={lineNum}
-                  className={`flex ${isHovered ? "bg-yellow-500/20" : ""}`}
-                >
-                  <span className="text-gray-600 text-right w-8 mr-2 select-none">
-                    {lineNum}
-                  </span>
-                  <span className="whitespace-pre text-gray-700 overflow-hidden text-ellipsis block max-w-96">
-                    {line || " "}
-                  </span>
-                </div>
-              );
-            })}
-          <div className="flex items-center justify-between text-xxs mt-2">
-            <div className="text-gray-600">
-              {hoveredEntry ? (
-                <span>
-                  {hoveredEntry.path}{" "}
-                  {contextLines && (
-                    <span>
-                      (lines {contextLines.startLineNumber}-
-                      {contextLines.startLineNumber +
-                        contextLines.lines.length -
-                        1}
-                      )
+      
+      {hoveredEntry && displayFileContext.get(state) && (
+        <GlassPanel area="mylar-content-line self-end">
+          <div className="font-mono text-xxs space-y-1">
+            {contextLines &&
+              contextLines.lines.map((line, index) => {
+                const lineNum = contextLines.startLineNumber + index;
+                const isHovered = lineNum === contextLines.hoveredFileLineNumber;
+                return (
+                  <div
+                    key={lineNum}
+                    className={`flex ${isHovered ? "bg-yellow-500/20" : ""}`}
+                  >
+                    <span className="text-gray-600 text-right w-8 mr-2 select-none">
+                      {lineNum}
                     </span>
-                  )}
-                </span>
-              ) : (
-                <span>No file selected</span>
-              )}
-            </div>
-            <button
-              onClick={() => {
-                if (displayFileContext.get(state)) {
-                  dispatch(displayFileContext.disable);
-                } else {
-                  dispatch(displayFileContext.enable);
+                    <span className="whitespace-pre text-gray-700 overflow-hidden text-ellipsis block max-w-96">
+                      {line || " "}
+                    </span>
+                  </div>
+                );
+              })}
+            <div className="flex items-center justify-between text-xxs mt-2">
+              <div className="text-gray-600">
+                {hoveredEntry ? (
+                  <span>
+                    {hoveredEntry.path}{" "}
+                    {contextLines && (
+                      <span>
+                        (lines {contextLines.startLineNumber}-
+                        {contextLines.startLineNumber +
+                          contextLines.lines.length -
+                          1}
+                        )
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span>No file selected</span>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  if (displayFileContext.get(state)) {
+                    dispatch(displayFileContext.disable);
+                  } else {
+                    dispatch(displayFileContext.enable);
+                  }
+                }}
+                className="ml-4 px-2 py-1 text-xxs bg-white/10 hover:bg-white/20 rounded border border-black/10 transition-colors"
+                title={
+                  displayFileContext.get(state)
+                    ? "Hide file context"
+                    : "Show file context"
                 }
-              }}
-              className="ml-4 px-2 py-1 text-xxs bg-white/10 hover:bg-white/20 rounded border border-black/10 transition-colors"
-              title={
-                displayFileContext.get(state)
-                  ? "Hide file context"
-                  : "Show file context"
-              }
-            >
-              {displayFileContext.get(state) ? "Hide Context" : "Show Context"}
-            </button>
+              >
+                {displayFileContext.get(state) ? "Hide Context" : "Show Context"}
+              </button>
+            </div>
           </div>
-        </div>
-      </GlassPanel>
+        </GlassPanel>
+      )}
 
       <SettingsPanel dispatch={dispatch} state={state} />
     </div>
@@ -337,6 +384,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
 //        </GlassPanel>
 //      )}
 
+
 const MylarLoading = () => {
   return <FullScreenDecryptLoader />;
 };
@@ -347,50 +395,54 @@ export interface MylarProps {
 }
 
 export const Mylar = ({ repo, committish }: MylarProps) => {
-  const {
-    data: repoData,
-    isLoading: repoLoading,
-    isError: repoError,
-    error: repoErrorMsg,
-  } = useJsonQuery({
-    path: `/api/resolve/${repo}/${committish}`,
-    schema: ResolveCommittishResponseSchema,
-  });
-
-  const {
-    data: indexData,
-    isLoading: indexLoading,
-    isError: indexError,
-    error: indexErrorMsg,
-  } = useJsonQuery({
-    path: `/api/repo/${repo}/${repoData?.commit}/index`,
+  const { data, isLoading, isError, error } = useJsonQuery({
+    path: `/api/repo/${repo}/${committish}/index`,
     schema: IndexSchema,
-    enabled: !!repoData?.commit,
   });
 
-  if (indexError) {
-    throw indexErrorMsg;
+  if (isError) {
+    throw error;
   }
-
-  if (repoError) {
-    throw repoErrorMsg;
-  }
-
-  const isLoading = indexLoading || repoLoading;
-  const hasAllData = indexData && repoData;
 
   return (
     <>
       {isLoading && <FullScreenDecryptLoader />}
-      {hasAllData && (
-        <MylarContent
-          repo={repo}
-          commit={repoData.commit}
-          tree={repoData.tree}
-          index={indexData}
-        />
+      {data && (
+        <MylarContent repo={repo} committish={committish} index={data} />
       )}
     </>
+  );
+};
+
+const GesturesHelp = () => {
+  return (
+    <div className="space-y-2 text-xs">
+      <div className="text-xs font-medium mb-2">Gestures</div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span>Scroll to pan</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Pinch to zoom</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Zoom</span>
+          <div className="flex items-center gap-1">
+            <kbd className="gesture-key">⌘</kbd>
+            <span className="text-xs">+</span>
+            <span className="text-xs">scroll</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Command menu</span>
+          <div className="flex items-center gap-1">
+            <kbd className="gesture-key">⌘</kbd>
+            <span className="text-xs">+</span>
+            <kbd className="gesture-key">K</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

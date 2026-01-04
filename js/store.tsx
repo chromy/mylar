@@ -167,6 +167,10 @@ export class TileStore {
     return this.tiles.get(url);
   }
 
+  getLiveRequestCount(): number {
+    return this.live.size;
+  }
+
   private async requestTile(url: string): Promise<void> {
     this.live.add(url);
 
@@ -325,5 +329,15 @@ export class TileCompositor {
       return undefined;
     }
     return job.bitmap;
+  }
+
+  getProcessingJobCount(): number {
+    let count = 0;
+    for (const job of this.jobs.values()) {
+      if (job.state === "processing") {
+        count++;
+      }
+    }
+    return count;
   }
 }

@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/chromy/viz/internal/cache"
 	"os"
+	"runtime/debug"
 	"sync"
 	"unsafe"
 )
@@ -16,6 +17,22 @@ var cacheOnce sync.Once
 
 var storagePath string
 var storageOnce sync.Once
+
+var version string
+var versionOnce sync.Once
+
+func initVersion() {
+	version = "dev" // default fallback
+	
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				version = setting.Value
+				break
+			}
+		}
+	}
+}
 
 func initStorage() {
 	if envPath := os.Getenv("MYLAR_STORAGE"); envPath != "" {
@@ -32,6 +49,12 @@ func initStorage() {
 func GetStoragePath() string {
 	storageOnce.Do(initStorage)
 	return storagePath
+}
+
+// GetVersion returns the current version string
+func GetVersion() string {
+	versionOnce.Do(initVersion)
+	return version
 }
 
 // Int32SliceToBytes converts []int32 to []byte using unsafe for zero-copy

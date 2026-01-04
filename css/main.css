@@ -26,3 +26,18 @@ html, body {
 canvas {
   image-rendering: pixelated;
 }
+
+.gesture-key {
+  font-family: var(--font-sans);
+  background: var(--gray3);
+  color: var(--gray11);
+  height: 20px;
+  min-width: 20px;
+  border-radius: var(--rounded-xs);
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: normal;
+}

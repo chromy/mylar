@@ -136,6 +136,7 @@ class Renderer {
   private lastFrameMs: number;
   private canvasState: CanvasState | undefined;
   private callbacks: RendererHostCallbacks;
+  private tileStore: TileStore;
   private tileCompositor: TileCompositor;
 
   private boundFrame: (timestamp: number) => void;
@@ -166,7 +167,8 @@ class Renderer {
     this.lastDebugUpdateMs = 0;
     this.callbacks = callbacks;
     this.screenWorldAabb = aabb.create();
-    this.tileCompositor = new TileCompositor(new TileStore());
+    this.tileStore = new TileStore();
+    this.tileCompositor = new TileCompositor(this.tileStore);
     this.visualizationBounds = quadtreeBoundingBox(this.layout);
 
     this.boundFrame = this.frame.bind(this);
@@ -201,7 +203,9 @@ class Renderer {
     e.preventDefault();
 
     if (e.ctrlKey || e.metaKey) {
-      const zoomDelta = e.deltaY;
+      // Amplify zoom sensitivity for pinch gestures while keeping regular Cmd+scroll unchanged
+      // Pinch zoom typically has much smaller deltaY values, so we amplify them
+      const zoomDelta = e.deltaY * (Math.abs(e.deltaY) < 10 ? 5 : 1);
       this.camera.dolly(vec3.fromValues(0, 0, zoomDelta));
     } else {
       this.camera.dolly(vec3.fromValues(e.deltaX, e.deltaY, 0));
@@ -233,10 +237,6 @@ class Renderer {
       return;
     }
 
-    // Disable all forms of image smoothing for pixel-perfect rendering
-    ctx.imageSmoothingEnabled = false;
-    ctx.imageSmoothingQuality = "low";
-
     const dpr = window.devicePixelRatio || 1;
 
     const cssWidth = canvas.offsetWidth;
@@ -246,6 +246,10 @@ class Renderer {
     canvas.width = width;
     canvas.height = height;
     this.camera.setScreenSize(vec2.fromValues(width, height));
+
+    // Disable all forms of image smoothing for pixel-perfect rendering
+    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingQuality = "low";
 
     const expandedBox = aabb.create();
     aabb.scale(expandedBox, this.visualizationBounds, 1.1);
@@ -316,6 +320,8 @@ class Renderer {
       const debugItems: DebugInfo = [];
 
       debugItems.push(["# Tile requests", `${reqs.length}`]);
+      debugItems.push(["# Outstanding fetches", `${this.tileStore.getLiveRequestCount()}`]);
+      debugItems.push(["# Outstanding composites", `${this.tileCompositor.getProcessingJobCount()}`]);
 
       if (displayFps.get(state)) {
         debugItems.push(["Frame duration", this.lastFrameMs.toFixed(2) + "ms"]);

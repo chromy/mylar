@@ -23,6 +23,7 @@ var (
 type TemplateData struct {
 	SentryDSN   string
 	Environment string
+	Version     string
 }
 
 func Home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -33,6 +34,7 @@ func Home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	data := TemplateData{
 		SentryDSN:   os.Getenv("SENTRY_FRONTEND_DSN"),
 		Environment: GetEnvironment(),
+		Version:     core.GetVersion(),
 	}
 
 	err := t.Execute(w, data)
