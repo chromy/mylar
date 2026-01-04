@@ -13,10 +13,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Repo struct {
@@ -110,15 +112,33 @@ func AddFromGithub(_ context.Context, owner string, name string) error {
 	url := fmt.Sprintf("https://github.com/%s/%s", owner, name)
 
 	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
-	if err := os.MkdirAll(repoPath, 0755); err != nil {
-		return fmt.Errorf("creating repo directory %s: %w", repoPath, err)
+	if err := os.MkdirAll(filepath.Dir(repoPath), 0755); err != nil {
+		return fmt.Errorf("creating parent directory for %s: %w", repoPath, err)
 	}
 
-	repository, err := git.PlainClone(repoPath, true, &git.CloneOptions{
-		URL: url,
-	})
+	// Shell out to git to do the actual cloning
+	cmd := exec.Command("git", "clone", "--bare", url, repoPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git clone failed: %w", err)
+	}
+
+	// After cloning wait 3 seconds
+	time.Sleep(3 * time.Second)
+
+	// Test the repo seeing if HEAD is resolvable
+	repository, err := git.PlainOpen(repoPath)
 	if err != nil {
-		return err
+		// If we can't open the repo, delete it and return error
+		os.RemoveAll(repoPath)
+		return fmt.Errorf("failed to open cloned repo: %w", err)
+	}
+
+	// Try to resolve HEAD
+	_, err = repository.Head()
+	if err != nil {
+		// If HEAD is not resolvable, delete the repo and return error
+		os.RemoveAll(repoPath)
+		return fmt.Errorf("HEAD is not resolvable in cloned repo: %w", err)
 	}
 
 	repos[id] = Repo{

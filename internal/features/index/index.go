@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"path/filepath"
@@ -121,7 +122,7 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 
 	treeObj, err := repository.TreeObject(hash)
 	if err != nil {
-		return Index{}, err
+		return Index{}, fmt.Errorf("getting tree object %s: %s", hash, err)
 	}
 
 	var allEntries []IndexEntry
@@ -135,9 +136,12 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 	})
 
 	for _, entry := range entries {
+		if entry.Mode == filemode.Submodule {
+			continue
+		}
 		childIndex, err := getIndex.Execute(ctx, repoId, entry.Hash)
 		if err != nil {
-			return Index{}, err
+			return Index{},  fmt.Errorf("getting child index %s: %s",  hash, err)
 		}
 
 		for _, childEntry := range childIndex.(Index).Entries {
@@ -163,7 +167,7 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 var GetIndexInternal = core.RegisterBlobComputation("index", func(ctx context.Context, repoId string, hash plumbing.Hash) (Index, error) {
 	objectType, err := repo.GetObjectType(ctx, repoId, hash)
 	if err != nil {
-		return Index{}, err
+		return Index{}, fmt.Errorf("getting object type %s: %s", hash, err)
 	}
 
 	switch objectType {
