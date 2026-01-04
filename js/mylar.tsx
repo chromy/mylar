@@ -187,6 +187,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
       <GlassPanel area="mylar-layers fixed top-0 left-0">
         <LayersMenu dispatch={dispatch} state={state} />
       </GlassPanel>
+      <GlassPanel area="mylar-tags fixed top-0 left-[300px]">
+        <TagsMenu repo={repo} />
+      </GlassPanel>
       <GlassPanel area="mylar-buttons fixed top-0 right-0">
         <div className="flex gap-2">
           <Button onClick={() => setLocation("/")}>Home</Button>
@@ -194,6 +197,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
             Settings
           </Button>
         </div>
+      </GlassPanel>
+      <GlassPanel area="fixed top-12 right-0">
+        <GesturesHelp />
       </GlassPanel>
       <GlassPanel area="mylar-content-info self-end text-xxs">
         <table className="table-auto w-full">
@@ -433,6 +439,72 @@ const LayersMenu = ({ dispatch, state }: LayersMenuProps) => {
           >
             {LAYER_LABELS[layer.kind]}
           </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const GesturesHelp = () => {
+  return (
+    <div className="space-y-2 text-xs">
+      <div className="text-xs font-medium mb-2">Gestures</div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span>Scroll to pan</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Pinch to zoom</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Zoom</span>
+          <div className="flex items-center gap-1">
+            <kbd className="gesture-key">⌘</kbd>
+            <span className="text-xs">+</span>
+            <span className="text-xs">scroll</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Command menu</span>
+          <div className="flex items-center gap-1">
+            <kbd className="gesture-key">⌘</kbd>
+            <span className="text-xs">+</span>
+            <kbd className="gesture-key">K</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface TagsMenuProps {
+  repo: string;
+}
+
+const TagsMenu = ({ repo }: TagsMenuProps) => {
+  const { data: tagsData } = useJsonQuery({
+    path: `/api/tags/${repo}`,
+    schema: TagListResponseSchema,
+  });
+
+  const tags = tagsData?.tags ?? [];
+
+  if (tags.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium mb-2">Tags</div>
+      <div className="space-y-1 max-h-32 overflow-y-auto">
+        {tags.map(tag => (
+          <div
+            key={tag.tag}
+            className="block w-full text-left px-2 py-1 text-xs rounded-xs hover:bg-white/10 transition-colors"
+          >
+            <div className="font-medium">{tag.tag}</div>
+            <div className="text-xxs text-gray-600 font-mono">{tag.commit.slice(0, 6)}</div>
+          </div>
         ))}
       </div>
     </div>
