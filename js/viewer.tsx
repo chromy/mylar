@@ -167,7 +167,7 @@ class Renderer {
     this.callbacks = callbacks;
     this.screenWorldAabb = aabb.create();
     this.tileCompositor = new TileCompositor(new TileStore());
-    this.visualizationBounds = quadtreeBoundingBox(this.layout.lineCount);
+    this.visualizationBounds = quadtreeBoundingBox(this.layout);
 
     this.boundFrame = this.frame.bind(this);
     this.boundHandleWheel = this.handleWheel.bind(this);
@@ -175,8 +175,8 @@ class Renderer {
     this.boundHandleMouseMove = this.handleMouseMove.bind(this);
     this.screenMouse = vec2.create();
     this.worldMouse = vec2.create();
-    this.worldMousePosition = { X: 0, Y: 0 };
-    this.tilePosition = { Lod: 0, tileX: 0, tileY: 0, offsetX: 0, offsetY: 0 };
+    this.worldMousePosition = { x: 0, y: 0 };
+    this.tilePosition = { lod: 0, tileX: 0, tileY: 0, offsetX: 0, offsetY: 0 };
     this.linePosition = 0;
   }
 
@@ -267,7 +267,7 @@ class Renderer {
     this.lastFrameMs = timestamp - this.lastTimestampMs;
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
-    this.worldMousePosition = { X: this.worldMouse[0], Y: this.worldMouse[1] };
+    this.worldMousePosition = { x: this.worldMouse[0], y: this.worldMouse[1] };
     this.tilePosition = worldToTile(this.worldMousePosition, this.layout);
     this.linePosition = worldToLine(this.worldMousePosition, this.layout);
     this.callbacks.setHoveredLineNumber(this.linePosition);
@@ -286,7 +286,7 @@ class Renderer {
     const reqs: CompositeTileRequest[] = [];
     for (const box of requiredTiles(
       this.screenWorldAabb,
-      this.layout.lineCount,
+      this.layout,
       pixelsPerWorldUnit,
     )) {
       const { kind, composite } = currentLayer;
@@ -541,10 +541,10 @@ class Renderer {
       }
 
       const currentWorld = lineToWorld(currentLine, {
-        LastLine: this.layout.lineCount - 1,
+        lineCount: this.layout.lineCount,
       });
       const nextWorld = lineToWorld(nextLine, {
-        LastLine: this.layout.lineCount - 1,
+        lineCount: this.layout.lineCount,
       });
 
       // Convert world positions to screen coordinates

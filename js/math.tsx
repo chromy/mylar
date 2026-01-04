@@ -70,7 +70,7 @@ export function* requiredTiles(
   layout: TileLayout,
   pixelsPerWorldUnit: number,
 ): Generator<aabb> {
-  const viz = quadtreeBoundingBox(lineCount);
+  const viz = quadtreeBoundingBox(layout);
   aabb.intersection(viz, viz, bounds);
 
   const inScope = (box: aabb) => aabb.overlaps(box, viz);

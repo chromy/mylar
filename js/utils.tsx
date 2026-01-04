@@ -39,7 +39,6 @@ export interface TilePosition {
   offsetY: number;
 }
 
-
 // Helper to calculate the side length of the square grid (N).
 // N must be a power of 2.
 export function getGridSide(layout: TileLayout): number {
@@ -93,7 +92,7 @@ export function worldToLine(
   layout: TileLayout,
 ): LinePosition {
   const n = getGridSide(layout);
-  const d = hilbertIndex(n, world.c, world.y);
+  const d = hilbertIndex(n, world.x, world.y);
 
   return d;
 }
@@ -119,7 +118,10 @@ function rot(n: number, ref: { x: number; y: number }, rx: number, ry: number) {
  * Maps a 1D distance d to (x,y) coordinates on a grid of size n*n.
  */
 function hilbertPoint(n: number, d: number): [number, number] {
-  let rx: number, ry: number, s: number, t: number = d;
+  let rx: number,
+    ry: number,
+    s: number,
+    t: number = d;
   const pt = { x: 0, y: 0 };
 
   for (s = 1; s < n; s *= 2) {
@@ -142,7 +144,10 @@ function hilbertPoint(n: number, d: number): [number, number] {
  * Maps (x,y) coordinates to a 1D distance d on a grid of size n*n.
  */
 function hilbertIndex(n: number, x: number, y: number): number {
-  let rx: number, ry: number, s: number, d: number = 0;
+  let rx: number,
+    ry: number,
+    s: number,
+    d: number = 0;
   // We copy x and y into an object so we can mutate them in rot()
   const pt = { x: x, y: y };
 

@@ -2,9 +2,9 @@ package utils
 
 import (
 	"encoding/binary"
-	"math"
 	"github.com/chromy/viz/internal/constants"
 	"github.com/go-git/go-git/v5/plumbing"
+	"math"
 )
 
 func HashToInt32(hash plumbing.Hash) int32 {
@@ -65,7 +65,7 @@ type TilePosition struct {
 
 func LineToWorld(line LinePosition, layout TileLayout) WorldPosition {
 	n := layout.GridSideLength()
-	
+
 	x, y := hilbertPoint(n, int64(line))
 	return WorldPosition{X: x, Y: y}
 }
@@ -95,7 +95,7 @@ func TileToWorld(tile TilePosition, layout TileLayout) WorldPosition {
 
 func WorldToLine(world WorldPosition, layout TileLayout) LinePosition {
 	n := layout.GridSideLength()
-	
+
 	d := hilbertIndex(n, world.X, world.Y)
 	return LinePosition(d)
 }

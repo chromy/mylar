@@ -39,21 +39,21 @@ o.spec("math", () => {
 
   o.spec("quadtreeBoundingBox", () => {
     o("creates correct bounding box for different values", () => {
-      const box1 = quadtreeBoundingBox(1);
-      o(aabb.width(box1)).equals(2);
-      o(aabb.height(box1)).equals(2);
+      const box1 = quadtreeBoundingBox({ lineCount: 1 });
+      o(aabb.width(box1)).equals(1);
+      o(aabb.height(box1)).equals(1);
 
-      const box5 = quadtreeBoundingBox(5);
+      const box5 = quadtreeBoundingBox({ lineCount: 5 });
       o(aabb.width(box5)).equals(4);
       o(aabb.height(box5)).equals(4);
 
-      const box100 = quadtreeBoundingBox(100);
+      const box100 = quadtreeBoundingBox({ lineCount: 100 });
       o(aabb.width(box100)).equals(16);
       o(aabb.height(box100)).equals(16);
     });
 
     o("always starts at origin", () => {
-      const box = quadtreeBoundingBox(42);
+      const box = quadtreeBoundingBox({ lineCount: 42 });
       o(box[0]).equals(0);
       o(box[1]).equals(0);
     });

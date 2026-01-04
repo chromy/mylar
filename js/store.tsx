@@ -134,6 +134,7 @@ export class TileStore {
 
   update(urls: string[]): void {
     this.requested.clear();
+    this.queue = [];
 
     // Clear the hard refs:
     this.tiles.clear();
@@ -173,6 +174,7 @@ export class TileStore {
       const controller = new AbortController();
       this.aborts.set(url, () => controller.abort(CANCELLED));
       const signal = controller.signal;
+      console.log("fetch", url, this.queue.length);
       const tile = await fetchTile(url, signal);
       this.tiles.set(url, tile);
       this.cache.set(url, new WeakRef(tile));
@@ -184,6 +186,7 @@ export class TileStore {
     } finally {
       this.live.delete(url);
       this.aborts.delete(url);
+      this.processQueue();
     }
   }
 
