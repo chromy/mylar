@@ -22,91 +22,7 @@ interface TileData {
   data: number[];
 }
 
-function hash(n: number): number {
-  n ^= n >>> 16;
-  n = Math.imul(n, 0x85ebca6b);
-  n ^= n >>> 13;
-  n = Math.imul(n, 0xc2b2ae35);
-  n >>> 16;
-  return n;
-}
-
-function rainbow(out: [number, number, number], t: number): void {
-  if (t < 0 || t > 1) {
-    t -= Math.floor(t);
-  }
-  const ts = Math.abs(t - 0.5);
-  out[0] = 1.5 - 1.5 * ts;
-  out[1] = 0.8 - 0.9 * ts;
-  out[2] = 360 * t - 100;
-}
-
 function compositeTile(
-  program: string,
-  size: number,
-  tiles: number[][],
-  buffer: Uint8ClampedArray,
-): void {
-  switch (program) {
-    case "direct":
-    case "x10":
-    case "hash":
-    case "hashRainbow":
-      compositeTileOld(program, size, tiles, buffer);
-      break;
-    default:
-      compositeTileShader(program, size, tiles, buffer);
-      break;
-  }
-}
-
-function compositeTileOld(
-  program: string,
-  size: number,
-  tiles: number[][],
-  buffer: Uint8ClampedArray,
-): void {
-  const oklch: [number, number, number] = [0, 0, 0];
-  const rgb = [0, 0, 0];
-  for (let i = 0; i < TILE_SIZE * TILE_SIZE; i++) {
-    const pixelIndex = i * 4;
-    const d = tiles[0]![i]!;
-
-    if (d === 0) {
-      buffer[pixelIndex + 0] = 255;
-      buffer[pixelIndex + 1] = 255;
-      buffer[pixelIndex + 2] = 255;
-      buffer[pixelIndex + 3] = 255;
-      continue;
-    }
-
-    if (program === "direct") {
-      oklch[0] = 1.0 - Math.min(Math.max(d, 0), 255) / 256.0;
-      oklch[1] = 0;
-      oklch[2] = 0;
-    } else if (program === "x10") {
-      oklch[0] = 1.0 - Math.min(Math.max(d * 10, 0), 255) / 256.0;
-      oklch[1] = 0;
-      oklch[2] = 0;
-    } else if (program === "hash") {
-      oklch[0] = 1.0;
-      oklch[1] = 1.0;
-      oklch[2] = d % 360;
-    } else if (program === "hashRainbow") {
-      rainbow(oklch, (hash(d) + 2147483648) / 4294967295);
-    } else {
-    }
-
-    convert(oklch, OKLCH, sRGB, rgb);
-
-    buffer[pixelIndex] = floatToByte(rgb[0]!); // R
-    buffer[pixelIndex + 1] = floatToByte(rgb[1]!); // G
-    buffer[pixelIndex + 2] = floatToByte(rgb[2]!); // B
-    buffer[pixelIndex + 3] = 255; // A
-  }
-}
-
-function compositeTileShader(
   program: string,
   size: number,
   tiles: number[][],
@@ -152,8 +68,8 @@ async function createTileBitmap(
   const imageData = new ImageData(buffer, TILE_SIZE);
 
   return await createImageBitmap(imageData, 0, 0, TILE_SIZE, TILE_SIZE, {
-    resizeWidth: TILE_SIZE * 4,
-    resizeHeight: TILE_SIZE * 4,
+    resizeWidth: TILE_SIZE,
+    resizeHeight: TILE_SIZE,
     premultiplyAlpha: "none",
     colorSpaceConversion: "none",
     imageOrientation: "none",

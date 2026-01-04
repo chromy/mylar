@@ -484,22 +484,9 @@ const TagsMenuWithData = ({ repo }: TagsMenuWithDataProps) => {
   }
 
   return (
-    <GlassPanel className="mylar-tags">
-      <TagsMenu repo={repo} tags={tags} />
-    </GlassPanel>
-  );
-};
-
-interface TagsMenuProps {
-  repo: string;
-  tags: Array<{ tag: string; commit: string }>;
-}
-
-const TagsMenu = ({ repo, tags }: TagsMenuProps) => {
-  return (
-    <div className="space-y-1">
+    <GlassPanel className="mylar-tags max-h-32 flex flex-col">
       <div className="text-xs font-medium mb-2">Tags</div>
-      <div className="space-y-1 max-h-32 overflow-y-auto">
+      <div className="space-y-1 overflow-y-auto">
         {tags.map(tag => (
           <MylarLink
             key={tag.tag}
@@ -512,10 +499,11 @@ const TagsMenu = ({ repo, tags }: TagsMenuProps) => {
             </div>
           </MylarLink>
         ))}
-      </div>
     </div>
+    </GlassPanel>
   );
 };
+
 
 interface SettingsPanelProps {
   dispatch: ActionDispatch<[action: MylarAction]>;
