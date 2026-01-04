@@ -453,6 +453,74 @@ var GetTileLineLength = core.RegisterTileComputation("length", func(ctx context.
 	return tile, nil
 })
 
+var GetTileLineIndent = core.RegisterTileComputation("indent", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+	if lod != 0 {
+		return make([]int32, constants.TileSize*constants.TileSize), nil
+	}
+
+	tileSize := utils.LodToSize(int(lod))
+	tile := make([]int32, constants.TileSize*constants.TileSize)
+
+	tree, err := repo.CommitToTree(ctx, repoId, commit)
+	if err != nil {
+		return nil, err
+	}
+
+	index, err := GetIndex(ctx, repoId, tree)
+	if err != nil {
+		return nil, err
+	}
+
+	layout := index.ToTileLayout()
+
+	tilePos := utils.TilePosition{
+		Lod:     lod,
+		TileX:   x,
+		TileY:   y,
+		OffsetX: 0,
+		OffsetY: 0,
+	}
+
+	// Get the world position for the top-left corner of this tile
+	tileWorldPos := utils.TileToWorld(tilePos, layout)
+
+	m := make(map[plumbing.Hash][]int)
+
+	// For each position in the tile, calculate the value using the provided pixel function
+	for tileY := 0; tileY < tileSize; tileY++ {
+		for tileX := 0; tileX < tileSize; tileX++ {
+			// Calculate world position for this pixel in the tile
+			worldPos := utils.WorldPosition{
+				X: tileWorldPos.X + int64(tileX),
+				Y: tileWorldPos.Y + int64(tileY),
+			}
+
+			tileIdx := tileY*tileSize + tileX
+
+			linePos := utils.WorldToLine(worldPos, layout)
+
+			if entry := index.FindFileByLine(int64(linePos)); entry != nil {
+
+				lineIndents, found := m[entry.Hash]
+				if !found {
+					lineIndents, err = repo.LineIndents(ctx, repoId, entry.Hash)
+					if err != nil {
+						return tile, err
+					}
+					m[entry.Hash] = lineIndents
+				}
+
+				lineIdxInFile := int64(linePos) - entry.LineOffset
+				if lineIdxInFile >= 0 && lineIdxInFile < int64(len(lineIndents)) {
+					tile[tileIdx] = int32(lineIndents[lineIdxInFile])
+				}
+			}
+
+		}
+	}
+	return tile, nil
+})
+
 var GetTileFileHash = core.RegisterTileComputation("fileHash", func(ctx context.Context, repoId string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
 	return ExecuteTileComputation(ctx, repoId, commit, lod, x, y, func(worldPos utils.WorldPosition, index *Index, layout utils.TileLayout) int32 {
 		linePos := utils.WorldToLine(worldPos, layout)

@@ -8,27 +8,19 @@
 - Blame
 - Git history
 - Custom layers
-- Change commitish to commit. Pass commit to tile render functions.
-- Remove tiles from tile cache
 - Move index reoute
 
 - Get working on:
-- Sentry
-- Perfetto
 - Linux kernel
-- use hamilton path?
 - bump tile size?
 
 - Fix file type / extension
 - Split tile helper into per-file and per-line version
 - Support many layers
-- Support macro-tiles
 - Show pointer to home
 - Home reset button
 - Rename viz -> Mylar
 - Rename Viewer -> Renderer
-- Keyboard shortcut list / help
-- Don't render multiple high lod tiles
 
 - zstd cached?
 
@@ -82,4 +74,10 @@
 - TileCompistor
 - Wire up memcached
 - memcached
+- Change commitish to commit. Pass commit to tile render functions.
+- Remove tiles from tile cache
+- Support macro-tiles
+- Don't render multiple high lod tiles
+- Keyboard shortcut list / help
+- use hamilton path?
 

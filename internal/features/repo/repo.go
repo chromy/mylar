@@ -420,6 +420,30 @@ var LineCount = core.RegisterBlobComputation("lineCount", func(ctx context.Conte
 	return int64(len(lines)), nil
 })
 
+var LineIndents = core.RegisterBlobComputation("lineIndents", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]int, error) {
+	lines, err := Lines(ctx, repoId, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	indents := make([]int, len(lines))
+	for i, line := range lines {
+		indent := 0
+		for _, char := range line {
+			if char == ' ' {
+				indent++
+			} else if char == '\t' {
+				indent += 4
+			} else {
+				break
+			}
+		}
+		indents[i] = indent
+	}
+
+	return indents, nil
+})
+
 var GetTreeEntries = core.RegisterBlobComputation("treeEntries", func(ctx context.Context, repoId string, hash plumbing.Hash) ([]TreeEntry, error) {
 	repo, err := ResolveRepo(ctx, repoId)
 	if err != nil {

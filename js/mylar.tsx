@@ -22,6 +22,7 @@ import {
   TagListResponseSchema,
   type TagListResponse,
 } from "./schemas.js";
+import { LAYER_LABELS, LAYER_OPTIONS, type LayerType } from "./layers.js";
 
 const FileLinesSchema = z.string().array();
 type FileLines = z.infer<typeof FileLinesSchema>;
@@ -35,7 +36,6 @@ import {
   initialMylarState,
   type MylarState,
   settingsPanelSetting,
-  type LayerType,
   getCurrentLayer,
   createChangeLayerAction,
 } from "./state.js";
@@ -396,20 +396,6 @@ interface LayersMenuProps {
   dispatch: ActionDispatch<[action: MylarAction]>;
   state: MylarState;
 }
-
-const LAYER_OPTIONS: LayerType[] = [
-  { kind: "offset", composite: "direct", aggregation: "mean" },
-  { kind: "length", composite: "direct", aggregation: "mean" },
-  { kind: "fileHash", composite: "hash", aggregation: "mode" },
-  { kind: "fileExtension", composite: "hash", aggregation: "mean" },
-];
-
-const LAYER_LABELS: Record<string, string> = {
-  offset: "Line Offset",
-  length: "Line Length",
-  fileHash: "File Hash",
-  fileExtension: "File Type",
-};
 
 const LayersMenu = ({ dispatch, state }: LayersMenuProps) => {
   const currentLayer = getCurrentLayer(state);

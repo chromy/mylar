@@ -30,9 +30,9 @@ import {
   settings,
   initialMylarState,
   type MylarState,
-  type LayerType,
   getCurrentLayer,
 } from "./state.js";
+import { type LayerType } from "./layers.js";
 
 function boxToTileRequest(
   box: aabb,

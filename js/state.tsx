@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Registry } from "./registry.js";
+import { DEFAULT_LAYER, type LayerType } from "./layers.js";
 
 export interface ChangeSettingMylarAction {
   type: "CHANGE_SETTING";
@@ -96,12 +97,6 @@ export const settingsPanelSetting = settings.addBoolean({
   name: "settings panel",
 });
 
-export interface LayerType {
-  kind: string;
-  composite: string;
-  aggregation: string;
-}
-
 export const mylarReducer = (
   state: MylarState,
   action: MylarAction,
@@ -117,11 +112,7 @@ export const mylarReducer = (
 };
 
 export const initialMylarState: MylarState = {
-  layer: {
-    kind: "fileHash",
-    composite: "hash",
-    aggregation: "mode",
-  },
+  layer: DEFAULT_LAYER,
 };
 
 export const getCurrentLayer = (state: MylarState): LayerType => {

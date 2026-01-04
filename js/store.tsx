@@ -21,11 +21,30 @@ interface TileData {
   data: number[];
 }
 
+function hash(n: number): number {
+  n ^= n >>> 16;
+  n = Math.imul(n, 0x85ebca6b);
+  n ^= n >>> 13;
+  n = Math.imul(n, 0xc2b2ae35);
+  n >>> 16;
+  return n;
+}
+
+function rainbow(out: [number, number, number], t: number): void {
+  if (t < 0 || t > 1) {
+    t -= Math.floor(t);
+  }
+  const ts = Math.abs(t - 0.5);
+  out[0] = 1.5 - 1.5 * ts;
+  out[1] = 0.8 - 0.9 * ts;
+  out[2] = 360 * t - 100;
+}
+
 async function createTileBitmap(
   composite: string,
   tileData: number[],
 ): Promise<ImageBitmap> {
-  const oklch = [0, 0, 0];
+  const oklch: [number, number, number] = [0, 0, 0];
   const rgb = [0, 0, 0];
 
   const buffer = new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
@@ -45,10 +64,16 @@ async function createTileBitmap(
       oklch[0] = 1.0 - Math.min(Math.max(d, 0), 255) / 256.0;
       oklch[1] = 0;
       oklch[2] = 0;
+    } else if (composite === "x10") {
+      oklch[0] = 1.0 - Math.min(Math.max(d * 10, 0), 255) / 256.0;
+      oklch[1] = 0;
+      oklch[2] = 0;
     } else if (composite === "hash") {
       oklch[0] = 1.0;
       oklch[1] = 1.0;
       oklch[2] = d % 360;
+    } else if (composite === "hashRainbow") {
+      rainbow(oklch, (hash(d) + 2147483648) / 4294967295);
     } else {
     }
 
