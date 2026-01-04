@@ -196,6 +196,8 @@ class Renderer {
     const height = cssHeight * dpr;
     canvas.width = width;
     canvas.height = height;
+    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingQuality = "low";
     this.camera.setScreenSize(vec2.fromValues(width, height));
   }
 
