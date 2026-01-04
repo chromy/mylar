@@ -72,7 +72,6 @@ o.spec("utils", () => {
   });
 
   o.spec("coordinate conversions", () => {
-
     o("regression", () => {
       const layout: TileLayout = { lineCount: 26322 };
 
@@ -86,9 +85,6 @@ o.spec("utils", () => {
 
       const line = worldToLine(world, layout);
       o(line).equals(15018);
-
     });
-
   });
-
 });

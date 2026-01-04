@@ -271,7 +271,10 @@ class Renderer {
     this.lastFrameMs = timestamp - this.lastTimestampMs;
     this.lastTimestampMs = timestamp;
     this.camera.intoWorldBoundingBox(this.screenWorldAabb);
-    this.worldMousePosition = { x: Math.floor(this.worldMouse[0]), y: Math.floor(this.worldMouse[1]) };
+    this.worldMousePosition = {
+      x: Math.floor(this.worldMouse[0]),
+      y: Math.floor(this.worldMouse[1]),
+    };
     this.tilePosition = worldToTile(this.worldMousePosition, this.layout);
     this.linePosition = worldToLine(this.worldMousePosition, this.layout);
     this.callbacks.setHoveredLineNumber(this.linePosition);

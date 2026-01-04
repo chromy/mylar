@@ -322,7 +322,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
                   : "Show file context"
               }
             >
-              {displayFileContext.get(state) ? "Hide file context" : "Show file context"}
+              {displayFileContext.get(state)
+                ? "Hide file context"
+                : "Show file context"}
             </button>
           </div>
         </div>
