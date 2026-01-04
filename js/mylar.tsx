@@ -398,10 +398,10 @@ interface LayersMenuProps {
 }
 
 const LAYER_OPTIONS: LayerType[] = [
-  { kind: "offset", composite: "direct" },
-  { kind: "length", composite: "direct" },
-  { kind: "fileHash", composite: "hash" },
-  { kind: "fileExtension", composite: "hash" },
+  { kind: "offset", composite: "direct", aggregation: "mean" },
+  { kind: "length", composite: "direct", aggregation: "mean" },
+  { kind: "fileHash", composite: "hash", aggregation: "mode" },
+  { kind: "fileExtension", composite: "hash", aggregation: "mean" },
 ];
 
 const LAYER_LABELS: Record<string, string> = {

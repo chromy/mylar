@@ -15,6 +15,7 @@ export interface ChangeLayerMylarAction {
 export type MylarAction = ChangeSettingMylarAction | ChangeLayerMylarAction;
 
 export interface MylarState {
+  layer: LayerType;
   [key: string]: unknown;
 }
 
@@ -98,6 +99,7 @@ export const settingsPanelSetting = settings.addBoolean({
 export interface LayerType {
   kind: string;
   composite: string;
+  aggregation: string;
 }
 
 export const mylarReducer = (
@@ -115,7 +117,11 @@ export const mylarReducer = (
 };
 
 export const initialMylarState: MylarState = {
-  layer: { kind: "fileHash", composite: "hash" } as LayerType,
+  layer: {
+    kind: "fileHash",
+    composite: "hash",
+    aggregation: "mode",
+  },
 };
 
 export const getCurrentLayer = (state: MylarState): LayerType => {

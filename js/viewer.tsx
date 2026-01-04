@@ -57,6 +57,7 @@ function boxToCompositeTileRequest(
   commit: string,
   kind: string,
   composite: string,
+  aggregation: string,
 ): CompositeTileRequest {
   const width = aabb.width(box);
   return {
@@ -67,6 +68,7 @@ function boxToCompositeTileRequest(
     commit,
     kind,
     composite,
+    aggregation,
   };
 }
 
@@ -188,7 +190,7 @@ class Renderer {
       return;
     }
 
-    const { canvas, dpr } = canvasState;
+    const { ctx, canvas, dpr } = canvasState;
 
     const cssWidth = canvas.offsetWidth;
     const cssHeight = canvas.offsetHeight;
@@ -298,9 +300,16 @@ class Renderer {
       this.layout,
       pixelsPerWorldUnit,
     )) {
-      const { kind, composite } = currentLayer;
+      const { kind, composite, aggregation } = currentLayer;
       reqs.push(
-        boxToCompositeTileRequest(box, this.repo, this.commit, kind, composite),
+        boxToCompositeTileRequest(
+          box,
+          this.repo,
+          this.commit,
+          kind,
+          composite,
+          aggregation,
+        ),
       );
     }
 

@@ -1,5 +1,6 @@
 import { vec3 } from "gl-matrix";
 import { floatToByte, convert, OKLCH, sRGB } from "@texel/color";
+import { schemeObservable10 } from "d3-scale-chromatic";
 import { TILE_SIZE, type TileMetadata, TileMetadataSchema } from "./schemas.js";
 
 const DEFAULT_MAX_LIVE_REQUESTS = 6;
@@ -211,6 +212,7 @@ export interface CompositeTileRequest {
 
   kind: string;
   composite: string;
+  aggregation: string;
 }
 
 interface CompositorJob {
@@ -238,7 +240,7 @@ interface CompositorJob {
 function compositeToRequiredTiles(r: CompositeTileRequest): string[] {
   const tiles: string[] = [];
   tiles.push(
-    `/api/tile/${r.kind}/${r.repo}/${r.commit}/${r.lod}/${r.x}/${r.y}`,
+    `/api/tile/${r.kind}/${r.repo}/${r.commit}/${r.lod}/${r.x}/${r.y}?agg=${r.aggregation}`,
   );
   return tiles;
 }

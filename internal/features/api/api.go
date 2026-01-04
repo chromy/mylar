@@ -21,6 +21,88 @@ type TileMetadata struct {
 	Lod int64 `json:"lod"`
 }
 
+type AggregationType int
+
+const (
+	AggregationMean AggregationType = iota
+	AggregationMode
+	AggregationMax
+	AggregationMin
+)
+
+func parseAggregationType(s string) (AggregationType, error) {
+	switch s {
+	case "mean":
+		return AggregationMean, nil
+	case "mode":
+		return AggregationMode, nil
+	case "max":
+		return AggregationMax, nil
+	case "min":
+		return AggregationMin, nil
+	default:
+		return AggregationMean, fmt.Errorf("invalid aggregation type '%s'. Valid options: mean, mode, max, min", s)
+	}
+}
+
+func aggregateValues(values []int32, agg AggregationType) int32 {
+	if len(values) == 0 {
+		return 0
+	}
+
+	switch agg {
+	case AggregationMean:
+		var sum int32
+		for _, v := range values {
+			sum += v
+		}
+		return sum / int32(len(values))
+
+	case AggregationMax:
+		max := values[0]
+		for _, v := range values {
+			if v > max {
+				max = v
+			}
+		}
+		return max
+
+	case AggregationMin:
+		min := values[0]
+		for _, v := range values {
+			if v < min {
+				min = v
+			}
+		}
+		return min
+
+	case AggregationMode:
+		// Find the most frequent value
+		counts := make(map[int32]int)
+		for _, v := range values {
+			counts[v]++
+		}
+
+		var mode int32
+		maxCount := 0
+		for val, count := range counts {
+			if count > maxCount {
+				maxCount = count
+				mode = val
+			}
+		}
+		return mode
+
+	default:
+		// Default to mean if unknown aggregation type
+		var sum int32
+		for _, v := range values {
+			sum += v
+		}
+		return sum / int32(len(values))
+	}
+}
+
 func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	repoId := ps.ByName("repoId")
 	rawHash := ps.ByName("hash")
@@ -50,7 +132,7 @@ func ComputeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	}
 }
 
-func macroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+func macroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64, agg AggregationType) ([]int32, error) {
 	childLod := lod - 1
 	xys := [][2]int64{
 		{x * 2, y * 2},     // top-left
@@ -68,7 +150,7 @@ func macroTile(ctx context.Context, computationId string, repoName string, commi
 		i, coords := i, coords // capture loop variables
 		g.Go(func() error {
 			childX, childY := coords[0], coords[1]
-			childTile, childErr := getTile(ctx, computationId, repoName, commit, childLod, childX, childY)
+			childTile, childErr := getTile(ctx, computationId, repoName, commit, childLod, childX, childY, agg)
 			if childErr != nil {
 				return fmt.Errorf("failed to fetch child tile (%d, %d) at LOD %d: %w", childX, childY, childLod, childErr)
 			}
@@ -87,8 +169,7 @@ func macroTile(ctx context.Context, computationId string, repoName string, commi
 			childBlockX := parentX * 2
 			childBlockY := parentY * 2
 
-			var sum int32
-			var count int32
+			childValues := make([]int32, 0, 4)
 
 			// Sample from appropriate child tiles based on position
 			for dy := 0; dy < 2; dy++ {
@@ -121,17 +202,16 @@ func macroTile(ctx context.Context, computationId string, repoName string, commi
 					if tileIdx < len(childTiles) && childTiles[tileIdx] != nil {
 						childIdx := childY*constants.TileSize + childX
 						if childIdx >= 0 && childIdx < len(childTiles[tileIdx]) {
-							sum += childTiles[tileIdx][childIdx]
-							count++
+							childValues = append(childValues, childTiles[tileIdx][childIdx])
 						}
 					}
 				}
 			}
 
-			// Average the sampled values
+			// Apply aggregation function
 			var pixel int32
-			if count > 0 {
-				pixel = sum / count
+			if len(childValues) > 0 {
+				pixel = aggregateValues(childValues, agg)
 			}
 
 			resultIdx := parentY*constants.TileSize + parentX
@@ -142,8 +222,8 @@ func macroTile(ctx context.Context, computationId string, repoName string, commi
 	return result, nil
 }
 
-func cachingMacroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
-	cacheKey := core.GenerateCacheKey("macroTile", computationId, repoName, commit.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y))
+func cachingMacroTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64, agg AggregationType) ([]int32, error) {
+	cacheKey := core.GenerateCacheKey("macroTile", computationId, repoName, commit.String(), fmt.Sprintf("%d", lod), fmt.Sprintf("%d", x), fmt.Sprintf("%d", y), fmt.Sprintf("%d", agg))
 
 	cache := core.GetCache()
 	if cached, err := cache.Get(cacheKey); err == nil {
@@ -151,7 +231,7 @@ func cachingMacroTile(ctx context.Context, computationId string, repoName string
 		return result, nil
 	}
 
-	result, err := macroTile(ctx, computationId, repoName, commit, lod, x, y)
+	result, err := macroTile(ctx, computationId, repoName, commit, lod, x, y, agg)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +242,7 @@ func cachingMacroTile(ctx context.Context, computationId string, repoName string
 	return result, nil
 }
 
-func getTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64) ([]int32, error) {
+func getTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64, agg AggregationType) ([]int32, error) {
 	isBlank, err := index.IsBlankTile(ctx, repoName, commit, lod, x, y)
 	if err != nil {
 		return []int32{}, err
@@ -179,7 +259,7 @@ func getTile(ctx context.Context, computationId string, repoName string, commit 
 		}
 		return c.Execute(ctx, repoName, commit, lod, x, y)
 	} else {
-		return cachingMacroTile(ctx, computationId, repoName, commit, lod, x, y)
+		return cachingMacroTile(ctx, computationId, repoName, commit, lod, x, y, agg)
 	}
 }
 
@@ -229,9 +309,21 @@ func TileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+	// Parse optional aggregation parameter
+	aggStr := r.URL.Query().Get("agg")
+	if aggStr == "" {
+		aggStr = "mean" // default to mean
+	}
+
+	agg, err := parseAggregationType(aggStr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	tileComputationId := ps.ByName("tileComputationId")
 
-	tile, err := getTile(r.Context(), tileComputationId, repoName, plumbing.NewHash(commit), lod, x, y)
+	tile, err := getTile(r.Context(), tileComputationId, repoName, plumbing.NewHash(commit), lod, x, y, agg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
