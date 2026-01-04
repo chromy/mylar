@@ -11,8 +11,8 @@ import (
 	"github.com/chromy/viz/internal/utils"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"path/filepath"
@@ -141,7 +141,7 @@ var GetTreeIndex = core.RegisterBlobComputation("treeIndex", func(ctx context.Co
 		}
 		childIndex, err := getIndex.Execute(ctx, repoId, entry.Hash)
 		if err != nil {
-			return Index{},  fmt.Errorf("getting child index %s: %s",  hash, err)
+			return Index{}, fmt.Errorf("getting child index %s: %s", hash, err)
 		}
 
 		for _, childEntry := range childIndex.(Index).Entries {
