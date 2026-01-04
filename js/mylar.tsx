@@ -499,11 +499,10 @@ const TagsMenuWithData = ({ repo }: TagsMenuWithDataProps) => {
             </div>
           </MylarLink>
         ))}
-    </div>
+      </div>
     </GlassPanel>
   );
 };
-
 
 interface SettingsPanelProps {
   dispatch: ActionDispatch<[action: MylarAction]>;
