@@ -23,6 +23,6 @@ RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -
     ca-certificates git && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/viz /app/viz
+COPY --from=builder /app/mylar /app/mylar
 
-CMD ["/app/viz", "serve", "--port", "8080"]
+CMD ["/app/mylar", "serve", "--port", "8080"]

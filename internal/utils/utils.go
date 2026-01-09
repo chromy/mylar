@@ -2,7 +2,7 @@ package utils
 
 import (
 	"encoding/binary"
-	"github.com/chromy/viz/internal/constants"
+	"github.com/chromy/mylar/internal/constants"
 	"github.com/go-git/go-git/v5/plumbing"
 	"math"
 )

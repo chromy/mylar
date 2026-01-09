@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/chromy/viz/internal/core"
-	"github.com/chromy/viz/internal/schemas"
+	"github.com/chromy/mylar/internal/core"
+	"github.com/chromy/mylar/internal/schemas"
 	"github.com/julienschmidt/httprouter"
 )
 

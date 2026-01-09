@@ -1,7 +1,7 @@
 package viz
 
 import (
-	"github.com/chromy/viz/internal/core"
+	"github.com/chromy/mylar/internal/core"
 	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"io/fs"

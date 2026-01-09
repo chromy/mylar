@@ -1,4 +1,4 @@
-module github.com/chromy/viz
+module github.com/chromy/mylar
 
 go 1.24.4
 

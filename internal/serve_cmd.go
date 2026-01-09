@@ -2,9 +2,9 @@ package viz
 
 import (
 	"context"
-	"github.com/chromy/viz/internal/cache"
-	"github.com/chromy/viz/internal/core"
-	"github.com/chromy/viz/internal/features/repo"
+	"github.com/chromy/mylar/internal/cache"
+	"github.com/chromy/mylar/internal/core"
+	"github.com/chromy/mylar/internal/features/repo"
 	"github.com/getsentry/sentry-go"
 	"github.com/getsentry/sentry-go/http"
 	"github.com/julienschmidt/httprouter"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/chromy/viz/internal/core"
-	"github.com/chromy/viz/internal/schemas"
+	"github.com/chromy/mylar/internal/core"
+	"github.com/chromy/mylar/internal/schemas"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
@@ -209,6 +209,49 @@ func ResolveRepo(ctx context.Context, repoId string) (*git.Repository, error) {
 	return repo, nil
 }
 
+func UpdateRepo(ctx context.Context, repoId string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	repo, found := repos[repoId]
+	if !found {
+		return fmt.Errorf("no repo with id %s", repoId)
+	}
+
+	cfg, err := repo.Repository.Config()
+	if err != nil {
+		return fmt.Errorf("failed to get config: %w", err)
+	}
+
+	if !cfg.Core.IsBare {
+		return fmt.Errorf("repo %s is not a bare repository", repoId)
+	}
+
+	if !strings.HasPrefix(repoId, "gh:") {
+		return fmt.Errorf("only GitHub repos (gh:owner:name format) are supported for updates")
+	}
+
+	parts := strings.Split(repoId, ":")
+	if len(parts) != 3 {
+		return fmt.Errorf("invalid repo id format: %s", repoId)
+	}
+
+	owner, name := parts[1], parts[2]
+	repoPath := filepath.Join(core.GetStoragePath(), "gh", owner, name)
+
+	log.Printf("Updating repo %s at %s", repoId, repoPath)
+
+	cmd := exec.CommandContext(ctx, "git", "-C", repoPath, "fetch", "--all", "--prune")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git fetch failed: %w, output: %s", err, string(output))
+	}
+
+	log.Printf("Successfully updated repo %s: %s", repoId, string(output))
+
+	return nil
+}
+
 func ResolveCommittishToHash(repo *git.Repository, committish string) (plumbing.Hash, error) {
 	if plumbing.IsHash(committish) {
 		hash := plumbing.NewHash(committish)
@@ -302,6 +345,23 @@ func ResolveCommittishHandler(w http.ResponseWriter, r *http.Request, ps httprou
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func UpdateHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	repoId := ps.ByName("repoId")
+	if repoId == "" {
+		http.Error(w, "repoId parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := UpdateRepo(r.Context(), repoId); err != nil {
+		http.Error(w, fmt.Sprintf("failed to update repo: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
 func TagListHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -539,6 +599,13 @@ func init() {
 		Method:  http.MethodGet,
 		Path:    "/api/tags/:repoId",
 		Handler: TagListHandler,
+	})
+
+	core.RegisterRoute(core.Route{
+		Id:      "repo.update",
+		Method:  http.MethodPost,
+		Path:    "/api/repo/:repoId/update",
+		Handler: UpdateHandler,
 	})
 
 	schemas.Register("repo.RepoInfo", RepoInfo{})

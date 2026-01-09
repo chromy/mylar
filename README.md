@@ -19,7 +19,6 @@
 - Support many layers
 - Show pointer to home
 - Home reset button
-- Rename viz -> Mylar
 - Rename Viewer -> Renderer
 
 - zstd cached?

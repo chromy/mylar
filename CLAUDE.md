@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "viz" - a code visualization tool that serves Git repositories with an interactive file browser and viewer. The application consists of a Go backend that serves static files and provides Git repository APIs, paired with a React/TypeScript frontend for interactive visualization.
+This is "mylar" - a code visualization tool that serves Git repositories with an interactive file browser and viewer. The application consists of a Go backend that serves static files and provides Git repository APIs, paired with a React/TypeScript frontend for interactive visualization.
 
 ## Development Commands
 
 ### Go Backend
-- `go run ./cmd/viz serve --port 8080` - Start production server
-- `go run ./cmd/viz dev --port 8080` - Start development server with assets rebuilding
-- `go run ./cmd/viz assets` - List embedded assets
+- `go run ./cmd/mylar serve --port 8080` - Start production server
+- `go run ./cmd/mylar dev --port 8080` - Start development server with assets rebuilding
+- `go run ./cmd/mylar assets` - List embedded assets
 - `go test ./...` - Run all Go tests
-- `go build ./cmd/viz` - Build the viz binary
+- `go build ./cmd/mylar` - Build the mylar binary
 
 ### Frontend/Assets
 - Frontend assets are built using esbuild and embedded into the Go binary via `//go:embed`

@@ -36,6 +36,7 @@ import {
   initialMylarState,
   type MylarState,
   settingsPanelSetting,
+  gesturesPanelSetting,
   getCurrentLayer,
   createChangeLayerAction,
 } from "./state.js";
@@ -192,7 +193,18 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
           <LayersMenu dispatch={dispatch} state={state} />
         </GlassPanel>
         <GlassPanel className="">
-          <div className="font-medium mb-1">Shader</div>
+          <div className="flex items-center justify-between mb-1">
+            <div className="font-medium">Shader</div>
+            <button
+              className="px-1.5 py-0.5 text-xxs bg-white/10 hover:bg-white/20 rounded-xs border border-black/10 transition-colors"
+              onClick={() => {
+                // TODO: Implement shader editing
+                console.log("Edit shader clicked");
+              }}
+            >
+              Edit
+            </button>
+          </div>
           <div className="font-mono text-xs break-all">
             {getCurrentLayer(state)
               .composite.split("|")
@@ -212,9 +224,11 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
             </Button>
           </div>
         </GlassPanel>
-        <GlassPanel>
-          <GesturesHelp />
-        </GlassPanel>
+        {gesturesPanelSetting.get(state) && (
+          <GlassPanel>
+            <GesturesHelp />
+          </GlassPanel>
+        )}
       </div>
       <GlassPanel className="mylar-debug self-end text-xxs">
         <table className="table-auto w-full">
@@ -441,6 +455,17 @@ const GesturesHelp = () => {
         <div className="flex items-center justify-between">
           <span>Pan</span>
           <span>Scroll</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Pan</span>
+          <div className="flex items-center gap-1">
+            <kbd className="gesture-key">⌘</kbd>
+            <span className="text-xs">click + drag</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Pan</span>
+          <span className="text-xs">Middle click + drag</span>
         </div>
         <div className="flex items-center justify-between">
           <span>Zoom</span>

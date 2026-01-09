@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/chromy/viz/internal/cache"
+	"github.com/chromy/mylar/internal/cache"
 )
 
 func InitCache(c cache.Cache) {

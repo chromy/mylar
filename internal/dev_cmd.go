@@ -150,7 +150,7 @@ func (dev *DevServer) rebuildWithLock() {
 	}
 
 	if err == nil {
-		cmd := exec.Command("go", "build", "cmd/viz/viz.go")
+		cmd := exec.Command("go", "build", "-o", "mylar", "cmd/mylar/mylar.go")
 		output, err := cmd.CombinedOutput()
 		if err == nil {
 			dev.latestError = nil

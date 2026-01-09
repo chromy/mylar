@@ -34,6 +34,10 @@ import {
 } from "./state.js";
 import { type LayerType } from "./layers.js";
 
+function isDrag(e: MouseEvent): boolean {
+  return e.button === 1 || (e.button === 0 && e.metaKey);
+}
+
 function boxToCompositeTileRequest(
   box: aabb,
   repo: string,
@@ -129,6 +133,8 @@ class Renderer {
   private boundHandleWheel: (e: WheelEvent) => void;
   private boundHandleResize: () => void;
   private boundHandleMouseMove: (e: MouseEvent) => void;
+  private boundHandleMouseDown: (e: MouseEvent) => void;
+  private boundHandleMouseUp: (e: MouseEvent) => void;
   private screenWorldAabb: aabb;
   private screenMouse: vec2;
   private worldMouse: vec2;
@@ -136,6 +142,8 @@ class Renderer {
   private tilePosition: TilePosition;
   private linePosition: LinePosition;
   private visualizationBounds: aabb;
+  private isDragging: boolean;
+  private dragStartScreen: vec2;
 
   constructor(
     repo: string,
@@ -161,11 +169,15 @@ class Renderer {
     this.boundHandleWheel = this.handleWheel.bind(this);
     this.boundHandleResize = this.handleResize.bind(this);
     this.boundHandleMouseMove = this.handleMouseMove.bind(this);
+    this.boundHandleMouseDown = this.handleMouseDown.bind(this);
+    this.boundHandleMouseUp = this.handleMouseUp.bind(this);
     this.screenMouse = vec2.create();
     this.worldMouse = vec2.create();
     this.worldMousePosition = { x: 0, y: 0 };
     this.tilePosition = { lod: 0, tileX: 0, tileY: 0, offsetX: 0, offsetY: 0 };
     this.linePosition = 0;
+    this.isDragging = false;
+    this.dragStartScreen = vec2.create();
   }
 
   private handleResize(): void {
@@ -212,6 +224,37 @@ class Renderer {
 
     vec2.set(this.screenMouse, x, y);
     this.camera.toWorld(this.worldMouse, this.screenMouse);
+
+    if (this.isDragging) {
+      const deltaX = x - this.dragStartScreen[0];
+      const deltaY = y - this.dragStartScreen[1];
+
+      this.camera.dolly(vec3.fromValues(-deltaX, -deltaY, 0));
+
+      vec2.set(this.dragStartScreen, x, y);
+    }
+  }
+
+  private handleMouseDown(e: MouseEvent): void {
+    const canvasState = this.canvasState;
+    if (canvasState === undefined) {
+      return;
+    }
+
+    if (isDrag(e)) {
+      const rect = canvasState.canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * canvasState.dpr;
+      const y = (e.clientY - rect.top) * canvasState.dpr;
+
+      this.isDragging = true;
+      vec2.set(this.dragStartScreen, x, y);
+      e.preventDefault();
+    }
+  }
+
+  private handleMouseUp(e: MouseEvent): void {
+    this.isDragging = false;
+    e.preventDefault();
   }
 
   private tryHookCanvas(): void {
@@ -245,6 +288,8 @@ class Renderer {
 
     canvas.addEventListener("wheel", this.boundHandleWheel);
     canvas.addEventListener("mousemove", this.boundHandleMouseMove);
+    canvas.addEventListener("mousedown", this.boundHandleMouseDown);
+    canvas.addEventListener("mouseup", this.boundHandleMouseUp);
     window.addEventListener("resize", this.boundHandleResize);
 
     this.canvasState = {
@@ -620,6 +665,8 @@ class Renderer {
         "mousemove",
         this.boundHandleMouseMove,
       );
+      canvasState.canvas.removeEventListener("mousedown", this.boundHandleMouseDown);
+      canvasState.canvas.removeEventListener("mouseup", this.boundHandleMouseUp);
       window.removeEventListener("resize", this.boundHandleResize);
     }
   }

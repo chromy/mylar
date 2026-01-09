@@ -5,8 +5,8 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	_ "github.com/chromy/viz/internal/features"
-	"github.com/chromy/viz/internal/schemas"
+	_ "github.com/chromy/mylar/internal/features"
+	"github.com/chromy/mylar/internal/schemas"
 	"io/fs"
 	"os"
 )

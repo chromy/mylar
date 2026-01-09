@@ -2,7 +2,7 @@ package schemas
 
 import (
 	"fmt"
-	"github.com/chromy/viz/internal/constants"
+	"github.com/chromy/mylar/internal/constants"
 	"github.com/hypersequent/zen"
 	"sort"
 	"sync"

@@ -97,6 +97,12 @@ export const settingsPanelSetting = settings.addBoolean({
   name: "settings panel",
 });
 
+export const gesturesPanelSetting = settings.addBoolean({
+  id: "setting.gesturesPanel",
+  name: "gestures panel",
+  defaultValue: true,
+});
+
 export const mylarReducer = (
   state: MylarState,
   action: MylarAction,
