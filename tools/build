@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 pnpm exec esbuild js/bundle.ts --bundle --minify --outdir=internal/static --log-level=warning --sourcemap
 pnpm exec esbuild js/tests_bundle.ts --bundle --minify --outdir=internal/static --log-level=warning --sourcemap --format=esm --platform=node
