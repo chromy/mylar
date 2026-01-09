@@ -41,33 +41,33 @@ jobs:
     - name: Build binaries for multiple platforms
       run: |
         # Linux AMD64
-        GOOS=linux GOARCH=amd64 go build -o viz-linux-amd64 ./cmd/viz
+        GOOS=linux GOARCH=amd64 go build -o mylar-linux-amd64 ./cmd/mylar
 
         # Linux ARM64
-        GOOS=linux GOARCH=arm64 go build -o viz-linux-arm64 ./cmd/viz
+        GOOS=linux GOARCH=arm64 go build -o mylar-linux-arm64 ./cmd/mylar
 
         # macOS AMD64
-        GOOS=darwin GOARCH=amd64 go build -o viz-darwin-amd64 ./cmd/viz
+        GOOS=darwin GOARCH=amd64 go build -o mylar-darwin-amd64 ./cmd/mylar
 
         # macOS ARM64 (Apple Silicon)
-        GOOS=darwin GOARCH=arm64 go build -o viz-darwin-arm64 ./cmd/viz
+        GOOS=darwin GOARCH=arm64 go build -o mylar-darwin-arm64 ./cmd/mylar
 
         # Windows AMD64
-        GOOS=windows GOARCH=amd64 go build -o viz-windows-amd64.exe ./cmd/viz
+        GOOS=windows GOARCH=amd64 go build -o mylar-windows-amd64.exe ./cmd/mylar
 
         # Windows ARM64
-        GOOS=windows GOARCH=arm64 go build -o viz-windows-arm64.exe ./cmd/viz
+        GOOS=windows GOARCH=arm64 go build -o mylar-windows-arm64.exe ./cmd/mylar
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          viz-linux-amd64
-          viz-linux-arm64
-          viz-darwin-amd64
-          viz-darwin-arm64
-          viz-windows-amd64.exe
-          viz-windows-arm64.exe
+          mylar-linux-amd64
+          mylar-linux-arm64
+          mylar-darwin-amd64
+          mylar-darwin-arm64
+          mylar-windows-amd64.exe
+          mylar-windows-arm64.exe
         draft: false
         prerelease: false
         generate_release_notes: true

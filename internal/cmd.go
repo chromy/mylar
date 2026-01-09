@@ -1,4 +1,4 @@
-package viz
+package mylar
 
 import (
 	"context"
@@ -18,7 +18,7 @@ var staticFS, _ = fs.Sub(assetsFS, "static")
 var templatesFS, _ = fs.Sub(assetsFS, "templates")
 
 func Usage() {
-	fmt.Fprintf(os.Stderr, "viz <subcommand>\n")
+	fmt.Fprintf(os.Stderr, "mylar <subcommand>\n")
 }
 
 func Cmd() {

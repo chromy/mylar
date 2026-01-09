@@ -22,7 +22,7 @@ var version string
 var versionOnce sync.Once
 
 func initVersion() {
-	version = "dev" // default fallback
+	version = "dev"
 
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
@@ -38,7 +38,7 @@ func initStorage() {
 	if envPath := os.Getenv("MYLAR_STORAGE"); envPath != "" {
 		storagePath = envPath
 	} else {
-		tmpDir, err := os.MkdirTemp("", "viz-storage-")
+		tmpDir, err := os.MkdirTemp("", "mylar-storage-")
 		if err != nil {
 			panic(err)
 		}

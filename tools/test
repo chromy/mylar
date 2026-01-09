@@ -7,6 +7,6 @@ pnpm exec tailwindcss --input css/main.css --output internal/static/bundle.css
 
 pnpm exec tsc --noEmit
 node internal/static/tests_bundle.js
-go build cmd/viz/viz.go
+go build cmd/mylar/mylar.go
 go test ./...
 

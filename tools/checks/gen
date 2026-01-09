@@ -11,15 +11,15 @@ ROOT_DIR = os.path.dirname(TOOLS_DIR)
 TARGET_FILE = os.path.join(ROOT_DIR, "js", "schemas.tsx")
 
 def main():
-    description = "Ensure js/schemas.tsx matches output of './viz schemas'"
+    description = "Ensure js/schemas.tsx matches output of './mylar schemas'"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
 
-    # Generate schemas using ./viz schemas
+    # Generate schemas using ./mylar schemas
     try:
         result = subprocess.run(
-            ["./viz", "schemas"],
+            ["./mylar", "schemas"],
             cwd=ROOT_DIR,
             capture_output=True,
             text=True,
@@ -27,30 +27,30 @@ def main():
         )
         generated_content = result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Error running './viz schemas': {e}", file=sys.stderr)
+        print(f"Error running './mylar schemas': {e}", file=sys.stderr)
         if e.stderr:
             print(e.stderr, file=sys.stderr)
         return 1
     except FileNotFoundError:
-        print("Error: './viz' binary not found. Run 'go build ./cmd/viz' first.", file=sys.stderr)
+        print("Error: './mylar' binary not found. Run 'go build ./cmd/mylar' first.", file=sys.stderr)
         return 1
 
     # Format the generated content with prettier
     with tempfile.NamedTemporaryFile(mode='w', suffix='.tsx', delete=False) as temp_file:
         temp_file.write(generated_content)
         temp_file_path = temp_file.name
-    
+
     format_result = subprocess.run(
         ["pnpm", "-C", ROOT_DIR, "exec", "prettier", "--write", temp_file_path],
         capture_output=True,
         text=True
     )
-    
+
     if format_result.returncode == 0:
         # Read the formatted content back
         with open(temp_file_path, 'r') as f:
             generated_content = f.read()
-    
+
     # Clean up temp file
     os.unlink(temp_file_path)
 
@@ -66,7 +66,7 @@ def main():
         return 0  # Files match, success
 
     if args.check:
-        print(f"Error: {TARGET_FILE} does not match output of './viz schemas'", file=sys.stderr)
+        print(f"Error: {TARGET_FILE} does not match output of './mylar schemas'", file=sys.stderr)
         
         # Write generated content to temporary file for diff
         with tempfile.NamedTemporaryFile(mode='w', suffix='.tsx', delete=False) as temp_file:

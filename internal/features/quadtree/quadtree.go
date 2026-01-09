@@ -110,4 +110,3 @@ var GetFileQuadtree = core.RegisterCommitComputation("fileQuadtree", func(ctx co
 
 	return encoded, nil
 })
-

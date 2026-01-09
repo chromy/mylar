@@ -1,4 +1,4 @@
-package viz
+package mylar
 
 import (
 	"github.com/chromy/mylar/internal/core"

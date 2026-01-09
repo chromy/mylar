@@ -665,8 +665,14 @@ class Renderer {
         "mousemove",
         this.boundHandleMouseMove,
       );
-      canvasState.canvas.removeEventListener("mousedown", this.boundHandleMouseDown);
-      canvasState.canvas.removeEventListener("mouseup", this.boundHandleMouseUp);
+      canvasState.canvas.removeEventListener(
+        "mousedown",
+        this.boundHandleMouseDown,
+      );
+      canvasState.canvas.removeEventListener(
+        "mouseup",
+        this.boundHandleMouseUp,
+      );
       window.removeEventListener("resize", this.boundHandleResize);
     }
   }
