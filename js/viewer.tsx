@@ -15,6 +15,7 @@ import {
   lineToWorld,
   worldToTile,
   worldToLine,
+  getGridSide,
   type WorldPosition,
   type TilePosition,
   type LinePosition,
@@ -36,6 +37,265 @@ import { type LayerType } from "./layers.js";
 
 function isDrag(e: MouseEvent): boolean {
   return e.button === 1 || (e.button === 0 && e.metaKey);
+}
+
+function quadtreeToPath(quadtree: Uint8Array, maxN: number): vec2[] {
+  const readMask = (n: number) => {
+    return (quadtree[Math.floor(n/2)]! >> (n % 2) * 4) & 0x0f;
+  };
+
+  interface QuadNode {
+    x: number;
+    y: number;
+    size: number;
+  }
+
+  const drawNodes: QuadNode[] = [];
+  const nodes: QuadNode[] = [];
+
+  nodes.push({
+    x: 0,
+    y: 0,
+    size: maxN,
+  });
+
+  let offset = 0;
+  for (;;) {
+    const node = nodes.shift();
+    if (!node) {
+      break;
+    }
+
+    if (node.size == 1) {
+      drawNodes.push(node);
+      continue;
+    }
+
+    const m = readMask(offset++);
+    if (!m) {
+      drawNodes.push(node);
+      continue;
+    }
+
+    const hasNw = (m & 0x01) >> 0;
+    const hasSw = (m & 0x02) >> 1;
+    const hasSe = (m & 0x04) >> 2;
+    const hasNe = (m & 0x08) >> 3;
+
+    const nextSize = node.size / 2;
+
+    if (hasNw) {
+      nodes.push({
+        x: node.x,
+        y: node.y,
+        size: nextSize,
+      });
+    }
+    if (hasSw) {
+      nodes.push({
+        x: node.x,
+        y: node.y + nextSize,
+        size: nextSize,
+      });
+    }
+    if (hasSe) {
+      nodes.push({
+        x: node.x + nextSize,
+        y: node.y + nextSize,
+        size: nextSize,
+      });
+    }
+    if (hasNe) {
+      nodes.push({
+        x: node.x + nextSize,
+        y: node.y,
+        size: nextSize,
+      });
+    }
+  }
+
+  type Edge = [vec2, vec2];
+
+  const idToNode = new Map<string, vec2>();
+  const idToEdge = new Map<string, Edge>();
+
+  const nodeToId = (n: vec2) => `${n[0]}_${n[1]}`;
+  const edgeToId = (a: vec2, b: vec2) => `${a[0]}_${a[1]}_${b[0]}_${b[1]}`;
+
+  const internNode = (x: number, y: number) => {
+    const id = `${x}_${y}`;
+    const node = idToNode.get(id);
+    if (node !== undefined) {
+      return node;
+    }
+
+    const newNode = vec2.fromValues(x, y);
+    idToNode.set(id, newNode);
+
+    return newNode;
+  };
+
+  const internEdge = (a: vec2, b: vec2) => {
+    const id = `${nodeToId(a)}_${nodeToId(b)}`;
+    const edge = idToEdge.get(id);
+    if (edge !== undefined) {
+      return edge;
+    }
+
+    const newEdge: Edge = [a, b];
+    idToEdge.set(id, newEdge);
+
+    return newEdge;
+  };
+
+  const reverseEdge = (e: [vec2, vec2]) => internEdge(e[1], e[0]);
+
+  interface Interval {
+    a: number;
+    b: number;
+    s: number;
+  }
+
+  const rows = new Map<number, Interval[]>();
+  const getRow = (y: number) => {
+    const row = rows.get(y);
+    if (row !== undefined) {
+      return row;
+    }
+    const newRow: Interval[] = [];
+    rows.set(y, newRow);
+    return newRow;
+  };
+
+
+  const columns = new Map<number, Interval[]>();
+  const getColumn = (x: number) => {
+    const column = columns.get(x);
+    if (column !== undefined) {
+      return column;
+    }
+    const newColumn: Interval[] = [];
+    columns.set(x, newColumn);
+    return newColumn;
+  };
+
+  for (const {x, y, size} of drawNodes) {
+    getColumn(x).push({
+      a: y,
+      b: y+size,
+      s: 1,
+    });
+    getColumn(x+size).push({
+      a: y,
+      b: y+size,
+      s: -1,
+    });
+
+    getRow(y).push({
+      a: x,
+      b: x+size,
+      s: -1,
+    });
+    getRow(y+size).push({
+      a: x,
+      b: x+size,
+      s: 1,
+    });
+  }
+
+  const boundary: Edge[] = [];
+  const processAxis = (n: number, intervals: Interval[], isVertical: boolean) => {
+    const points = [...new Set(intervals.flatMap(({a, b}) => [a, b]))];
+    points.sort((a, b) => a - b);
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const k = points[i]!;
+      const j = points[i + 1]!;
+      const mid = (k + j) / 2;
+
+      let winding = 0;
+      for (const interval of intervals) {
+        if (interval.a <= mid && interval.b > mid) {
+          winding += interval.s;
+        }
+      }
+
+      const p = isVertical ? internNode(n, k) : internNode(k, n);
+      const q = isVertical ? internNode(n, j) : internNode(j, n);
+
+      if (winding === 0) {
+        // do nothing.
+      } else if (winding > 0) {
+        boundary.push(internEdge(p, q));
+      } else {
+        boundary.push(internEdge(q, p));
+      }
+    }
+  };
+
+  rows.entries().forEach(([y, intervals]) => processAxis(y, intervals, false));
+  columns.entries().forEach(([x, intervals]) => processAxis(x, intervals, true));
+
+  const adj = new Map<vec2, vec2>();
+  for (const e of boundary) {
+    if (adj.has(e[0])) {
+      debugger;
+    }
+    adj.set(e[0], e[1]);
+  }
+
+  const points: vec2[] = [];
+  const start = [...boundary][0]![0];
+  let node = start;
+  for (;;) {
+    points.push(node);
+    node = adj.get(node)!;
+    if (node === start) {
+      break;
+    }
+  }
+
+  return points;
+
+  //return [...boundary].flatMap(x => x);
+
+
+
+    //const nw = internNode(node.x, node.y);
+    //const sw = internNode(node.x, node.y+node.size);
+    //const se = internNode(node.x+node.size, node.y+node.size);
+    //const ne = internNode(node.x+node.size, node.y);
+
+    //const left = internEdge(nw, sw);
+    //const bottom = internEdge(sw, se);
+    //const right = internEdge(se, ne);
+    //const top = internEdge(ne, nw);
+    //const edges = [left, bottom, right, top];
+
+    //for (const edge of edges) {
+    //  const r = reverseEdge(edge);
+    //  if (boundary.has(r)) {
+    //    boundary.delete(r);
+    //  } else {
+    //    boundary.add(edge);
+    //  }
+    //}
+
+
+  //const points = [];
+
+  //const start = [...boundary][0]![0];
+  //let node = start;
+  //for (;;) {
+  //  debugger;
+  //  points.push(node);
+  //  node = adj.get(node)!;
+  //  if (node === start) {
+  //    break;
+  //  }
+  //}
+
+  //return points;
 }
 
 function boxToCompositeTileRequest(
@@ -80,6 +340,7 @@ interface RendererHostCallbacks {
   setFrameHistory: (history: number[]) => void;
   setHoveredLineNumber: (line: number) => void;
   getState(): MylarState;
+  getHoveredOutline(): Uint8Array|undefined;
 }
 
 const displayOrigin = settings.addBoolean({
@@ -115,6 +376,12 @@ const debugCurve = settings.addBoolean({
   defaultValue: false,
 });
 
+const displayFileOutline = settings.addBoolean({
+  id: "setting.displayFileOutline",
+  name: "file outline",
+  defaultValue: true,
+});
+
 class Renderer {
   private repo: string;
   private commit: string;
@@ -144,6 +411,8 @@ class Renderer {
   private visualizationBounds: aabb;
   private isDragging: boolean;
   private dragStartScreen: vec2;
+  private cachedQuadtreePath: vec2[] | undefined;
+  private lastHoveredOutline: Uint8Array | undefined;
 
   constructor(
     repo: string,
@@ -175,9 +444,11 @@ class Renderer {
     this.worldMouse = vec2.create();
     this.worldMousePosition = { x: 0, y: 0 };
     this.tilePosition = { lod: 0, tileX: 0, tileY: 0, offsetX: 0, offsetY: 0 };
-    this.linePosition = 0;
+    this.linePosition = -1;
     this.isDragging = false;
     this.dragStartScreen = vec2.create();
+    this.cachedQuadtreePath = undefined;
+    this.lastHoveredOutline = undefined;
   }
 
   private handleResize(): void {
@@ -310,7 +581,23 @@ class Renderer {
     };
     this.tilePosition = worldToTile(this.worldMousePosition, this.layout);
     this.linePosition = worldToLine(this.worldMousePosition, this.layout);
+    if (!aabb.containsPoint(this.visualizationBounds, this.worldMouse)) {
+      this.linePosition = -1;
+    }
+
     this.callbacks.setHoveredLineNumber(this.linePosition);
+
+    // Update cached quadtree path if hoveredOutline changed
+    const hoveredOutline = this.callbacks.getHoveredOutline();
+    if (hoveredOutline !== this.lastHoveredOutline) {
+      this.lastHoveredOutline = hoveredOutline;
+      if (hoveredOutline) {
+        const maxN = getGridSide(this.layout);
+        this.cachedQuadtreePath = quadtreeToPath(hoveredOutline, maxN);
+      } else {
+        this.cachedQuadtreePath = undefined;
+      }
+    }
 
     const state = this.callbacks.getState();
     const currentLayer = getCurrentLayer(state);
@@ -573,6 +860,10 @@ class Renderer {
     ) {
       this.renderDebugCurve(ctx, state);
     }
+
+    if (this.cachedQuadtreePath && displayFileOutline.get(state)) {
+      this.renderQuadtree(ctx);
+    }
   }
 
   private renderDebugCurve(
@@ -647,6 +938,33 @@ class Renderer {
     }
   }
 
+  private renderQuadtree(
+    ctx: CanvasRenderingContext2D,
+  ): void {
+    const points = this.cachedQuadtreePath;
+    if (!points || points.length === 0) {
+      return;
+    }
+
+    ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+    ctx.lineWidth = 3;
+
+    const start = points[0]!;
+
+    const s = vec2.fromValues(0, 0);
+    this.camera.toScreen(s, start);
+    ctx.beginPath();
+    ctx.moveTo(s[0], s[1]);
+    for (let i = 1; i < points.length; ++i) {
+      const point = points[i]!;
+      this.camera.toScreen(s, point);
+      ctx.lineTo(s[0], s[1]);
+    }
+    this.camera.toScreen(s, start);
+    ctx.lineTo(s[0], s[1]);
+    ctx.stroke();
+  }
+
   start(): void {
     console.log("renderer starting");
     this.lastTimestampMs = performance.now();
@@ -689,6 +1007,7 @@ export interface ViewerProps {
   layout: TileLayout;
   setDebug: (info: DebugInfo) => void;
   setHoveredLineNumber: (line: number) => void;
+  hoveredOutline: Uint8Array|undefined;
   dispatch: ActionDispatch<[action: MylarAction]>;
   state: MylarState;
 }
@@ -703,15 +1022,21 @@ export const Viewer = ({
   layout,
   setDebug,
   setHoveredLineNumber,
+  hoveredOutline,
 }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<MylarState>(initialMylarState);
+  const hoveredOutlineRef = useRef<Uint8Array|undefined>(undefined);
 
   const [frameHistory, setFrameHistory] = useState<number[]>([]);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    hoveredOutlineRef.current = hoveredOutline;
+  }, [hoveredOutline]);
 
   useEffect(() => {
     const getCanvas = () => {
@@ -722,12 +1047,17 @@ export const Viewer = ({
       return stateRef.current;
     };
 
+    const getHoveredOutline = () => {
+      return hoveredOutlineRef.current;
+    };
+
     const renderer = new Renderer(repo, commit, layout, {
       getCanvas,
       setFrameHistory,
       setDebug,
       getState,
       setHoveredLineNumber,
+      getHoveredOutline
     });
     (window as any).renderer = renderer;
     renderer.start();

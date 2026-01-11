@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/chromy/mylar/internal/constants"
 	"github.com/chromy/mylar/internal/core"
-	"github.com/chromy/mylar/internal/features/index"
+//	"github.com/chromy/mylar/internal/features/index"
 	"github.com/chromy/mylar/internal/schemas"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/julienschmidt/httprouter"
@@ -243,14 +243,14 @@ func cachingMacroTile(ctx context.Context, computationId string, repoName string
 }
 
 func getTile(ctx context.Context, computationId string, repoName string, commit plumbing.Hash, lod int64, x int64, y int64, agg AggregationType) ([]int32, error) {
-	isBlank, err := index.IsBlankTile(ctx, repoName, commit, lod, x, y)
-	if err != nil {
-		return []int32{}, err
-	}
+	//isBlank, err := index.IsBlankTile(ctx, repoName, commit, lod, x, y)
+	//if err != nil {
+	//	return []int32{}, err
+	//}
 
-	if isBlank {
-		return make([]int32, constants.TileSize*constants.TileSize), nil
-	}
+	//if isBlank {
+	//	return make([]int32, constants.TileSize*constants.TileSize), nil
+	//}
 
 	if lod == 0 {
 		c, found := core.GetTileComputation(computationId)

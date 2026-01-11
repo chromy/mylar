@@ -6,7 +6,7 @@ import { compile, constant, swap, dup, sub, Stack } from "./ssl.js";
 
 const DEFAULT_MAX_LIVE_REQUESTS = 6;
 
-const CANCELLED = Symbol("cancelled");
+export const CANCELLED = Symbol("cancelled");
 
 export interface TileRequest {
   x: number;

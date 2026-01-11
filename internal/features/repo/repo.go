@@ -241,7 +241,7 @@ func UpdateRepo(ctx context.Context, repoId string) error {
 
 	log.Printf("Updating repo %s at %s", repoId, repoPath)
 
-	cmd := exec.CommandContext(ctx, "git", "-C", repoPath, "fetch", "--all", "--prune")
+	cmd := exec.CommandContext(ctx, "git", "-C", repoPath, "fetch", "origin", "+refs/heads/*:refs/heads/*", "--prune")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git fetch failed: %w, output: %s", err, string(output))

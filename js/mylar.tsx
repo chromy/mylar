@@ -23,6 +23,7 @@ import {
   type TagListResponse,
 } from "./schemas.js";
 import { LAYER_LABELS, LAYER_OPTIONS, type LayerType } from "./layers.js";
+import { CANCELLED } from "./store.js";
 
 const FileLinesSchema = z.string().array();
 type FileLines = z.infer<typeof FileLinesSchema>;
@@ -114,6 +115,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
   const [state, dispatch] = useReducer(mylarReducer, initialMylarState);
   const [hoveredLineNumber, setHoveredLineNumber] = useState<number>(-1);
   const [, setLocation] = useLocation();
+  const [hoveredOutline, setHoveredOutline] = useState<Uint8Array|undefined>(undefined);
 
   const layout = useMemo(() => {
     return toTileLayout(index);
@@ -125,6 +127,46 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
     }
     return findIndexEntryByLine(index.entries ?? [], hoveredLineNumber);
   }, [index.entries, hoveredLineNumber]);
+
+  useEffect(() => {
+    if (hoveredEntry === undefined) {
+      setHoveredOutline(undefined);
+      return;
+    }
+    const hash = hoveredEntry.hash.map(b => b.toString(16).padStart(2, "0")).join("")
+    const url = `/api/commit/fileQuadtree/${repo}/${commit}/${hash}`;
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    fetch(url, {signal})
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        const base64String = data as string;
+        const binaryString = atob(base64String);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        if (!signal.aborted) {
+          setHoveredOutline(bytes);
+        }
+      })
+      .catch(error => {
+        if (error !== CANCELLED) {
+          console.error("Error fetching quadtree:", error);
+        }
+      });
+
+      return () => {
+        controller.abort(CANCELLED);
+      };
+  }, [setHoveredOutline, repo, hoveredEntry, commit]);
 
   const hashString = hoveredEntry?.hash
     ? hoveredEntry.hash.map(b => b.toString(16).padStart(2, "0")).join("")
@@ -173,6 +215,8 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [dispatch, state]);
 
+  //console.log(hoveredLineNumber, hoveredOutline, hoveredEntry);
+
   return (
     <div className="mylar bottom-0 top-0 fixed left-0 right-0">
       <CommandMenu dispatch={dispatch} state={state} />
@@ -185,6 +229,7 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
           setDebug={setDebug}
           dispatch={dispatch}
           state={state}
+          hoveredOutline={hoveredOutline}
           setHoveredLineNumber={setHoveredLineNumber}
         />
       </div>
