@@ -172,7 +172,9 @@ function initSentry() {
       Sentry.browserTracingIntegration(),
       Sentry.browserProfilingIntegration(),
       Sentry.replayIntegration(),
-      Sentry.feedbackIntegration({}),
+      Sentry.feedbackIntegration({
+        autoInject: false,
+      }),
     ],
     tracesSampleRate: 1.0,
     replaysSessionSampleRate: 0.5,
