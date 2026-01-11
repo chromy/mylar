@@ -115,7 +115,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
   const [state, dispatch] = useReducer(mylarReducer, initialMylarState);
   const [hoveredLineNumber, setHoveredLineNumber] = useState<number>(-1);
   const [, setLocation] = useLocation();
-  const [hoveredOutline, setHoveredOutline] = useState<Uint8Array|undefined>(undefined);
+  const [hoveredOutline, setHoveredOutline] = useState<Uint8Array | undefined>(
+    undefined,
+  );
 
   const layout = useMemo(() => {
     return toTileLayout(index);
@@ -133,13 +135,15 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
       setHoveredOutline(undefined);
       return;
     }
-    const hash = hoveredEntry.hash.map(b => b.toString(16).padStart(2, "0")).join("")
+    const hash = hoveredEntry.hash
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
     const url = `/api/commit/fileQuadtree/${repo}/${commit}/${hash}`;
 
     const controller = new AbortController();
     const signal = controller.signal;
 
-    fetch(url, {signal})
+    fetch(url, { signal })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -163,9 +167,9 @@ const MylarContent = ({ repo, commit, tree, index }: MylarContentProps) => {
         }
       });
 
-      return () => {
-        controller.abort(CANCELLED);
-      };
+    return () => {
+      controller.abort(CANCELLED);
+    };
   }, [setHoveredOutline, repo, hoveredEntry, commit]);
 
   const hashString = hoveredEntry?.hash

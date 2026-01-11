@@ -42,10 +42,10 @@ func rangeToQuadtreeBinary(targetDStart, targetDEnd int64, maxN int64) []byte {
 
 	type Node struct {
 		start, end int64
-		phase string
+		phase      string
 	}
 
-	queue := []Node{{start: 0, end: total, phase: "a" }}
+	queue := []Node{{start: 0, end: total, phase: "a"}}
 
 	for len(queue) > 0 {
 		node := queue[0]
@@ -60,13 +60,13 @@ func rangeToQuadtreeBinary(targetDStart, targetDEnd int64, maxN int64) []byte {
 
 		segments := []struct {
 			start int64
-			end int64
+			end   int64
 		}{
-			{node.start + quarter * 0, node.start + quarter * 1},
-			{node.start + quarter * 1, node.start + quarter * 2},
-			{node.start + quarter * 2, node.start + quarter * 3},
-			{node.start + quarter * 3, node.start + quarter * 4},
-		};
+			{node.start + quarter*0, node.start + quarter*1},
+			{node.start + quarter*1, node.start + quarter*2},
+			{node.start + quarter*2, node.start + quarter*3},
+			{node.start + quarter*3, node.start + quarter*4},
+		}
 
 		nodes := make([]Node, 0, 4)
 
@@ -99,7 +99,7 @@ func rangeToQuadtreeBinary(targetDStart, targetDEnd int64, maxN int64) []byte {
 			if node.start < targetDEnd && targetDStart < node.end {
 				childMask |= 1 << i
 
-				if node.end - node.start > 1 {
+				if node.end-node.start > 1 {
 					queue = append(queue, node)
 				}
 			}

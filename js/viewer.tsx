@@ -41,7 +41,7 @@ function isDrag(e: MouseEvent): boolean {
 
 function quadtreeToPath(quadtree: Uint8Array, maxN: number): vec2[] {
   const readMask = (n: number) => {
-    return (quadtree[Math.floor(n/2)]! >> (n % 2) * 4) & 0x0f;
+    return (quadtree[Math.floor(n / 2)]! >> ((n % 2) * 4)) & 0x0f;
   };
 
   interface QuadNode {
@@ -167,7 +167,6 @@ function quadtreeToPath(quadtree: Uint8Array, maxN: number): vec2[] {
     return newRow;
   };
 
-
   const columns = new Map<number, Interval[]>();
   const getColumn = (x: number) => {
     const column = columns.get(x);
@@ -179,33 +178,37 @@ function quadtreeToPath(quadtree: Uint8Array, maxN: number): vec2[] {
     return newColumn;
   };
 
-  for (const {x, y, size} of drawNodes) {
+  for (const { x, y, size } of drawNodes) {
     getColumn(x).push({
       a: y,
-      b: y+size,
+      b: y + size,
       s: 1,
     });
-    getColumn(x+size).push({
+    getColumn(x + size).push({
       a: y,
-      b: y+size,
+      b: y + size,
       s: -1,
     });
 
     getRow(y).push({
       a: x,
-      b: x+size,
+      b: x + size,
       s: -1,
     });
-    getRow(y+size).push({
+    getRow(y + size).push({
       a: x,
-      b: x+size,
+      b: x + size,
       s: 1,
     });
   }
 
   const boundary: Edge[] = [];
-  const processAxis = (n: number, intervals: Interval[], isVertical: boolean) => {
-    const points = [...new Set(intervals.flatMap(({a, b}) => [a, b]))];
+  const processAxis = (
+    n: number,
+    intervals: Interval[],
+    isVertical: boolean,
+  ) => {
+    const points = [...new Set(intervals.flatMap(({ a, b }) => [a, b]))];
     points.sort((a, b) => a - b);
 
     for (let i = 0; i < points.length - 1; i++) {
@@ -234,7 +237,9 @@ function quadtreeToPath(quadtree: Uint8Array, maxN: number): vec2[] {
   };
 
   rows.entries().forEach(([y, intervals]) => processAxis(y, intervals, false));
-  columns.entries().forEach(([x, intervals]) => processAxis(x, intervals, true));
+  columns
+    .entries()
+    .forEach(([x, intervals]) => processAxis(x, intervals, true));
 
   const adj = new Map<vec2, vec2>();
   for (const e of boundary) {
@@ -259,28 +264,25 @@ function quadtreeToPath(quadtree: Uint8Array, maxN: number): vec2[] {
 
   //return [...boundary].flatMap(x => x);
 
+  //const nw = internNode(node.x, node.y);
+  //const sw = internNode(node.x, node.y+node.size);
+  //const se = internNode(node.x+node.size, node.y+node.size);
+  //const ne = internNode(node.x+node.size, node.y);
 
+  //const left = internEdge(nw, sw);
+  //const bottom = internEdge(sw, se);
+  //const right = internEdge(se, ne);
+  //const top = internEdge(ne, nw);
+  //const edges = [left, bottom, right, top];
 
-    //const nw = internNode(node.x, node.y);
-    //const sw = internNode(node.x, node.y+node.size);
-    //const se = internNode(node.x+node.size, node.y+node.size);
-    //const ne = internNode(node.x+node.size, node.y);
-
-    //const left = internEdge(nw, sw);
-    //const bottom = internEdge(sw, se);
-    //const right = internEdge(se, ne);
-    //const top = internEdge(ne, nw);
-    //const edges = [left, bottom, right, top];
-
-    //for (const edge of edges) {
-    //  const r = reverseEdge(edge);
-    //  if (boundary.has(r)) {
-    //    boundary.delete(r);
-    //  } else {
-    //    boundary.add(edge);
-    //  }
-    //}
-
+  //for (const edge of edges) {
+  //  const r = reverseEdge(edge);
+  //  if (boundary.has(r)) {
+  //    boundary.delete(r);
+  //  } else {
+  //    boundary.add(edge);
+  //  }
+  //}
 
   //const points = [];
 
@@ -340,7 +342,7 @@ interface RendererHostCallbacks {
   setFrameHistory: (history: number[]) => void;
   setHoveredLineNumber: (line: number) => void;
   getState(): MylarState;
-  getHoveredOutline(): Uint8Array|undefined;
+  getHoveredOutline(): Uint8Array | undefined;
 }
 
 const displayOrigin = settings.addBoolean({
@@ -938,9 +940,7 @@ class Renderer {
     }
   }
 
-  private renderQuadtree(
-    ctx: CanvasRenderingContext2D,
-  ): void {
+  private renderQuadtree(ctx: CanvasRenderingContext2D): void {
     const points = this.cachedQuadtreePath;
     if (!points || points.length === 0) {
       return;
@@ -1007,7 +1007,7 @@ export interface ViewerProps {
   layout: TileLayout;
   setDebug: (info: DebugInfo) => void;
   setHoveredLineNumber: (line: number) => void;
-  hoveredOutline: Uint8Array|undefined;
+  hoveredOutline: Uint8Array | undefined;
   dispatch: ActionDispatch<[action: MylarAction]>;
   state: MylarState;
 }
@@ -1026,7 +1026,7 @@ export const Viewer = ({
 }: ViewerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<MylarState>(initialMylarState);
-  const hoveredOutlineRef = useRef<Uint8Array|undefined>(undefined);
+  const hoveredOutlineRef = useRef<Uint8Array | undefined>(undefined);
 
   const [frameHistory, setFrameHistory] = useState<number[]>([]);
 
@@ -1057,7 +1057,7 @@ export const Viewer = ({
       setDebug,
       getState,
       setHoveredLineNumber,
-      getHoveredOutline
+      getHoveredOutline,
     });
     (window as any).renderer = renderer;
     renderer.start();
