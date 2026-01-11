@@ -167,12 +167,15 @@ function initSentry() {
   Sentry.init({
     dsn,
     environment: (window as any).__ENVIRONMENT__ || "development",
+    sendDefaultPii: true,
     integrations: [
       Sentry.browserTracingIntegration(),
+      Sentry.browserProfilingIntegration(),
       Sentry.replayIntegration(),
+      Sentry.feedbackIntegration({}),
     ],
     tracesSampleRate: 1.0,
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate: 0.5,
     replaysOnErrorSampleRate: 1.0,
   });
 }

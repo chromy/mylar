@@ -40,12 +40,21 @@ func rangeToQuadtreeBinary(targetDStart, targetDEnd int64, maxN int64) []byte {
 		}
 	}
 
+	type Phase int
+
+	const (
+		PhaseA Phase = iota
+		PhaseB
+		PhaseC
+		PhaseD
+	)
+
 	type Node struct {
 		start, end int64
-		phase      string
+		phase      Phase
 	}
 
-	queue := []Node{{start: 0, end: total, phase: "a"}}
+	queue := []Node{{start: 0, end: total, phase: PhaseA}}
 
 	for len(queue) > 0 {
 		node := queue[0]
@@ -71,26 +80,26 @@ func rangeToQuadtreeBinary(targetDStart, targetDEnd int64, maxN int64) []byte {
 		nodes := make([]Node, 0, 4)
 
 		switch node.phase {
-		case "a":
-			nodes = append(nodes, Node{segments[0].start, segments[0].end, "d"})
-			nodes = append(nodes, Node{segments[1].start, segments[1].end, "a"})
-			nodes = append(nodes, Node{segments[2].start, segments[2].end, "a"})
-			nodes = append(nodes, Node{segments[3].start, segments[3].end, "b"})
-		case "b":
-			nodes = append(nodes, Node{segments[2].start, segments[2].end, "b"})
-			nodes = append(nodes, Node{segments[1].start, segments[1].end, "b"})
-			nodes = append(nodes, Node{segments[0].start, segments[0].end, "c"})
-			nodes = append(nodes, Node{segments[3].start, segments[3].end, "a"})
-		case "c":
-			nodes = append(nodes, Node{segments[2].start, segments[2].end, "c"})
-			nodes = append(nodes, Node{segments[3].start, segments[3].end, "d"})
-			nodes = append(nodes, Node{segments[0].start, segments[0].end, "b"})
-			nodes = append(nodes, Node{segments[1].start, segments[1].end, "c"})
-		case "d":
-			nodes = append(nodes, Node{segments[0].start, segments[0].end, "a"})
-			nodes = append(nodes, Node{segments[3].start, segments[3].end, "c"})
-			nodes = append(nodes, Node{segments[2].start, segments[2].end, "d"})
-			nodes = append(nodes, Node{segments[1].start, segments[1].end, "d"})
+		case PhaseA:
+			nodes = append(nodes, Node{segments[0].start, segments[0].end, PhaseD})
+			nodes = append(nodes, Node{segments[1].start, segments[1].end, PhaseA})
+			nodes = append(nodes, Node{segments[2].start, segments[2].end, PhaseA})
+			nodes = append(nodes, Node{segments[3].start, segments[3].end, PhaseB})
+		case PhaseB:
+			nodes = append(nodes, Node{segments[2].start, segments[2].end, PhaseB})
+			nodes = append(nodes, Node{segments[1].start, segments[1].end, PhaseB})
+			nodes = append(nodes, Node{segments[0].start, segments[0].end, PhaseC})
+			nodes = append(nodes, Node{segments[3].start, segments[3].end, PhaseA})
+		case PhaseC:
+			nodes = append(nodes, Node{segments[2].start, segments[2].end, PhaseC})
+			nodes = append(nodes, Node{segments[3].start, segments[3].end, PhaseD})
+			nodes = append(nodes, Node{segments[0].start, segments[0].end, PhaseB})
+			nodes = append(nodes, Node{segments[1].start, segments[1].end, PhaseC})
+		case PhaseD:
+			nodes = append(nodes, Node{segments[0].start, segments[0].end, PhaseA})
+			nodes = append(nodes, Node{segments[3].start, segments[3].end, PhaseC})
+			nodes = append(nodes, Node{segments[2].start, segments[2].end, PhaseD})
+			nodes = append(nodes, Node{segments[1].start, segments[1].end, PhaseD})
 		}
 
 		childMask := byte(0)
